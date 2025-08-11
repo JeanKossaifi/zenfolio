@@ -97,10 +97,16 @@ class Content:
     def _safe_parse_blog_posts(self):
         """Safely parse blog posts with error handling using extensible parser system"""
         try:
-            blog_dir = self.content_dir / "blog"
+            # Check if blog is disabled in configuration
+            if not self.config.site.blog_folder:
+                if self.debug:
+                    print("⚠️  Blog disabled in configuration (site.blog_folder = None)")
+                return []
+            
+            blog_dir = self.content_dir / self.config.site.blog_folder
             if not blog_dir.exists():
                 if self.debug:
-                    print("⚠️  Warning: blog directory not found, using empty blog posts")
+                    print(f"⚠️  Warning: blog directory '{self.config.site.blog_folder}' not found, using empty blog posts")
                 return []
             
             all_raw_posts = []

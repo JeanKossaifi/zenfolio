@@ -119,6 +119,9 @@ class SiteConfig(ConfigBase):
     # SEO configuration
     seo: SEOConfig = SEOConfig()
     
+    # Blog configuration
+    blog_folder: Optional[str] = "blog"  # Blog directory name (None = disable blog completely, "blog" = default)
+    
     # Homepage display settings
     homepage_publications_count: Optional[int] = 3  # Number of publications to show on homepage (None = show all highlighted)
     homepage_news_count: Optional[int] = 3         # Number of news items to show on homepage (None = show all)

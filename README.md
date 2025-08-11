@@ -107,6 +107,11 @@ site_config = SiteConfig(
     description="Your research focus and expertise...",
     base_url="https://yoursite.com",
     
+    # Blog configuration
+    blog_folder="blog",    # Default: look for posts in "blog/" directory
+    # blog_folder="posts", # Custom: use "posts/" directory instead  
+    # blog_folder=None,    # Disable: completely disable blog functionality
+    
     # SEO configuration
     seo=SEOConfig(
         alumni_of="Your University",

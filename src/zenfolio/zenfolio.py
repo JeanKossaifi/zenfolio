@@ -267,7 +267,7 @@ class ZenFolio:
         if self.config.news and hasattr(self.config.news, 'items') and self.config.news.items:
             built_pages.append(('news', 'News'))
             
-        if self.content.blog_posts:
+        if self.content.blog_posts and self.config.site.blog_folder:
             built_pages.append(('blog', 'Blog'))
         
         # Store built pages for navbar rendering (before building pages)
@@ -293,11 +293,14 @@ class ZenFolio:
         else:
             print("⏭️  Skipping News page (no content provided)")
             
-        if self.content.blog_posts:
+        if self.content.blog_posts and self.config.site.blog_folder:
             self._build_list_page("Blog", "blog.html", self.content.blog_posts, 'blog_post_item', 2, base_url, seo_generator=seo_generator)
             self._build_blog_post_pages(self.content.blog_posts, base_url, seo_generator)
         else:
-            print("⏭️  Skipping Blog pages (no content provided)")
+            if not self.config.site.blog_folder:
+                print("⏭️  Skipping Blog pages (blog disabled in configuration)")
+            else:
+                print("⏭️  Skipping Blog pages (no content provided)")
         
         self._build_pages(base_url, seo_generator)
         

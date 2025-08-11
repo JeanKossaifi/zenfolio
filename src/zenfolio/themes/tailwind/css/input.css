@@ -1,0 +1,1204 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+
+/* Configure dark mode to use class-based selector instead of prefers-color-scheme */
+@variant dark (&:where(.dark, .dark *));
+
+/* Elysian Theme - Refined Background System */
+.elysian-background {
+    position: fixed; 
+    inset: 0; 
+    z-index: -1; 
+    pointer-events: none;
+    background: 
+        radial-gradient(ellipse 80% 50% at 50% -20%, hsl(210, 100%, 97%), transparent 50%),
+        radial-gradient(ellipse 60% 40% at 80% 80%, hsl(180, 100%, 97%), transparent 50%),
+        linear-gradient(135deg, hsl(210, 40%, 98%) 0%, white 70%);
+}
+
+.dark .elysian-background {
+    background: 
+        radial-gradient(ellipse 80% 50% at 50% -20%, rgba(15, 23, 42, 0.4), transparent 50%),
+        radial-gradient(ellipse 60% 40% at 80% 80%, rgba(30, 41, 59, 0.3), transparent 50%),
+        linear-gradient(135deg, rgba(15, 23, 42, 0.8) 0%, theme(colors.slate.900) 70%);
+}
+
+.noise-texture::after {
+    content: ''; 
+    position: fixed; 
+    inset: 0; 
+    z-index: -1; 
+    pointer-events: none;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.2' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.6'/%3E%3C/svg%3E");
+    opacity: 0.02;
+    mix-blend-mode: multiply;
+}
+
+.dark .noise-texture::after {
+    mix-blend-mode: screen;
+    opacity: 0.015;
+}
+
+.heading { 
+    font-family: 'Playfair Display', serif; 
+    font-weight: 700; 
+    letter-spacing: -0.04em; 
+    text-rendering: optimizeLegibility;
+    font-feature-settings: 'liga' 1, 'calt' 1;
+}
+
+/* --- Unified Typography Utilities --- */
+/* Main content prose (for blog posts, pages) */
+.prose-main {
+    @apply prose lg:prose-lg dark:prose-invert max-w-none;
+    line-height: 1.75;
+}
+
+/* Proper font families for prose headings using higher specificity than :where() */
+.prose-main h1,
+.prose-main h2,
+.prose-main h3,
+.prose-main h4,
+.prose-main h5,
+.prose-main h6 {
+    font-family: "Playfair Display", serif;
+}
+
+.prose-main p,
+.prose-main li,
+.prose-main blockquote,
+.prose-main strong {
+    font-family: "Inter", sans-serif;
+}
+
+/* Secondary content prose (for descriptions, excerpts) */
+.prose-secondary {
+    @apply prose dark:prose-invert max-w-none text-gray-600 dark:text-gray-300;
+    line-height: 1.7;
+}
+
+.prose-secondary h1,
+.prose-secondary h2,
+.prose-secondary h3,
+.prose-secondary h4,
+.prose-secondary h5,
+.prose-secondary h6 {
+    font-family: "Playfair Display", serif;
+}
+
+.prose-secondary p,
+.prose-secondary li,
+.prose-secondary blockquote,
+.prose-secondary strong {
+    font-family: "Inter", sans-serif;
+}
+
+/* Bio/about section prose */
+.prose-bio {
+    @apply prose lg:prose-lg dark:prose-invert max-w-none text-lg;
+    line-height: 1.8;
+}
+
+.prose-bio h1,
+.prose-bio h2,
+.prose-bio h3,
+.prose-bio h4,
+.prose-bio h5,
+.prose-bio h6 {
+    font-family: "Playfair Display", serif;
+}
+
+.prose-bio p,
+.prose-bio li,
+.prose-bio blockquote,
+.prose-bio strong {
+    font-family: "Inter", sans-serif;
+}
+
+/* --- Enhanced Social Media Icons --- */
+.social-icon-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.5rem;
+    height: 2.5rem;
+    border-radius: 50%;
+    color: theme(colors.gray.500);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+}
+
+.dark .social-icon-link {
+    color: theme(colors.gray.400);
+}
+
+.social-icon-link::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    background: theme(colors.gray.100);
+    opacity: 0;
+    transform: scale(0.8);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.dark .social-icon-link::before {
+    background: theme(colors.gray.800);
+}
+
+.social-icon-link:hover {
+    color: theme(colors.teal.600);
+    transform: translateY(-1px);
+}
+
+.dark .social-icon-link:hover {
+    color: theme(colors.teal.400);
+}
+
+.social-icon-link:hover::before {
+    opacity: 1;
+    transform: scale(1);
+}
+
+.social-icon-link i {
+    position: relative;
+    z-index: 1;
+}
+
+/* --- MathJax Styling --- */
+.MathJax {
+    color: inherit !important;
+}
+
+.prose .MathJax_Display {
+    margin: 1.5rem 0 !important;
+}
+
+/* Dark mode MathJax compatibility */
+.dark .MathJax {
+    color: theme(colors.white) !important;
+}
+
+.dark .MathJax svg {
+    color: theme(colors.white) !important;
+}
+.elysian-card {
+    background: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(229, 231, 235, 0.6); 
+    border-radius: 1.25rem;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+}
+
+.elysian-card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, transparent 50%);
+    pointer-events: none;
+    z-index: 1;
+}
+
+.dark .elysian-card {
+    background: rgba(30, 41, 59, 0.85);
+    border-color: rgba(75, 85, 99, 0.6);
+}
+
+.dark .elysian-card::before {
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0%, transparent 50%);
+}
+
+.elysian-card:hover { 
+    transform: translateY(-6px) scale(1.01); 
+    box-shadow: 0 20px 40px -12px rgba(0, 0, 0, 0.12), 0 8px 16px -8px rgba(0, 0, 0, 0.08); 
+    border-color: rgba(156, 163, 175, 0.8);
+}
+
+.dark .elysian-card:hover { 
+    box-shadow: 0 20px 40px -12px rgba(0, 0, 0, 0.25), 0 8px 16px -8px rgba(0, 0, 0, 0.15); 
+    border-color: rgba(107, 114, 128, 0.8);
+}
+
+.elysian-card:hover::before {
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.15) 0%, transparent 60%);
+}
+
+.dark .elysian-card:hover::before {
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.08) 0%, transparent 60%);
+}
+.reveal { opacity: 1; transition: opacity 0.8s ease, transform 0.8s ease; }
+.js-enabled .reveal { opacity: 0; transform: translateY(24px); }
+.js-enabled .reveal.active { opacity: 1; transform: translateY(0); }
+.delay-200 { transition-delay: 200ms; } .delay-400 { transition-delay: 400ms; }
+@keyframes slow-pulse { 
+    0%, 100% { opacity: 0.9; transform: scale(1); } 
+    50% { opacity: 0.7; transform: scale(1.05); } 
+}
+.animate-slow-pulse { animation: slow-pulse 12s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+
+@keyframes float {
+    0%, 100% { transform: translateY(0px); }
+    50% { transform: translateY(-8px); }
+}
+.animate-float { animation: float 6s ease-in-out infinite; }
+
+@keyframes shimmer {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
+}
+.animate-shimmer {
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
+    background-size: 200% 100%;
+    animation: shimmer 3s ease-in-out infinite;
+}
+/* --- Fluid Typography --- */
+.fluid-heading-hero {
+    font-size: clamp(3rem, 8vw + 1rem, 6rem);
+    line-height: 1;
+}
+
+.fluid-heading-large {
+    font-size: clamp(2.25rem, 5vw + 1rem, 3.75rem);
+    line-height: 1;
+}
+
+.fluid-heading-medium {
+    font-size: clamp(1.875rem, 4vw + 0.5rem, 3rem);
+    line-height: 1.1;
+}
+
+.fluid-text-large {
+    font-size: clamp(1.125rem, 2vw + 0.5rem, 1.25rem);
+    line-height: 1.75;
+}
+
+/* --- Markdown Image Alignment --- */
+/* Support for {: class="center"} markdown attribute */
+.center {
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+    text-align: center;
+}
+
+/* Enhanced image styling for blog posts */
+.prose-main img,
+.prose-secondary img,
+.prose-bio img {
+    border-radius: 8px;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    max-width: 100%;
+    height: auto;
+}
+
+/* Hover effects for images */
+.prose-main img:hover,
+.prose-secondary img:hover,
+.prose-bio img:hover {
+    transform: translateY(-2px) scale(1.01);
+}
+
+/* Centered images with enhanced styling */
+img.center {
+    display: block;
+    margin: 2rem auto;
+    border-radius: 8px;
+}
+
+/* Dynamic image styling based on width attribute */
+.prose-main img[style*="width"],
+.prose-secondary img[style*="width"] {
+    display: block;
+    margin: 2rem auto;
+    border-radius: 8px;
+}
+
+/* Height-based image styling */
+.prose-main img[style*="height"],
+.prose-secondary img[style*="height"] {
+    display: block;
+    margin: 2rem auto;
+    border-radius: 8px;
+}
+
+/* --- Semantic Image Classes --- */
+
+/* Wide images - break out of content width */
+.wide {
+    width: 120%;
+    max-width: none;
+    margin-left: -10%;
+    margin-top: 2.5rem;
+    margin-bottom: 2.5rem;
+    border-radius: 8px;
+}
+
+/* Right-floating images - properly wraps text around */
+img.figure-right {
+    float: right;
+    margin: 0 0 1rem 1.5rem;
+    max-width: 300px;
+    clear: right;
+    border-radius: 8px;
+    shape-outside: margin-box;
+}
+
+/* Adjust paragraph spacing around floating images */
+.prose-main img.figure-right,
+.prose-secondary img.figure-right {
+    margin-top: 0.5rem;
+}
+
+/* Responsive adjustments for floating figures */
+@media (max-width: 768px) {
+    img.figure-right {
+        float: none;
+        display: block;
+        margin: 1.5rem auto;
+        max-width: 100%;
+    }
+}
+
+/* Legacy support for existing class names */
+.align-center {
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+    text-align: center;
+}
+
+.large-image {
+    width: 120%;
+    max-width: none;
+    margin-left: -10%;
+    margin-top: 2rem;
+    margin-bottom: 2rem;
+    border-radius: 8px;
+}
+
+.box-right {
+    float: right;
+    margin: 0 0 1rem 1.5rem;
+    max-width: 300px;
+    border-radius: 8px;
+}
+
+@media (max-width: 768px) {
+    .box-right {
+        float: none;
+        display: block;
+        margin: 1.5rem auto;
+        max-width: 100%;
+    }
+}
+
+/* --- Publication Action Buttons --- */
+.publication-actions a:hover,
+.publication-actions button:hover {
+    transform: translateY(-1px) scale(1.01);
+    box-shadow: 0 2px 8px theme(colors.gray.900/6);
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.dark .publication-actions a:hover,
+.dark .publication-actions button:hover {
+    box-shadow: 0 2px 8px theme(colors.gray.100/8);
+}
+
+.publication-actions a:active,
+.publication-actions button:active {
+    transform: translateY(0) scale(0.98);
+    transition: transform 0.1s ease-out;
+}
+
+/* Clean publication button icon animations */
+.publication-actions i {
+    transition: transform 0.2s ease-out, color 0.2s ease-out;
+    transform-origin: center;
+    display: inline-block;
+}
+
+/* Enhanced publication button icon animations */
+.publication-actions a:hover .fa-file-pdf { 
+    transform: rotateY(-8deg) scale(1.1);
+    color: #dc2626; /* red-600 */
+    filter: drop-shadow(0 2px 4px rgba(220, 38, 38, 0.15));
+}
+
+.publication-actions a:hover .fa-code { 
+    transform: rotate(-5deg) scale(1.1);
+    color: #2563eb; /* blue-600 */
+    filter: drop-shadow(0 2px 4px rgba(37, 99, 235, 0.15));
+}
+
+.publication-actions a:hover .fa-play { 
+    transform: translateX(2px) scale(1.1);
+    color: #16a34a; /* green-600 */
+    filter: drop-shadow(0 2px 4px rgba(22, 163, 74, 0.15));
+}
+
+.publication-actions a:hover .fa-presentation { 
+    transform: translateX(2px) scale(1.1);
+    color: #9333ea; /* purple-600 */
+    filter: drop-shadow(0 2px 4px rgba(147, 51, 234, 0.15));
+}
+
+.publication-actions a:hover .fa-book { 
+    transform: translateY(-1px) scale(1.1);
+    color: #9333ea; /* purple-600 */
+    filter: drop-shadow(0 2px 4px rgba(147, 51, 234, 0.15));
+}
+
+.publication-actions a:hover .fa-globe { 
+    transform: scale(1.12);
+    color: #0891b2; /* cyan-600 */
+    filter: brightness(1.2) saturate(1.1) drop-shadow(0 2px 4px rgba(8, 145, 178, 0.15));
+}
+
+.publication-actions button:hover .fa-quote-left { 
+    transform: rotate(-6deg) scale(1.1);
+    color: #0891b2; /* cyan-600 */
+    filter: drop-shadow(0 2px 4px rgba(8, 145, 178, 0.15));
+}
+
+/* --- Read More Button Effects --- */
+.elysian-card:hover .text-teal-600.font-semibold {
+    transform: translateX(2px);
+    color: #0d9488; /* teal-600 -> deeper teal */
+    transition: all 0.2s ease-out;
+}
+
+.dark .elysian-card:hover .text-teal-400.font-semibold {
+    color: #5eead4; /* teal-300 - brighter in dark mode */
+}
+
+.elysian-card:hover .fa-arrow-right {
+    transform: translateX(3px) scale(1.05);
+    transition: transform 0.2s ease-out;
+}
+
+/* Base styles for smooth transitions */
+.elysian-card .text-teal-600.font-semibold,
+.elysian-card .text-teal-400.font-semibold {
+    transition: all 0.2s ease-out;
+}
+
+.elysian-card .fa-arrow-right {
+    transition: transform 0.2s ease-out;
+}
+
+/* --- News Item Button Effects --- */
+.timeline-item a.text-teal-600:hover,
+.timeline-item a.text-teal-400:hover {
+    transform: translateX(1px);
+    color: #0d9488 !important; /* deeper teal */
+    transition: all 0.2s ease-out;
+}
+
+.dark .timeline-item a.text-teal-400:hover {
+    color: #5eead4 !important; /* brighter teal-300 in dark mode */
+}
+
+.timeline-item a:hover .fa-arrow-right {
+    transform: translateX(2px) scale(1.03);
+    transition: transform 0.2s ease-out;
+}
+
+/* Base styles for news item buttons */
+.timeline-item a.text-teal-600,
+.timeline-item a.text-teal-400 {
+    transition: all 0.2s ease-out;
+}
+
+.timeline-item .fa-arrow-right {
+    transition: transform 0.2s ease-out;
+}
+
+.cite-copied { 
+    background-color: theme(colors.teal.600) !important; 
+    color: #fff !important; 
+    transform: scale(1.02) !important;
+    box-shadow: 0 2px 8px theme(colors.teal.600/20) !important;
+}
+
+.dark .cite-copied {
+    background-color: theme(colors.teal.400) !important;
+    color: theme(colors.gray.900) !important;
+    box-shadow: 0 2px 8px theme(colors.teal.400/25) !important;
+}
+/* --- Timeline Styles --- */
+.timeline-container { 
+    position: relative; 
+}
+
+.timeline-container::before {
+    content: ''; 
+    position: absolute; 
+    left: 0.5rem; 
+    top: 0.5rem; 
+    bottom: 0.5rem; 
+    width: 2px;
+    background: linear-gradient(to bottom, theme(colors.gray.200), transparent);
+}
+
+.dark .timeline-container::before {
+    background: linear-gradient(to bottom, theme(colors.gray.700), transparent);
+}
+
+.timeline-item { 
+    position: relative; 
+    padding-left: 2.5rem; 
+    padding-bottom: 2.5rem; 
+}
+
+.timeline-item:last-child { 
+    padding-bottom: 0; 
+}
+
+.timeline-item::before {
+    content: ''; 
+    position: absolute; 
+    left: 0; 
+    top: 0.25rem;
+    width: 1.25rem; 
+    height: 1.25rem; 
+    border-radius: 9999px;
+    background-color: theme(colors.gray.50);
+    border: 3px solid theme(colors.gray.200);
+    transition: all 0.3s ease;
+}
+
+.dark .timeline-item::before {
+    background-color: theme(colors.gray.800);
+    border-color: theme(colors.gray.700);
+}
+
+.timeline-item:hover::before { 
+    border-color: theme(colors.teal.600); 
+    transform: scale(1.1); 
+}
+
+.dark .timeline-item:hover::before { 
+    border-color: theme(colors.teal.400); 
+}
+
+.timeline-item-highlight::before {
+    border-color: theme(colors.teal.400);
+    animation: breathing-halo 3s ease-in-out infinite;
+}
+
+.dark .timeline-item-highlight::before {
+    border-color: theme(colors.teal.300);
+    animation: breathing-halo-dark 3s ease-in-out infinite;
+}
+
+@keyframes breathing-halo {
+    0%, 100% {
+        box-shadow: 0 0 2px 0px theme(colors.teal.400/25);
+    }
+    50% {
+        box-shadow: 0 0 8px 0px theme(colors.teal.400/5);
+    }
+}
+
+@keyframes breathing-halo-dark {
+    0%, 100% {
+        box-shadow: 0 0 2px 0px theme(colors.teal.300/25);
+    }
+    50% {
+        box-shadow: 0 0 8px 0px theme(colors.teal.300/5);
+    }
+}
+
+/* --- Elysian Pill-Shaped Buttons --- */
+.elysian-pill-button {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.5rem 1rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+    letter-spacing: 0.025em;
+    border-radius: 9999px;
+    border: 1.5px solid transparent;
+    background-clip: padding-box;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    text-decoration: none;
+    position: relative;
+    overflow: hidden;
+    backdrop-filter: blur(8px);
+    box-shadow: 0 2px 8px theme(colors.gray.900/8);
+}
+
+.elysian-pill-button::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 9999px;
+    padding: 1.5px;
+    background: linear-gradient(135deg, transparent, theme(colors.white/20), transparent);
+    mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    mask-composite: xor;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.elysian-pill-button:hover::before {
+    opacity: 1;
+}
+
+/* Primary pill button (Paper) */
+.elysian-pill-primary {
+    background: linear-gradient(135deg, theme(colors.teal.500), theme(colors.teal.600));
+    color: theme(colors.white);
+    box-shadow: 
+        0 2px 8px theme(colors.teal.500/25),
+        inset 0 1px 2px theme(colors.white/20);
+}
+
+.elysian-pill-primary:hover {
+    transform: translateY(-1px) scale(1.02);
+    box-shadow: 
+        0 4px 16px theme(colors.teal.500/35),
+        inset 0 1px 2px theme(colors.white/30);
+    background: linear-gradient(135deg, theme(colors.teal.400), theme(colors.teal.500));
+}
+
+/* Secondary pill button (Code) */
+.elysian-pill-secondary {
+    background: linear-gradient(135deg, theme(colors.gray.700), theme(colors.gray.800));
+    color: theme(colors.white);
+    box-shadow: 
+        0 2px 8px theme(colors.gray.700/25),
+        inset 0 1px 2px theme(colors.white/15);
+}
+
+.elysian-pill-secondary:hover {
+    transform: translateY(-1px) scale(1.02);
+    box-shadow: 
+        0 4px 16px theme(colors.gray.700/35),
+        inset 0 1px 2px theme(colors.white/25);
+    background: linear-gradient(135deg, theme(colors.gray.600), theme(colors.gray.700));
+}
+
+/* Accent pill button (Website) */
+.elysian-pill-accent {
+    background: linear-gradient(135deg, theme(colors.blue.500), theme(colors.blue.600));
+    color: theme(colors.white);
+    box-shadow: 
+        0 2px 8px theme(colors.blue.500/25),
+        inset 0 1px 2px theme(colors.white/20);
+}
+
+.elysian-pill-accent:hover {
+    transform: translateY(-1px) scale(1.02);
+    box-shadow: 
+        0 4px 16px theme(colors.blue.500/35),
+        inset 0 1px 2px theme(colors.white/30);
+    background: linear-gradient(135deg, theme(colors.blue.400), theme(colors.blue.500));
+}
+
+/* Demo pill button */
+.elysian-pill-demo {
+    background: linear-gradient(135deg, theme(colors.purple.500), theme(colors.purple.600));
+    color: theme(colors.white);
+    box-shadow: 
+        0 2px 8px theme(colors.purple.500/25),
+        inset 0 1px 2px theme(colors.white/20);
+}
+
+.elysian-pill-demo:hover {
+    transform: translateY(-1px) scale(1.02);
+    box-shadow: 
+        0 4px 16px theme(colors.purple.500/35),
+        inset 0 1px 2px theme(colors.white/30);
+    background: linear-gradient(135deg, theme(colors.purple.400), theme(colors.purple.500));
+}
+
+/* Slides pill button */
+.elysian-pill-slides {
+    background: linear-gradient(135deg, theme(colors.orange.500), theme(colors.orange.600));
+    color: theme(colors.white);
+    box-shadow: 
+        0 2px 8px theme(colors.orange.500/25),
+        inset 0 1px 2px theme(colors.white/20);
+}
+
+.elysian-pill-slides:hover {
+    transform: translateY(-1px) scale(1.02);
+    box-shadow: 
+        0 4px 16px theme(colors.orange.500/35),
+        inset 0 1px 2px theme(colors.white/30);
+    background: linear-gradient(135deg, theme(colors.orange.400), theme(colors.orange.500));
+}
+
+/* Video pill button */
+.elysian-pill-video {
+    background: linear-gradient(135deg, theme(colors.red.500), theme(colors.red.600));
+    color: theme(colors.white);
+    box-shadow: 
+        0 2px 8px theme(colors.red.500/25),
+        inset 0 1px 2px theme(colors.white/20);
+}
+
+.elysian-pill-video:hover {
+    transform: translateY(-1px) scale(1.02);
+    box-shadow: 
+        0 4px 16px theme(colors.red.500/35),
+        inset 0 1px 2px theme(colors.white/30);
+    background: linear-gradient(135deg, theme(colors.red.400), theme(colors.red.500));
+}
+
+/* Dark mode adjustments for pill buttons */
+.dark .elysian-pill-button {
+    box-shadow: 0 2px 8px theme(colors.black/15);
+}
+
+.dark .elysian-pill-primary:hover,
+.dark .elysian-pill-secondary:hover,
+.dark .elysian-pill-accent:hover,
+.dark .elysian-pill-demo:hover,
+.dark .elysian-pill-slides:hover,
+.dark .elysian-pill-video:hover {
+    box-shadow: 
+        0 4px 16px theme(colors.black/25),
+        inset 0 1px 2px theme(colors.white/20);
+}
+
+/* --- Elegant Shadow Breathing --- */
+@keyframes breathing {
+    0%, 100% { 
+        box-shadow: 0 0 0 0px theme(colors.teal.600/12);
+    }
+    50% { 
+        box-shadow: 0 0 0 4px theme(colors.teal.600/0);
+    }
+}
+
+@keyframes breathing-dark {
+    0%, 100% { 
+        box-shadow: 0 0 0 0px theme(colors.teal.400/10);
+    }
+    50% { 
+        box-shadow: 0 0 0 4px theme(colors.teal.400/0);
+    }
+}
+
+/* Missing fadeInUp animation for timeline items */
+@keyframes fadeInUp {
+    0% {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    100% {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* --- Highlighted Text in News Items --- */
+.highlight-text {
+    background-color: theme(colors.yellow.200);
+    color: theme(colors.gray.900);
+    padding: 0.125rem 0.25rem;
+    border-radius: 0.25rem;
+    font-weight: 600;
+}
+
+.dark .highlight-text {
+    background-color: theme(colors.yellow.400/30);
+    color: theme(colors.yellow.100);
+    font-weight: 600;
+}
+
+/* --- Project Card Follow-Focus Effect --- */
+.project-card {
+    --mouse-x: 0.5;
+    --mouse-y: 0.5;
+}
+
+.project-image-container {
+    overflow: hidden;
+    position: relative;
+}
+
+.project-image {
+    transition: transform 0.3s ease-out;
+    transform-origin: center;
+}
+
+.project-card:hover .project-image {
+    transform: 
+        translateX(calc((var(--mouse-x) - 0.5) * 12px))
+        translateY(calc((var(--mouse-y) - 0.5) * 12px))
+        scale(1.05);
+}
+
+
+/* --- Scroll-Triggered Elysian Dividers --- */
+.elysian-divider {
+    height: 1px;
+    margin: 1.5rem auto;
+    width: 100%;
+    max-width: 400px;
+    position: relative;
+    overflow: hidden;
+}
+
+.elysian-divider::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 1px;
+    background: linear-gradient(to right, 
+        transparent, 
+        transparent 5%, 
+        theme(colors.gray.200) 20%,
+        theme(colors.gray.300) 50%, 
+        theme(colors.gray.200) 80%,
+        transparent 95%, 
+        transparent
+    );
+    transform: scaleX(0);
+    transform-origin: center;
+    transition: transform 2.2s cubic-bezier(0.25, 0.1, 0.25, 1);
+    opacity: 0;
+}
+
+.dark .elysian-divider::before {
+    background: linear-gradient(to right, 
+        transparent, 
+        transparent 5%, 
+        theme(colors.gray.700) 20%,
+        theme(colors.gray.600) 50%, 
+        theme(colors.gray.700) 80%,
+        transparent 95%, 
+        transparent
+    );
+}
+
+/* Triggered when divider enters viewport */
+.elysian-divider.divider-visible::before {
+    transform: scaleX(1);
+    opacity: 0.6 !important;
+    transition: transform 2.2s cubic-bezier(0.25, 0.1, 0.25, 1);
+}
+
+/* Highlight author names in publications */
+.highlight {
+    font-weight: 600 !important;
+}
+
+/* Clean inline code styling - only for inline code, not code blocks */
+.prose-main :not(pre) > code {
+    background-color: theme(colors.gray.50);
+    color: theme(colors.gray.700);
+    padding: 0.125rem 0.25rem;
+    border-radius: 0.25rem;
+    font-size: 0.875em;
+    font-weight: 500;
+    border: 1px solid theme(colors.gray.200);
+}
+
+.dark .prose-main :not(pre) > code {
+    background-color: theme(colors.gray.800);
+    color: theme(colors.gray.200);
+    border-color: theme(colors.gray.700);
+}
+
+/* Remove backticks from inline code */
+.prose-main :not(pre) > code::before,
+.prose-main :not(pre) > code::after {
+    content: none;
+}
+
+/* --- Enhanced Elysian Notebook Styling --- */
+.notebook-cell {
+    position: relative;
+    margin: 3rem 0;
+    padding-left: 3.5rem;
+}
+
+.notebook-input {
+    background: linear-gradient(135deg, 
+        rgba(59, 130, 246, 0.04), 
+        rgba(99, 102, 241, 0.02), 
+        rgba(168, 85, 247, 0.01)
+    );
+    border: 1px solid rgba(59, 130, 246, 0.2);
+    border-left: 3px solid rgba(59, 130, 246, 0.5);
+    position: relative;
+    border-radius: 0.875rem;
+    overflow: hidden;
+    box-shadow: 0 4px 12px -4px rgba(59, 130, 246, 0.1);
+}
+
+.notebook-input::before {
+    content: "In";
+    position: absolute;
+    top: 1rem;
+    left: -3.5rem;
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: rgba(59, 130, 246, 0.9);
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.12), rgba(99, 102, 241, 0.08));
+    padding: 0.375rem 0.625rem;
+    border-radius: 0.5rem;
+    min-width: 2.25rem;
+    text-align: center;
+    border: 1px solid rgba(59, 130, 246, 0.25);
+    backdrop-filter: blur(8px);
+    font-family: 'Inter', sans-serif;
+    letter-spacing: 0.025em;
+}
+
+.dark .notebook-input {
+    background: linear-gradient(135deg, 
+        rgba(59, 130, 246, 0.08), 
+        rgba(99, 102, 241, 0.04), 
+        rgba(168, 85, 247, 0.02)
+    );
+    border-color: rgba(59, 130, 246, 0.3);
+    border-left-color: rgba(59, 130, 246, 0.6);
+    box-shadow: 0 4px 12px -4px rgba(59, 130, 246, 0.15);
+}
+
+.dark .notebook-input::before {
+    color: rgba(147, 197, 253, 0.95);
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.18), rgba(99, 102, 241, 0.12));
+    border-color: rgba(59, 130, 246, 0.4);
+}
+
+.notebook-output {
+    background: linear-gradient(135deg, 
+        rgba(16, 185, 129, 0.03), 
+        rgba(5, 150, 105, 0.02), 
+        rgba(6, 182, 212, 0.01)
+    );
+    border: 1px solid rgba(16, 185, 129, 0.15);
+    border-left: 3px solid rgba(16, 185, 129, 0.4);
+    position: relative;
+    margin-top: 0.75rem;
+    border-radius: 0.875rem;
+    overflow: hidden;
+    box-shadow: 0 4px 12px -4px rgba(16, 185, 129, 0.08);
+}
+
+.notebook-output::before {
+    content: "Out";
+    position: absolute;
+    top: 1rem;
+    left: -3.5rem;
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: rgba(16, 185, 129, 0.9);
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(5, 150, 105, 0.06));
+    padding: 0.375rem 0.625rem;
+    border-radius: 0.5rem;
+    min-width: 2.25rem;
+    text-align: center;
+    border: 1px solid rgba(16, 185, 129, 0.2);
+    backdrop-filter: blur(8px);
+    font-family: 'Inter', sans-serif;
+    letter-spacing: 0.025em;
+}
+
+.dark .notebook-output {
+    background: linear-gradient(135deg, 
+        rgba(16, 185, 129, 0.06), 
+        rgba(5, 150, 105, 0.03), 
+        rgba(6, 182, 212, 0.02)
+    );
+    border-color: rgba(16, 185, 129, 0.2);
+    border-left-color: rgba(16, 185, 129, 0.5);
+    box-shadow: 0 4px 12px -4px rgba(16, 185, 129, 0.12);
+}
+
+.dark .notebook-output::before {
+    color: rgba(110, 231, 183, 0.95);
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.15), rgba(5, 150, 105, 0.1));
+    border-color: rgba(16, 185, 129, 0.3);
+}
+
+.notebook-output-text {
+    background: transparent;
+    border: none;
+    color: theme(colors.gray.700);
+    font-family: 'SF Mono', Consolas, 'Liberation Mono', Menlo, monospace;
+}
+
+.dark .notebook-output-text {
+    color: theme(colors.gray.300);
+}
+
+.notebook-output-html {
+    background: transparent;
+    border: none;
+}
+
+/* Notebook content wrapper */
+.notebook-content {
+    max-width: none;
+}
+
+/* Enhanced code styling within notebooks */
+.notebook-input pre,
+.notebook-output pre {
+    margin: 0;
+    background: transparent;
+    border: none;
+        border-radius: 0;
+    padding: 1.75rem;
+    position: relative;
+    z-index: 2;
+}
+
+.notebook-input code {
+    background: transparent;
+    color: theme(colors.gray.800);
+    font-size: 0.875rem;
+    line-height: 1.7;
+    font-family: 'SF Mono', Consolas, 'Liberation Mono', Menlo, Monaco, 'Courier New', monospace;
+    font-weight: 500;
+}
+
+.dark .notebook-input code {
+    color: theme(colors.gray.100);
+}
+
+.notebook-output code {
+    background: transparent;
+    color: theme(colors.gray.700);
+    font-size: 0.875rem;
+    line-height: 1.7;
+    font-family: 'SF Mono', Consolas, 'Liberation Mono', Menlo, Monaco, 'Courier New', monospace;
+    font-weight: 400;
+}
+
+.dark .notebook-output code {
+    color: theme(colors.gray.200);
+}
+
+/* Remove pilcrow characters from notebook headings */
+.anchor-link {
+    display: none !important;
+}
+
+/* Also hide them with more specific targeting */
+.text_cell_render .anchor-link,
+.notebook-content .anchor-link,
+.prose-main .anchor-link {
+    display: none !important;
+    visibility: hidden !important;
+}
+
+/* Enhanced notebook prose styling */
+.notebook-content .prose-main h1,
+.notebook-content .prose-main h2,
+.notebook-content .prose-main h3,
+.notebook-content .prose-main h4 {
+    position: relative;
+}
+
+.notebook-content .prose-main h1::after,
+.notebook-content .prose-main h2::after,
+.notebook-content .prose-main h3::after,
+.notebook-content .prose-main h4::after {
+    content: '';
+    position: absolute;
+    bottom: -0.5rem;
+    left: 0;
+    width: 3rem;
+    height: 2px;
+    background: linear-gradient(90deg, theme(colors.teal.500), transparent);
+    border-radius: 1px;
+}
+
+/* Notebook content spacing */
+.notebook-content .prose-main {
+    margin: 2.5rem 0;
+}
+
+/* Enhanced output styling */
+.output-stream,
+.output-text {
+    background: rgba(16, 185, 129, 0.02);
+    border-radius: 0.5rem;
+    color: theme(colors.gray.700);
+    font-family: 'SF Mono', Consolas, 'Liberation Mono', Menlo, Monaco, 'Courier New', monospace;
+    position: relative;
+    z-index: 2;
+}
+
+.dark .output-stream,
+.dark .output-text {
+    background: rgba(16, 185, 129, 0.04);
+    color: theme(colors.gray.200);
+}
+
+/* Image outputs */
+.output-image {
+    border-radius: 0.75rem;
+    box-shadow: 0 4px 12px -4px rgba(0, 0, 0, 0.1);
+    margin: 1rem 0;
+}
+
+.dark .output-image {
+    box-shadow: 0 4px 12px -4px rgba(0, 0, 0, 0.3);
+}
+
+/* --- Blog Post Hero Section --- */
+.hero-section {
+    overflow: hidden;
+}
+
+.hero-image {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    object-position: center center; /* Explicit center positioning */
+}
+
+.hero-section:hover .hero-image {
+    transform: scale(1.05);
+}
+
+/* Ensure text is readable over any image */
+.hero-section h1 {
+    text-shadow: 
+        0 1px 2px rgba(0, 0, 0, 0.8),
+        0 2px 4px rgba(0, 0, 0, 0.6),
+        0 4px 8px rgba(0, 0, 0, 0.3);
+    position: relative;
+}
+
+.hero-section h1::before {
+    content: '';
+    position: absolute;
+    inset: -0.5rem -1rem;
+    background: radial-gradient(ellipse at center, rgba(0, 0, 0, 0.4), transparent 70%);
+    z-index: -1;
+    border-radius: 1rem;
+    backdrop-filter: blur(2px);
+}
+
+.hero-section p {
+    text-shadow: 
+        0 1px 2px rgba(0, 0, 0, 0.8),
+        0 2px 4px rgba(0, 0, 0, 0.5);
+    position: relative;
+}
+
+.hero-section p::before {
+    content: '';
+    position: absolute;
+    inset: -0.25rem -0.5rem;
+    background: radial-gradient(ellipse at center, rgba(0, 0, 0, 0.3), transparent 60%);
+    z-index: -1;
+    border-radius: 0.5rem;
+    backdrop-filter: blur(1px);
+}

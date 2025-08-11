@@ -1,0 +1,30 @@
+{# Definitive Elysian Timeline - Consistent pill-shaped buttons #}
+<article class="timeline-item{% if item.highlight|default(false) %} timeline-item-highlight{% endif %}">
+    {# Date in accent color #}
+    <div class="text-sm font-semibold text-teal-600 dark:text-teal-400 mb-2">{{ item.date }}</div>
+    
+    {# Description with clean typography #}
+    <div class="text-gray-700 dark:text-gray-300 mb-3">
+        {{ item.content | safe }}
+    </div>
+    
+    {# Shared button structure - same as publications #}
+    {% if item.paper or item.code or item.website or item.demo or item.slides or item.video %}
+    <div class="flex flex-wrap items-center gap-2 mt-3 publication-actions">
+        {% set news_links = [] %}
+        {% if item.paper %}{% set _ = news_links.append({'url': item.paper, 'label': 'PDF'}) %}{% endif %}
+        {% if item.code %}{% set _ = news_links.append({'url': item.code, 'label': 'Code'}) %}{% endif %}
+        {% if item.website %}{% set _ = news_links.append({'url': item.website, 'label': 'Website'}) %}{% endif %}
+        {% if item.demo %}{% set _ = news_links.append({'url': item.demo, 'label': 'Demo'}) %}{% endif %}
+        {% if item.slides %}{% set _ = news_links.append({'url': item.slides, 'label': 'Slides'}) %}{% endif %}
+        {% if item.video %}{% set _ = news_links.append({'url': item.video, 'label': 'Video'}) %}{% endif %}
+        
+        {% for link in news_links %}
+        <a href="{{ link.url }}" target="_blank" rel="noopener" class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 hover:text-teal-600 dark:hover:text-teal-400 border border-gray-200 dark:border-gray-700 rounded-full transition-all">
+            {% if 'PDF' in link.label %}<i class="fas fa-file-pdf text-red-500/70"></i>{% elif 'Code' in link.label %}<i class="fas fa-code text-blue-500/70"></i>{% elif 'Demo' in link.label %}<i class="fas fa-play text-green-500/70"></i>{% elif 'Slides' in link.label %}<i class="fas fa-presentation text-purple-500/70"></i>{% elif 'Website' in link.label %}<i class="fas fa-globe text-teal-600/70"></i>{% elif 'Video' in link.label %}<i class="fas fa-video text-red-500/70"></i>{% endif %}
+            {{ link.label }}
+        </a>
+        {% endfor %}
+    </div>
+    {% endif %}
+</article>

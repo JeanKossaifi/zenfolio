@@ -1,0 +1,49 @@
+{# Blog post page template - wrapper for individual blog posts and notebooks #}
+
+{% if item.get('image') %}
+{# Hero section with refined margins - elegant magazine style #}
+<div class="px-4 md:px-6 lg:px-8 pt-8">
+    <div class="hero-section relative mb-16 reveal max-w-6xl mx-auto">
+        <div class="relative h-80 md:h-96 lg:h-[28rem] rounded-xl overflow-hidden">
+            <img src="../static/{{ item.image }}" alt="{{ item.title }}" class="hero-image w-full h-full object-cover object-center">
+            <div class="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-black/10"></div>
+            <div class="absolute bottom-0 left-0 right-0 p-6 lg:p-8">
+                <div class="max-w-4xl mx-auto text-center">
+                    <h1 class="text-4xl md:text-5xl lg:text-6xl heading text-white mb-4 drop-shadow-lg">{{ item.title }}</h1>
+                    {% if item.date %}
+                    <p class="text-lg text-white/90 mb-2 drop-shadow">{{ item.date }}</p>
+                    {% endif %}
+                    {% if item.get('description') %}
+                    <p class="text-xl text-white/95 drop-shadow max-w-2xl mx-auto">{{ item.get('description') }}</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{# Content container starts after hero #}
+<div class="max-w-7xl mx-auto px-6 lg:px-8 pb-20">
+    <div class="max-w-4xl mx-auto">
+{% else %}
+{# Regular layout when no hero image #}
+<div class="max-w-7xl mx-auto px-6 lg:px-8 pt-32 pb-20">
+    <div class="max-w-4xl mx-auto">
+        <header class="mb-16 reveal">
+            <h1 class="text-5xl lg:text-6xl heading text-gray-900 dark:text-white mb-4">{{ item.title }}</h1>
+            {% if item.date %}
+            <p class="text-lg text-gray-500 dark:text-gray-400 mb-8">{{ item.date }}</p>
+            {% endif %}
+            {% if item.get('description') %}
+            <p class="text-xl text-gray-600 dark:text-gray-300 mb-8">{{ item.get('description') }}</p>
+            {% endif %}
+        </header>
+{% endif %}
+
+        {# Blog post content #}
+        <article class="prose-main">
+            {{ item.content | safe }}
+        </article>
+
+    </div>
+</div>

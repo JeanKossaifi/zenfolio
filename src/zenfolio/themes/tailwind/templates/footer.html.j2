@@ -1,0 +1,15 @@
+<footer class="bg-surface dark:bg-dark-surface mt-24">
+    <div class="max-w-7xl mx-auto px-6 lg:px-8 py-16">
+        <div class="flex flex-col md:flex-row justify-between items-center gap-8 text-center md:text-left">
+            <p class="text-secondary dark:text-dark-secondary">© {{ current_year }} {{ author_name }}</p>
+            {% if author %}
+            <div class="flex justify-center gap-6 text-secondary dark:text-dark-secondary">
+                {% if author.github %}<a href="{{ author.github }}" target="_blank" rel="noopener" aria-label="GitHub" class="hover:text-accent dark:hover:text-dark-accent transition-colors"><i class="fab fa-github fa-lg"></i></a>{% endif %}
+                {% if author.scholar %}<a href="{{ author.scholar }}" target="_blank" rel="noopener" aria-label="Google Scholar" class="hover:text-accent dark:hover:text-dark-accent transition-colors"><i class="fas fa-graduation-cap fa-lg"></i></a>{% endif %}
+                {% if author.linkedin %}<a href="{{ author.linkedin }}" target="_blank" rel="noopener" aria-label="LinkedIn" class="hover:text-accent dark:hover:text-dark-accent transition-colors"><i class="fab fa-linkedin fa-lg"></i></a>{% endif %}
+                {% if author.twitter %}<a href="{{ author.twitter }}" target="_blank" rel="noopener" aria-label="Twitter" class="hover:text-accent dark:hover:text-dark-accent transition-colors"><i class="fab fa-twitter fa-lg"></i></a>{% endif %}
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</footer>

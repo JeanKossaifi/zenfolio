@@ -1,0 +1,19 @@
+{# Standalone page template - wrapper for individual pages #}
+
+<div class="max-w-7xl mx-auto px-6 lg:px-8">
+    <div class="max-w-4xl mx-auto">
+        
+        {# Page header #}
+        <header class="text-center my-16 reveal">
+            <h1 class="text-5xl lg:text-6xl heading text-gray-900 dark:text-white">
+                {{ item.title|default('Page') }}
+            </h1>
+        </header>
+
+        {# Page content #}
+        <article class="prose-main">
+            {{ item.content | safe }}
+        </article>
+
+    </div>
+</div>

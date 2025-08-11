@@ -1,0 +1,35 @@
+{# SEO Head template - meta tags and structured data #}
+{# Note: title and description are handled by base_layout.html.j2 #}
+
+<meta name="author" content="{{ author_name }}">
+
+{# Open Graph meta tags #}
+<meta property="og:title" content="{% if page_title %}{{ page_title }}{% else %}{{ author_name }}{% endif %}">
+<meta property="og:description" content="{{ meta_description|default(site_description, true) }}">
+<meta property="og:type" content="website">
+{% if canonical_url %}
+<meta property="og:url" content="{{ canonical_url }}">
+{% endif %}
+{% if og_image %}
+<meta property="og:image" content="{{ og_image }}">
+{% endif %}
+
+{# Twitter Card meta tags #}
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="{% if page_title %}{{ page_title }}{% else %}{{ author_name }}{% endif %}">
+<meta name="twitter:description" content="{{ meta_description|default(site_description, true) }}">
+{% if og_image %}
+<meta name="twitter:image" content="{{ og_image }}">
+{% endif %}
+
+{# Canonical URL #}
+{% if canonical_url %}
+<link rel="canonical" href="{{ canonical_url }}">
+{% endif %}
+
+{# Structured Data (JSON-LD) #}
+{% if structured_data|default(false) %}
+<script type="application/ld+json">
+{{ structured_data | safe }}
+</script>
+{% endif %}

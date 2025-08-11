@@ -1,0 +1,67 @@
+<section class="py-24 sm:py-32 {{ 'bg-gray-50 dark:bg-gray-800 border-y border-gray-200 dark:border-gray-700' if background|default(false) }}">
+    <div class="max-w-7xl mx-auto px-6 lg:px-8">
+        <div class="mb-16 reveal">
+            <h2 class="{% if layout|default('grid') == 'bio' %}fluid-heading-medium{% else %}text-5xl sm:text-6xl{% endif %} heading text-gray-900 dark:text-white">{{ title }}</h2>
+            {% if subtitle|default('') %}<p class="mt-4 text-lg text-gray-600 dark:text-gray-300">{{ subtitle }}</p>{% endif %}
+        </div>
+
+        {# Section Content #}
+            {% if layout|default('grid') == 'timeline' %}
+            <div class="timeline-container">
+                {% for item in items|default([]) %}{{ item.rendered_html | safe }}{% endfor %}
+            </div>
+            {% elif layout|default('grid') == 'bio' %}
+            <div class="prose-bio max-w-4xl mx-auto">
+                {{ content | safe }}
+            </div>
+            {% if interests %}
+            <div class="mt-12 max-w-4xl mx-auto">
+                <h3 class="text-2xl heading text-gray-900 dark:text-white">Research Interests</h3>
+                <div class="mt-6 flex flex-wrap justify-start gap-3">
+                    {% for interest in interests %}
+                    <span class="inline-block px-4 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-full text-sm font-medium text-gray-600 dark:text-gray-300">
+                        {{ interest }}
+                    </span>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+            {% elif layout|default('grid') == 'service' %}
+            <div class="grid grid-cols-1 gap-8">
+                {# Leadership & Editorial Section #}
+                {% if items.leadership_items %}
+                <h3 class="text-2xl font-semibold heading text-gray-900 dark:text-white mb-6 mt-0">Leadership & Editorial</h3>
+                {% for item in items.leadership_items %}{{ item.rendered_html | safe }}{% endfor %}
+                {% endif %}
+
+                            {# Peer Review Section #}
+            {% if items.review_groups %}
+            <h3 class="text-2xl font-semibold heading text-gray-900 dark:text-white mb-6 mt-8">Peer Review</h3>
+            <div class="flex flex-wrap gap-2">
+                {% for role, role_items in items.review_groups.items() %}
+                        {% for item in role_items %}
+                        <span class="inline-flex items-center gap-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 px-3 py-2 rounded-lg text-sm font-medium mr-2 mb-2 hover:border-gray-300 dark:hover:border-gray-600 transition-colors">
+                            <span class="font-medium">{{ item.venue }}</span>
+                            {% if item.highlight %}
+                            <span class="text-xs bg-yellow-200 dark:bg-yellow-400/30 text-gray-900 dark:text-yellow-100 px-1.5 py-0.5 rounded font-medium">{{ item.highlight|title }}</span>
+                            {% endif %}
+                            <span class="text-xs font-medium text-teal-600 dark:text-teal-400">{{ item.date }}</span>
+                        </span>
+                        {% endfor %}
+                    {% endfor %}
+                </div>
+                {% endif %}
+            </div>
+            {% else %}
+            <div class="grid grid-cols-1 {% if grid_cols|default(1) == 2 %}md:grid-cols-2{% elif grid_cols|default(1) >= 3 %}md:grid-cols-2 lg:grid-cols-3{% endif %} gap-8">
+                {% for item in items|default([]) %}{{ item.rendered_html | safe }}{% endfor %}
+            </div>
+            {% endif %}
+        </div>
+        {% if view_all_link|default(false) %}
+        <div class="mt-16 text-center">
+            <a href="{{ view_all_link.url }}" class="text-base font-semibold text-teal-600 dark:text-teal-400 hover:underline">{{ view_all_link.text }} <i class="fas fa-arrow-right text-xs ml-1"></i></a>
+        </div>
+        {% endif %}
+    </div>
+</section>

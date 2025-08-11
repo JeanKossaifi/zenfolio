@@ -1,0 +1,40 @@
+<div class="flex flex-col h-full elysian-card overflow-hidden reveal project-card">
+    <div class="w-full h-48 flex items-center justify-center bg-gray-50/50 dark:bg-gray-800/50 project-image-container p-4">
+        {% if item.image %}
+        <img src="static/{{ item.image }}" alt="{{ item.title }}" class="max-w-full max-h-full object-contain project-image">
+        {% endif %}
+    </div>
+    <div class="flex flex-col flex-grow p-8">
+        <div class="flex justify-between items-center mb-4">
+            <h3 class="text-xl font-semibold heading text-gray-900 dark:text-white">{{ item.title }}</h3>
+            {% if item.category %}
+            <span class="text-xs font-semibold uppercase tracking-wider text-teal-600 dark:text-teal-400 bg-teal-600/10 dark:bg-teal-400/10 px-3 py-1 rounded-full">
+                {{ item.category }}
+            </span>
+            {% endif %}
+        </div>
+        
+        <div class="prose-secondary flex-grow">
+            {{ item.description | safe }}
+        </div>
+        
+        {# Unified pill-shaped buttons matching publications and news #}
+        {% if item.paper or item.github or item.website or item.documentation or item.demo %}
+        <div class="flex flex-wrap items-center gap-2 mt-6 publication-actions">
+            {% set project_links = [] %}
+            {% if item.paper %}{% set _ = project_links.append({'url': item.paper, 'label': 'PDF'}) %}{% endif %}
+            {% if item.github %}{% set _ = project_links.append({'url': item.github, 'label': 'Code'}) %}{% endif %}
+            {% if item.website %}{% set _ = project_links.append({'url': item.website, 'label': 'Website'}) %}{% endif %}
+            {% if item.documentation %}{% set _ = project_links.append({'url': item.documentation, 'label': 'Docs'}) %}{% endif %}
+            {% if item.demo %}{% set _ = project_links.append({'url': item.demo, 'label': 'Demo'}) %}{% endif %}
+            
+            {% for link in project_links %}
+            <a href="{{ link.url }}" target="_blank" rel="noopener" class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 hover:text-teal-600 dark:hover:text-teal-400 border border-gray-200 dark:border-gray-700 rounded-full transition-all">
+                {% if 'PDF' in link.label %}<i class="fas fa-file-pdf text-red-500/70"></i>{% elif 'Code' in link.label %}<i class="fas fa-code text-blue-500/70"></i>{% elif 'Demo' in link.label %}<i class="fas fa-play text-green-500/70"></i>{% elif 'Docs' in link.label %}<i class="fas fa-book text-purple-500/70"></i>{% elif 'Website' in link.label %}<i class="fas fa-globe text-teal-600/70"></i>{% endif %}
+                {{ link.label }}
+            </a>
+            {% endfor %}
+        </div>
+        {% endif %}
+    </div>
+</div>

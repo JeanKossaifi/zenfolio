@@ -1,0 +1,58 @@
+{%- extends 'basic/index.html.j2' -%}
+
+{% block header %}{% endblock header %}
+{% block footer %}{% endblock footer %}
+
+{% block body %}
+<article class="notebook-content">
+    {# This renders the main content of the notebook #}
+    {{ super() }}
+</article>
+{% endblock body %}
+
+{%- block markdowncell scoped -%}
+{# We wrap markdown cells to apply consistent blog post styling #}
+<div class="prose-main">
+    {{ super() }}
+</div>
+{%- endblock markdowncell -%}
+
+
+{%- block codecell scoped -%}
+<div class="notebook-cell my-8">
+    {# Input Code Block #}
+    <div class="notebook-input overflow-hidden">
+        <pre><code>{{ cell.source }}</code></pre>
+    </div>
+
+    {# Outputs, if any #}
+    {% if cell.outputs %}
+    <div class="notebook-output">
+        {%- for output in cell.outputs -%}
+            {%- if output.output_type == 'stream' -%}
+                <pre class="output-stream"><code>{{ output.text | ansi2html }}</code></pre>
+            {%- elif output.output_type in ['execute_result', 'display_data'] -%}
+                {%- if 'text/plain' in output.data -%}
+                    <pre class="output-text"><code>{{ output.data['text/plain'] | ansi2html }}</code></pre>
+                {%- endif -%}
+                {%- if 'image/png' in output.data -%}
+                    <img class="output-image max-w-full h-auto" src="data:image/png;base64,{{ output.data['image/png'] }}" alt="Output image">
+                {%- endif -%}
+                {%- if 'image/jpeg' in output.data -%}
+                    <img class="output-image max-w-full h-auto" src="data:image/jpeg;base64,{{ output.data['image/jpeg'] }}" alt="Output image">
+                {%- endif -%}
+                 {%- if 'text/html' in output.data -%}
+                    <div class="output-html rendered_html">
+                        {{ output.data['text/html'] | ansi2html }}
+                    </div>
+                {%- endif -%}
+            {%- elif output.output_type == 'error' -%}
+                <div class="output-error bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300 p-4 rounded-lg">
+                    <pre class="font-mono text-sm"><code>{{ output.traceback | join('\n') | ansi2html }}</code></pre>
+                </div>
+            {%- endif -%}
+        {%- endfor -%}
+    </div>
+    {% endif %}
+</div>
+{%- endblock codecell -%}

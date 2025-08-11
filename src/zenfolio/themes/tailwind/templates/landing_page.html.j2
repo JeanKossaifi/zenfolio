@@ -1,0 +1,17 @@
+{# Landing page template - the main homepage content #}
+
+{# Profile hero section is always displayed #}
+{% if hero %}
+    {{ render_component('profile_hero', item=hero, base_url=base_url) }}
+{% endif %}
+
+{# Dynamically render all content sections passed from the builder #}
+{% for section in sections %}
+    {% if section.rendered_html %}
+        {# Add elegant divider before each section (except the first) #}
+        {% if not loop.first %}
+        <div class="elysian-divider"></div>
+        {% endif %}
+        {{ section.rendered_html | safe }}
+    {% endif %}
+{% endfor %}

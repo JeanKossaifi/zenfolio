@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% if page_title %}{{ page_title }}{% else %}{{ author_name }}{% endif %}</title>
+    <meta name="description" content="{% if meta_description %}{{ meta_description }}{% else %}{{ site_description }}{% endif %}">
+
+    
+    {% if seo_head %}{{ seo_head | safe }}{% endif %}
+    
+    <link rel="stylesheet" href="{{ file('theme.css') }}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    {% if mathjax_html %}{{ mathjax_html | safe }}{% endif %}
+    
+    <script src="{{ file('theme.js') }}"></script>
+</head>
+<body class="antialiased bg-white dark:bg-slate-900 text-gray-900 dark:text-white">
+    <div class="elysian-background noise-texture"></div>
+    {% if navbar %}{{ navbar | safe }}{% endif %}
+    <main>{{ content | safe }}</main>
+    {% if footer %}{{ footer | safe }}{% endif %}
+</body>
+</html>

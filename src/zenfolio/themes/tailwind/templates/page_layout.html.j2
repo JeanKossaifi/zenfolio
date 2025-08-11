@@ -1,0 +1,38 @@
+{# Universal layout for all main content pages - simple content component #}
+{# This establishes the consistent margins and centered column #}
+
+<div class="max-w-7xl mx-auto px-6 lg:px-8 pt-32 pb-20">
+    <div>
+        <h1 class="text-7xl lg:text-8xl heading text-gray-900 dark:text-white mb-16 reveal">{{ title }}</h1>
+
+        {# Search bar, if needed #}
+        {% if has_search %}
+            {{ theme.render_component('search_filter_bar') }}
+        {% endif %}
+
+        {# Main Content Area #}
+        {% if grouped_items %}
+        <div class="space-y-12">
+            {% for group in grouped_items %}
+            <div data-group="{{ group.group_name }}">
+                <h2 class="text-3xl font-bold heading text-gray-700 dark:text-gray-300 mb-6">{{ group.group_name }}</h2>
+                <div class="grid grid-cols-1 gap-8">
+                    {% for item in group['items'] %}
+                        {{ item.rendered_html | safe }}
+                    {% endfor %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% elif layout == 'timeline' %}
+        <div class="timeline-container">
+            {{ items_html | safe }}
+        </div>
+        {% else %}
+        <div class="grid grid-cols-1 {% if columns == 2 %}md:grid-cols-2{% elif columns >= 3 %}md:grid-cols-2 lg:grid-cols-3{% endif %} gap-8">
+            {{ items_html | safe }}
+        </div>
+        {% endif %}
+    </div>
+</div>
+</div>

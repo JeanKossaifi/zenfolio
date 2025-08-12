@@ -893,6 +893,11 @@ img.figure-right {
 /* Highlight author names in publications */
 .highlight {
     font-weight: 600 !important;
+    color: theme(colors.teal.700) !important;
+}
+
+.dark .highlight {
+    color: theme(colors.teal.300) !important;
 }
 
 /* Clean inline code styling - only for inline code, not code blocks */

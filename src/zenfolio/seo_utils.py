@@ -128,6 +128,32 @@ class SEOGenerator:
             
         return json.dumps(schema, indent=2)
     
+    def generate_software_application_schema(self, project: Dict[str, Any]) -> str:
+        """Generate SoftwareApplication schema for a project"""
+        schema = {
+            "@context": "https://schema.org",
+            "@type": "SoftwareApplication",
+            "name": project.get('title', ''),
+            "description": project.get('description', ''),
+            "applicationCategory": "DeveloperApplication",
+        }
+        
+        # Add code repository URL
+        if project.get('repo_url'):
+            schema["codeRepository"] = project['repo_url']
+        
+        # Add homepage URL if available
+        if project.get('url'):
+            schema["url"] = project['url']
+            
+        # Add author
+        schema["author"] = {
+            "@type": "Person",
+            "name": self.config.author.name
+        }
+            
+        return json.dumps(schema, indent=2)
+    
     def generate_blog_posting_schema(self, blog_post: Dict[str, Any]) -> str:
         """Generate BlogPosting schema for blog posts"""
         if self.config.site.seo.disable_structured_data:

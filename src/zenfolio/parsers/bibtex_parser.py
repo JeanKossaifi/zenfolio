@@ -78,7 +78,8 @@ class BibtexParser(ContentParser):
             'highlighted_authors': highlighted_authors,
             'links': self._extract_links(entry),
             'bibtex': self._get_raw_bibtex(entry),
-            'highlight': entry.get('highlight', '').lower() in ['true', 'yes', '1']
+            'highlight': entry.get('highlight', '').lower() in ['true', 'yes', '1'],
+            'image': entry.get('image', '')  # Add image support for publications
         }
 
     def _get_raw_bibtex(self, entry: dict) -> str:

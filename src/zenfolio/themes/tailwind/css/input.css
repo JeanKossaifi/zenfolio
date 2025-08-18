@@ -68,7 +68,6 @@
 
 .prose-main p,
 .prose-main li,
-.prose-main blockquote,
 .prose-main strong {
     font-family: "Inter", sans-serif;
 }
@@ -364,38 +363,89 @@ img.figure-right {
     }
 }
 
-/* Legacy support for existing class names */
-.align-center {
-    display: block;
-    margin-left: auto;
-    margin-right: auto;
-    text-align: center;
+/* Publication Image Styling - Elysian Design System (Side Layout) */
+.publication-image-container {
+    @apply relative overflow-hidden bg-white dark:bg-gray-900;
+    @apply transition-all duration-300 ease-out rounded-md;
+    /* Span full height of card content with small padding */
+    position: absolute;
+    top: 1rem;        /* Small padding from top */
+    bottom: 1rem;     /* Small padding from bottom */
+    right: 1rem;      /* Position on right side */
+    max-width: 200px; /* Maximum width constraint */
+    flex-shrink: 0;   /* Prevent shrinking in flex layout */
 }
 
-.large-image {
-    width: 120%;
-    max-width: none;
-    margin-left: -10%;
-    margin-top: 2rem;
-    margin-bottom: 2rem;
-    border-radius: 8px;
+.publication-image {
+    @apply transition-all duration-500 ease-out;
+    @apply filter brightness-95;
+    @apply w-auto h-full object-contain rounded-md;
+    /* Height fills container, width expands naturally */
+    object-fit: contain;
 }
 
-.box-right {
-    float: right;
-    margin: 0 0 1rem 1.5rem;
-    max-width: 300px;
-    border-radius: 8px;
+.publication-image-container:hover .publication-image {
+    @apply scale-105 brightness-100;
 }
 
-@media (max-width: 768px) {
-    .box-right {
-        float: none;
-        display: block;
-        margin: 1.5rem auto;
-        max-width: 100%;
+.publication-image-overlay {
+    @apply absolute inset-0 bg-gradient-to-t from-black/10 via-transparent to-transparent;
+    @apply opacity-0 transition-opacity duration-300;
+}
+
+.publication-image-container:hover .publication-image-overlay {
+    @apply opacity-100;
+}
+
+/* Enhanced styling for publications with images */
+.publication-with-image {
+    @apply relative;
+}
+
+.publication-with-image:hover {
+    @apply shadow-xl shadow-gray-200/20 dark:shadow-gray-900/40;
+    @apply border-gray-300/60 dark:border-gray-600/60;
+}
+
+/* Subtle animation for publication cards with images */
+.publication-with-image .publication-image-container {
+    @apply transform transition-transform duration-300;
+}
+
+.publication-with-image:hover .publication-image-container {
+    @apply scale-105;
+}
+
+/* Responsive adjustments for publication images */
+@media (max-width: 640px) {
+    .publication-with-image .flex {
+        @apply flex-col;
+    }
+    
+    .publication-image-container {
+        @apply w-full;
+        height: 120px; /* Fixed height on mobile - not too tall */
+        max-height: 120px;
+        min-height: 100px;
+        margin-top: 0;    /* No top margin on mobile */
+        margin-bottom: 1rem; /* Small bottom margin to separate from text on mobile */
+    }
+    
+    .publication-image {
+        @apply w-full object-cover object-center;
+        height: 100%;
     }
 }
+
+/* Medium screens - proportionally sized */
+@media (min-width: 641px) and (max-width: 1024px) {
+    .publication-image-container {
+        max-width: 100px; /* Much smaller max width on tablets */
+        height: 100%;     /* Fill height on tablets */
+    }
+}
+
+
 
 /* --- Publication Action Buttons --- */
 .publication-actions a:hover,
@@ -615,160 +665,6 @@ img.figure-right {
     }
 }
 
-/* --- Elysian Pill-Shaped Buttons --- */
-.elysian-pill-button {
-    display: inline-flex;
-    align-items: center;
-    padding: 0.5rem 1rem;
-    font-size: 0.875rem;
-    font-weight: 600;
-    letter-spacing: 0.025em;
-    border-radius: 9999px;
-    border: 1.5px solid transparent;
-    background-clip: padding-box;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    text-decoration: none;
-    position: relative;
-    overflow: hidden;
-    backdrop-filter: blur(8px);
-    box-shadow: 0 2px 8px theme(colors.gray.900/8);
-}
-
-.elysian-pill-button::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    border-radius: 9999px;
-    padding: 1.5px;
-    background: linear-gradient(135deg, transparent, theme(colors.white/20), transparent);
-    mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-    mask-composite: xor;
-    opacity: 0;
-    transition: opacity 0.3s ease;
-}
-
-.elysian-pill-button:hover::before {
-    opacity: 1;
-}
-
-/* Primary pill button (Paper) */
-.elysian-pill-primary {
-    background: linear-gradient(135deg, theme(colors.teal.500), theme(colors.teal.600));
-    color: theme(colors.white);
-    box-shadow: 
-        0 2px 8px theme(colors.teal.500/25),
-        inset 0 1px 2px theme(colors.white/20);
-}
-
-.elysian-pill-primary:hover {
-    transform: translateY(-1px) scale(1.02);
-    box-shadow: 
-        0 4px 16px theme(colors.teal.500/35),
-        inset 0 1px 2px theme(colors.white/30);
-    background: linear-gradient(135deg, theme(colors.teal.400), theme(colors.teal.500));
-}
-
-/* Secondary pill button (Code) */
-.elysian-pill-secondary {
-    background: linear-gradient(135deg, theme(colors.gray.700), theme(colors.gray.800));
-    color: theme(colors.white);
-    box-shadow: 
-        0 2px 8px theme(colors.gray.700/25),
-        inset 0 1px 2px theme(colors.white/15);
-}
-
-.elysian-pill-secondary:hover {
-    transform: translateY(-1px) scale(1.02);
-    box-shadow: 
-        0 4px 16px theme(colors.gray.700/35),
-        inset 0 1px 2px theme(colors.white/25);
-    background: linear-gradient(135deg, theme(colors.gray.600), theme(colors.gray.700));
-}
-
-/* Accent pill button (Website) */
-.elysian-pill-accent {
-    background: linear-gradient(135deg, theme(colors.blue.500), theme(colors.blue.600));
-    color: theme(colors.white);
-    box-shadow: 
-        0 2px 8px theme(colors.blue.500/25),
-        inset 0 1px 2px theme(colors.white/20);
-}
-
-.elysian-pill-accent:hover {
-    transform: translateY(-1px) scale(1.02);
-    box-shadow: 
-        0 4px 16px theme(colors.blue.500/35),
-        inset 0 1px 2px theme(colors.white/30);
-    background: linear-gradient(135deg, theme(colors.blue.400), theme(colors.blue.500));
-}
-
-/* Demo pill button */
-.elysian-pill-demo {
-    background: linear-gradient(135deg, theme(colors.purple.500), theme(colors.purple.600));
-    color: theme(colors.white);
-    box-shadow: 
-        0 2px 8px theme(colors.purple.500/25),
-        inset 0 1px 2px theme(colors.white/20);
-}
-
-.elysian-pill-demo:hover {
-    transform: translateY(-1px) scale(1.02);
-    box-shadow: 
-        0 4px 16px theme(colors.purple.500/35),
-        inset 0 1px 2px theme(colors.white/30);
-    background: linear-gradient(135deg, theme(colors.purple.400), theme(colors.purple.500));
-}
-
-/* Slides pill button */
-.elysian-pill-slides {
-    background: linear-gradient(135deg, theme(colors.orange.500), theme(colors.orange.600));
-    color: theme(colors.white);
-    box-shadow: 
-        0 2px 8px theme(colors.orange.500/25),
-        inset 0 1px 2px theme(colors.white/20);
-}
-
-.elysian-pill-slides:hover {
-    transform: translateY(-1px) scale(1.02);
-    box-shadow: 
-        0 4px 16px theme(colors.orange.500/35),
-        inset 0 1px 2px theme(colors.white/30);
-    background: linear-gradient(135deg, theme(colors.orange.400), theme(colors.orange.500));
-}
-
-/* Video pill button */
-.elysian-pill-video {
-    background: linear-gradient(135deg, theme(colors.red.500), theme(colors.red.600));
-    color: theme(colors.white);
-    box-shadow: 
-        0 2px 8px theme(colors.red.500/25),
-        inset 0 1px 2px theme(colors.white/20);
-}
-
-.elysian-pill-video:hover {
-    transform: translateY(-1px) scale(1.02);
-    box-shadow: 
-        0 4px 16px theme(colors.red.500/35),
-        inset 0 1px 2px theme(colors.white/30);
-    background: linear-gradient(135deg, theme(colors.red.400), theme(colors.red.500));
-}
-
-/* Dark mode adjustments for pill buttons */
-.dark .elysian-pill-button {
-    box-shadow: 0 2px 8px theme(colors.black/15);
-}
-
-.dark .elysian-pill-primary:hover,
-.dark .elysian-pill-secondary:hover,
-.dark .elysian-pill-accent:hover,
-.dark .elysian-pill-demo:hover,
-.dark .elysian-pill-slides:hover,
-.dark .elysian-pill-video:hover {
-    box-shadow: 
-        0 4px 16px theme(colors.black/25),
-        inset 0 1px 2px theme(colors.white/20);
-}
-
 /* --- Elegant Shadow Breathing --- */
 @keyframes breathing {
     0%, 100% { 
@@ -890,14 +786,14 @@ img.figure-right {
     transition: transform 2.2s cubic-bezier(0.25, 0.1, 0.25, 1);
 }
 
-/* Highlight author names in publications */
+/* Highlight author names in publications - bold authority, not accent color */
 .highlight {
-    font-weight: 600 !important;
-    color: theme(colors.teal.700) !important;
+    font-weight: 700 !important;
+    color: theme(colors.gray.900) !important; /* Primary text color - bold authority */
 }
 
 .dark .highlight {
-    color: theme(colors.teal.300) !important;
+    color: theme(colors.white) !important; /* White in dark mode for maximum contrast */
 }
 
 /* Clean inline code styling - only for inline code, not code blocks */
@@ -1206,4 +1102,31 @@ img.figure-right {
     z-index: -1;
     border-radius: 0.5rem;
     backdrop-filter: blur(1px);
+}
+
+.prose-main blockquote {
+    position: relative !important;
+    padding-left: 3.5rem !important;
+    margin-left: 0 !important;
+    border-left: none !important;
+    font-style: italic !important; /* Italicize the quoted text */
+}
+
+.prose-main blockquote::before {
+    content: '"' !important;
+    position: absolute !important;
+    left: 0.5rem !important;
+    top: -1rem !important;
+    font-size: 6rem !important;
+    line-height: 1 !important;
+    font-family: "Playfair Display", serif !important;
+    font-weight: 400 !important;
+    color: theme(colors.teal.600) !important;
+    opacity: 0.4 !important;
+    pointer-events: none !important;
+    z-index: 0 !important;
+}
+
+.dark .prose-main blockquote::before {
+    color: theme(colors.teal.400) !important;
 }

@@ -7,7 +7,26 @@
     <meta name="description" content="{% if meta_description %}{{ meta_description }}{% else %}{{ site_description }}{% endif %}">
 
     
-    {% if seo_head %}{{ seo_head | safe }}{% endif %}
+<meta name="author" content="{{ author_name }}">
+
+<meta property="og:title" content="{{ page_title }}">
+<meta property="og:description" content="{{ meta_description }}">
+<meta property="og:type" content="website">
+<meta property="og:url" content="{{ canonical_url }}">
+<meta property="og:image" content="{{ og_image }}">
+
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="{{ page_title }}">
+<meta name="twitter:description" content="{{ meta_description }}">
+<meta name="twitter:image" content="{{ og_image }}">
+
+<link rel="canonical" href="{{ canonical_url }}">
+
+{% if structured_data %}
+<script type="application/ld+json">
+{{ structured_data | safe }}
+</script>
+{% endif %}
     
     <link rel="stylesheet" href="{{ file('theme.css') }}">
     <link rel="preconnect" href="https://fonts.googleapis.com">

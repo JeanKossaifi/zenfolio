@@ -1,26 +1,37 @@
-<article class="elysian-card p-8 reveal" data-pub-item data-title="{{ item.title }}" data-highlighted="{{ item.highlight|default(false)|string|lower }}">
-    <!-- Primary Focus: Title -->
-    <h3 class="text-xl font-semibold heading text-gray-900 dark:text-white leading-tight">{{ item.title }}</h3>
-    
-    <!-- Secondary Focus: Authors (more subtle) -->
-    <p class="text-sm mt-3 text-gray-600 dark:text-gray-400">{{ item.highlighted_authors | safe }}</p>
-    
-    <!-- Academic Convention: Italicized venue with proper hierarchy -->
-    <div class="mt-4 mb-6">
-        <span class="text-sm"><em class="font-medium text-teal-600 dark:text-teal-400">{{ item.venue }}</em>, {{ item.year }}</span>
-    </div>
-    
-    <!-- Unified Action Bar: Clear pill-style buttons -->
-    <div class="flex flex-wrap items-center gap-2 publication-actions">
-        {% for link in item.links %}
-        <a href="{{ link.url }}" target="_blank" rel="noopener" class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 hover:text-teal-600 dark:hover:text-teal-400 border border-gray-200 dark:border-gray-700 rounded-full transition-all">
-            {% if 'PDF' in link.label %}<i class="fas fa-file-pdf text-red-500/70"></i>{% elif 'Code' in link.label %}<i class="fas fa-code text-blue-500/70"></i>{% elif 'Demo' in link.label %}<i class="fas fa-play text-green-500/70"></i>{% elif 'Slides' in link.label %}<i class="fas fa-presentation text-purple-500/70"></i>{% elif 'Website' in link.label %}<i class="fas fa-globe text-teal-600/70"></i>{% endif %}
-            {{ link.label }}
-        </a>
-        {% endfor %}
-        <button onclick="copyBibtex(this)" data-bibtex="{{ item.bibtex | e }}" class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-teal-50 dark:bg-teal-900/20 hover:bg-teal-100 dark:hover:bg-teal-900/40 text-teal-700 dark:text-teal-300 border border-teal-200 dark:border-teal-800 rounded-full transition-all cite-btn">
-            <i class="fas fa-quote-left"></i>
-            Cite
-        </button>
-    </div>
+<article class="elysian-card p-8 reveal{% if item.image %} publication-with-image relative pr-40{% endif %}" data-pub-item data-title="{{ item.title }}" data-highlighted="{{ item.highlight|default(false)|string|lower }}">
+        <!-- Content: Main publication information with actions -->
+        <div class="flex flex-col">
+            <!-- Primary Focus: Title -->
+            <h3 class="text-xl font-semibold heading text-gray-900 dark:text-white leading-tight" style="font-family: 'Playfair Display', serif;">{{ item.title }}</h3>
+            
+            <!-- Secondary Focus: Authors (more subtle) -->
+            <p class="text-sm mt-3 text-gray-600 dark:text-gray-400">{{ item.highlighted_authors | safe }}</p>
+            
+            <!-- Academic Convention: Italicized venue with proper hierarchy -->
+            <div class="mt-4 mb-6">
+                <span class="text-sm"><em class="font-medium text-teal-600 dark:text-teal-400">{{ item.venue }}</em>, {{ item.year }}</span>
+            </div>
+            
+            <!-- Unified Action Bar: Clear pill-style buttons positioned under text -->
+            <div class="flex flex-wrap items-center gap-2 publication-actions">
+                {% for link in item.links %}
+                <a href="{{ link.url }}" target="_blank" rel="noopener" class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 hover:text-teal-600 dark:hover:text-teal-400 border border-gray-200 dark:border-gray-700 rounded-full transition-all">
+                    {% if 'PDF' in link.label %}<i class="fas fa-file-pdf text-red-500/70"></i>{% elif 'Code' in link.label %}<i class="fas fa-code text-blue-500/70"></i>{% elif 'Demo' in link.label %}<i class="fas fa-play text-green-500/70"></i>{% elif 'Slides' in link.label %}<i class="fas fa-presentation text-purple-500/70"></i>{% elif 'Website' in link.label %}<i class="fas fa-globe text-teal-600/70"></i>{% endif %}
+                    {{ link.label }}
+                </a>
+                {% endfor %}
+                <button onclick="copyBibtex(this)" data-bibtex="{{ item.bibtex | e }}" class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-teal-50 dark:bg-teal-900/20 hover:bg-teal-100 dark:hover:bg-teal-900/40 text-teal-700 dark:text-teal-300 border border-teal-200 dark:border-teal-800 rounded-full transition-all cite-btn">
+                    <i class="fas fa-quote-left"></i>
+                    Cite
+                </button>
+            </div>
+        </div>
+        
+        {% if item.image %}
+        <!-- Publication Image: Absolute positioned to span full height -->
+        <div class="publication-image-container">
+            <img src="{{ file(item.image) }}" alt="{{ item.title }}" class="publication-image">
+            <div class="publication-image-overlay"></div>
+        </div>
+        {% endif %}
 </article>

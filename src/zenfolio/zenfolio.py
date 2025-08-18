@@ -93,7 +93,7 @@ class ZenFolio:
 
 
 
-    def _process_items(self, items: List[Any], item_type: str) -> List[Dict[str, Any]]:
+    def _process_items(self, items: List[Any], item_type: str, seo_generator: Optional['SEOGenerator'] = None) -> List[Dict[str, Any]]:
         """Process items with optimized markdown rendering and path resolution"""
         if not items:
             return []
@@ -142,20 +142,32 @@ class ZenFolio:
             
             # Pre-render the HTML for this item to avoid complex template calls
             if item_dict['template_type']:
-                item_dict['rendered_html'] = self.theme.render_component(item_dict['template_type'], item=item_dict)
+                item_dict['rendered_html'] = self.theme.render_component(
+                    item_dict['template_type'], 
+                    item=item_dict,
+                    seo_generator=seo_generator
+                )
             
+            # Generate schema if possible
+            item_dict['rendered_schema'] = ''
+            if seo_generator:
+                if item_type == 'publication_item':
+                    item_dict['rendered_schema'] = seo_generator.generate_scholarly_article_schema(item_dict)
+                elif item_type == 'project_item':
+                    item_dict['rendered_schema'] = seo_generator.generate_software_application_schema(item_dict)
+
             processed.append(item_dict)
         return processed
     
-    def _process_service_items(self, items: List[Any]) -> Dict[str, Any]:
+    def _process_service_items(self, items: List[Any], seo_generator: Optional['SEOGenerator'] = None) -> Dict[str, Any]:
         """Process academic service items, grouping them for structured display."""
         leadership_items = self._process_items(
-            [item for item in items if item.category == 'leadership'], 'service_item'
+            [item for item in items if item.category == 'leadership'], 'service_item', seo_generator
         )
         
         # Include all non-leadership items as review items (conference, journal, etc.)
         review_items = self._process_items(
-            [item for item in items if item.category != 'leadership'], 'service_item'
+            [item for item in items if item.category != 'leadership'], 'service_item', seo_generator
         )
         
         review_groups = {}
@@ -325,7 +337,8 @@ class ZenFolio:
 
     def _render_and_write_page(self, filename: str, content: str, page_title: str = "", base_url: str = "", 
                               seo_generator: Optional['SEOGenerator'] = None, page_type: str = "page", 
-                              item_data: Optional[Dict[str, Any]] = None, **context):
+                              item_data: Optional[Dict[str, Any]] = None, 
+                              structured_data_list: Optional[str] = None, **context):
         default_current_page = filename.split('.')[0]
         current_page = context.pop('current_page', default_current_page)
         
@@ -340,6 +353,9 @@ class ZenFolio:
             'meta_description': self.config.site.description,
             'structured_data': None
         }
+        if structured_data_list:
+            seo_context['structured_data'] = structured_data_list
+        
         if seo_generator:
             # Add page to sitemap tracking (avoid duplicates)
             if not any(page['path'] == filename for page in self.seo_pages):
@@ -369,10 +385,11 @@ class ZenFolio:
                 seo_context['og_image'] = seo_generator._build_url(f"static/{self.config.author.photo_path}")
             
             # Generate structured data based on page type
-            if page_type == "homepage":
-                seo_context['structured_data'] = seo_generator.generate_person_schema()
-            elif page_type == "blog_post" and item_data:
-                seo_context['structured_data'] = seo_generator.generate_blog_posting_schema(item_data)
+            if not seo_context.get('structured_data'):
+                if page_type == "homepage":
+                    seo_context['structured_data'] = seo_generator.generate_person_schema()
+                elif page_type == "blog_post" and item_data:
+                    seo_context['structured_data'] = seo_generator.generate_blog_posting_schema(item_data)
         
         html = self.theme.render_page(
             content=content, page_title=page_title, author_name=self.config.author.name,
@@ -442,24 +459,25 @@ class ZenFolio:
             {"id": "featured_work", "data": {
                 "title": "Featured Work", "grid_cols": 2,
                 "subtitle": "A selection of projects and research I'm particularly proud of.",
-                "items": self._process_items(highlighted_projects, 'project_item'),
+                "items": self._process_items(highlighted_projects, 'project_item', seo_generator=seo_generator),
                 "view_all_link": {"url": "projects.html", "text": "View all projects"}
             }},
             {"id": "academic_service", "data": {
                 "title": "Academic Service", 
                 "layout": "service",
-                "items": self._process_service_items(self.config.author.service),
+                "items": self._process_service_items(self.config.author.service, seo_generator=seo_generator),
             }},
             {"id": "recent_publications", "data": {
                 "title": pub_section_title, "grid_cols": 1,
-                "items": self._process_items(homepage_pubs, 'publication_item'),
+                "items": self._process_items(homepage_pubs, 'publication_item', seo_generator=seo_generator),
                 "view_all_link": {"url": "publications.html", "text": "View all publications"}
             }},
             {"id": "recent_news", "data": {
                 "title": "Recent News", "layout": "timeline",
                 "items": self._process_items(
                     self.config.news.items[:self.config.site.homepage_news_count] if self.config.site.homepage_news_count is not None else self.config.news.items, 
-                    'news_item'
+                    'news_item',
+                    seo_generator=seo_generator
                 ),
                 "view_all_link": {"url": "news.html", "text": "View all news"}
             }}
@@ -510,7 +528,7 @@ class ZenFolio:
 
     def _build_list_page(self, title: str, filename: str, items: List[Any], item_type: str, columns: int, base_url: str, layout: str = 'grid', group_by: Optional[str] = None, has_search: bool = False, seo_generator: Optional['SEOGenerator'] = None):
         """Generic function to build list pages (Publications, News, etc.)."""
-        processed_items = self._process_items(items, item_type)
+        processed_items = self._process_items(items, item_type, seo_generator)
         
         # This data will be passed to the page_layout.html.j2 template
         page_data = {
@@ -545,16 +563,21 @@ class ZenFolio:
         if "publication" in filename:
             page_type = "publications"
 
+        # Extract all schemas and combine them
+        all_schemas = [item['rendered_schema'] for item in processed_items if item.get('rendered_schema')]
+        combined_schema = f"[{','.join(all_schemas)}]" if all_schemas else None
+
         self._render_and_write_page(
             filename, content, page_title=title,
             base_url=base_url, current_page=filename.split('.')[0],
-            seo_generator=seo_generator, page_type=page_type
+            seo_generator=seo_generator, page_type=page_type,
+            structured_data_list=combined_schema
         )
 
     def _build_blog_post_pages(self, blog_posts: List[Dict[str, Any]], base_url: str, seo_generator: Optional['SEOGenerator'] = None):
         blog_output_dir = self.output_dir / 'blog'
         blog_output_dir.mkdir(exist_ok=True)
-        processed_posts = self._process_items(blog_posts, 'blog_post_item')
+        processed_posts = self._process_items(blog_posts, 'blog_post_item', seo_generator)
         
         for post in processed_posts:
             # Re-render content from raw source using appropriate processor

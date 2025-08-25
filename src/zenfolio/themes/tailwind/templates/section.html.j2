@@ -36,10 +36,11 @@
 
                             {# Peer Review Section #}
             {% if items.review_groups %}
-            <h3 class="text-2xl font-semibold heading text-gray-900 dark:text-white mb-6 mt-8">Peer Review</h3>
-            <div class="flex flex-wrap gap-2">
-                {% for role, role_items in items.review_groups.items() %}
-                        {% for item in role_items %}
+                <h3 class="text-2xl font-semibold heading text-gray-900 dark:text-white mb-6 mt-8">Peer Review</h3>
+                {% for group_name, group_items in items.review_groups.items()|sort %}
+                    <h4 class="text-lg font-semibold text-gray-800 dark:text-gray-200 mt-4 mb-2">{{ group_name }}</h4>
+                    <div class="flex flex-wrap gap-2">
+                        {% for item in group_items %}
                         <span class="inline-flex items-center gap-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 px-3 py-2 rounded-lg text-sm font-medium mr-2 mb-2 hover:border-gray-300 dark:hover:border-gray-600 transition-colors">
                             <span class="font-medium">{{ item.venue }}</span>
                             {% if item.highlight %}
@@ -48,9 +49,9 @@
                             <span class="text-xs font-medium text-teal-600 dark:text-teal-400">{{ item.date }}</span>
                         </span>
                         {% endfor %}
-                    {% endfor %}
-                </div>
-                {% endif %}
+                    </div>
+                {% endfor %}
+            {% endif %}
             </div>
             {% else %}
             <div class="grid grid-cols-1 {% if grid_cols|default(1) == 2 %}md:grid-cols-2{% elif grid_cols|default(1) >= 3 %}md:grid-cols-2 lg:grid-cols-3{% endif %} gap-8">

@@ -172,12 +172,11 @@ class ZenFolio:
         
         review_groups = {}
         for item in review_items:
-            # Group by category (conference, journal, etc.)
-            category = item.get('category', 'Reviewer')
-            category_title = category.title() if category != 'conference' else 'Conference'
-            if category_title not in review_groups:
-                review_groups[category_title] = []
-            review_groups[category_title].append(item)
+            # Group by description (e.g., "Area Chair", "Reviewer")
+            group_name = item.get('description', 'Other').strip()
+            if group_name not in review_groups:
+                review_groups[group_name] = []
+            review_groups[group_name].append(item)
             
         return {
             "leadership_items": leadership_items,
@@ -490,7 +489,14 @@ class ZenFolio:
             section_id = section['id']
             
             # Validate section has content before attempting to render
-            has_content = bool(section_data.get('items') or section_data.get('content'))
+            has_content = False
+            if section_id == 'academic_service':
+                # Special check for service section due to its nested structure
+                service_items = section_data.get('items', {})
+                has_content = bool(service_items.get('leadership_items') or service_items.get('review_groups'))
+            else:
+                has_content = bool(section_data.get('items') or section_data.get('content'))
+
             if not has_content:
                 if self.debug:
                     print(f"⚠️ Skipping empty section: {section_id}")

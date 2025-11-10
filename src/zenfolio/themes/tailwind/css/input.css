@@ -6,40 +6,19 @@
 /* Configure dark mode to use class-based selector instead of prefers-color-scheme */
 @variant dark (&:where(.dark, .dark *));
 
-/* Elysian Theme - Refined Background System */
+/* Clean, Simple Background */
 .elysian-background {
     position: fixed; 
     inset: 0; 
     z-index: -1; 
     pointer-events: none;
-    background: 
-        radial-gradient(ellipse 80% 50% at 50% -20%, hsl(210, 100%, 97%), transparent 50%),
-        radial-gradient(ellipse 60% 40% at 80% 80%, hsl(180, 100%, 97%), transparent 50%),
-        linear-gradient(135deg, hsl(210, 40%, 98%) 0%, white 70%);
+    background-color: #ffffff;
 }
 
 .dark .elysian-background {
-    background: 
-        radial-gradient(ellipse 80% 50% at 50% -20%, rgba(15, 23, 42, 0.4), transparent 50%),
-        radial-gradient(ellipse 60% 40% at 80% 80%, rgba(30, 41, 59, 0.3), transparent 50%),
-        linear-gradient(135deg, rgba(15, 23, 42, 0.8) 0%, theme(colors.slate.900) 70%);
+    background-color: theme(colors.slate.900);
 }
 
-.noise-texture::after {
-    content: ''; 
-    position: fixed; 
-    inset: 0; 
-    z-index: -1; 
-    pointer-events: none;
-    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.2' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.6'/%3E%3C/svg%3E");
-    opacity: 0.02;
-    mix-blend-mode: multiply;
-}
-
-.dark .noise-texture::after {
-    mix-blend-mode: screen;
-    opacity: 0.015;
-}
 
 .heading { 
     font-family: 'Playfair Display', serif; 
@@ -121,11 +100,11 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 2.5rem;
-    height: 2.5rem;
+    width: 3rem;
+    height: 3rem;
     border-radius: 50%;
     color: theme(colors.gray.500);
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
     position: relative;
 }
 
@@ -140,7 +119,7 @@
     border-radius: 50%;
     background: theme(colors.gray.100);
     opacity: 0;
-    transform: scale(0.8);
+    transform: scale(0.7);
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
@@ -150,7 +129,7 @@
 
 .social-icon-link:hover {
     color: theme(colors.teal.600);
-    transform: translateY(-1px);
+    transform: translateY(-2px) scale(1.05);
 }
 
 .dark .social-icon-link:hover {
@@ -165,6 +144,7 @@
 .social-icon-link i {
     position: relative;
     z-index: 1;
+    font-size: 1.125rem;
 }
 
 /* --- MathJax Styling --- */
@@ -185,11 +165,11 @@
     color: theme(colors.white) !important;
 }
 .elysian-card {
-    background: rgba(255, 255, 255, 0.85);
-    backdrop-filter: blur(12px);
-    border: 1px solid rgba(229, 231, 235, 0.6); 
-    border-radius: 1.25rem;
-    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(16px);
+    border: 1px solid rgba(229, 231, 235, 0.8); 
+    border-radius: 1.5rem;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     position: relative;
     overflow: hidden;
 }
@@ -198,37 +178,37 @@
     content: '';
     position: absolute;
     inset: 0;
-    background: linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, transparent 50%);
+    background: linear-gradient(135deg, rgba(20, 184, 166, 0.02) 0%, transparent 50%);
     pointer-events: none;
     z-index: 1;
 }
 
 .dark .elysian-card {
-    background: rgba(30, 41, 59, 0.85);
-    border-color: rgba(75, 85, 99, 0.6);
+    background: rgba(30, 41, 59, 0.95);
+    border-color: rgba(71, 85, 105, 0.8);
 }
 
 .dark .elysian-card::before {
-    background: linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0%, transparent 50%);
+    background: linear-gradient(135deg, rgba(20, 184, 166, 0.03) 0%, transparent 50%);
 }
 
 .elysian-card:hover { 
-    transform: translateY(-6px) scale(1.01); 
-    box-shadow: 0 20px 40px -12px rgba(0, 0, 0, 0.12), 0 8px 16px -8px rgba(0, 0, 0, 0.08); 
-    border-color: rgba(156, 163, 175, 0.8);
+    transform: translateY(-4px);
+    box-shadow: 0 20px 40px -12px rgba(0, 0, 0, 0.15), 0 8px 16px -8px rgba(0, 0, 0, 0.1); 
+    border-color: rgba(20, 184, 166, 0.3);
 }
 
 .dark .elysian-card:hover { 
-    box-shadow: 0 20px 40px -12px rgba(0, 0, 0, 0.25), 0 8px 16px -8px rgba(0, 0, 0, 0.15); 
-    border-color: rgba(107, 114, 128, 0.8);
+    box-shadow: 0 20px 40px -12px rgba(0, 0, 0, 0.4), 0 8px 16px -8px rgba(0, 0, 0, 0.2); 
+    border-color: rgba(45, 212, 191, 0.4);
 }
 
 .elysian-card:hover::before {
-    background: linear-gradient(135deg, rgba(255, 255, 255, 0.15) 0%, transparent 60%);
+    background: linear-gradient(135deg, rgba(20, 184, 166, 0.05) 0%, transparent 60%);
 }
 
 .dark .elysian-card:hover::before {
-    background: linear-gradient(135deg, rgba(255, 255, 255, 0.08) 0%, transparent 60%);
+    background: linear-gradient(135deg, rgba(20, 184, 166, 0.08) 0%, transparent 60%);
 }
 .reveal { opacity: 1; transition: opacity 0.8s ease, transform 0.8s ease; }
 .js-enabled .reveal { opacity: 0; transform: translateY(24px); }
@@ -255,25 +235,36 @@
     background-size: 200% 100%;
     animation: shimmer 3s ease-in-out infinite;
 }
-/* --- Fluid Typography --- */
+/* --- Enhanced Fluid Typography System --- */
 .fluid-heading-hero {
-    font-size: clamp(3rem, 8vw + 1rem, 6rem);
-    line-height: 1;
+    font-size: clamp(3.5rem, 9vw + 1rem, 7rem);
+    line-height: 1.05;
+    letter-spacing: -0.04em;
+    font-weight: 700;
 }
 
 .fluid-heading-large {
-    font-size: clamp(2.25rem, 5vw + 1rem, 3.75rem);
-    line-height: 1;
+    font-size: clamp(2.5rem, 6vw + 1rem, 4.5rem);
+    line-height: 1.1;
+    letter-spacing: -0.03em;
 }
 
 .fluid-heading-medium {
-    font-size: clamp(1.875rem, 4vw + 0.5rem, 3rem);
-    line-height: 1.1;
+    font-size: clamp(2rem, 5vw + 0.5rem, 3.5rem);
+    line-height: 1.15;
+    letter-spacing: -0.02em;
 }
 
 .fluid-text-large {
-    font-size: clamp(1.125rem, 2vw + 0.5rem, 1.25rem);
-    line-height: 1.75;
+    font-size: clamp(1.125rem, 2.5vw + 0.5rem, 1.375rem);
+    line-height: 1.7;
+}
+
+/* Section headings (h2) */
+.section-heading {
+    font-size: clamp(2.25rem, 5vw, 3.75rem);
+    line-height: 1.1;
+    letter-spacing: -0.02em;
 }
 
 /* --- Markdown Image Alignment --- */
@@ -447,17 +438,23 @@ img.figure-right {
 
 
 
-/* --- Publication Action Buttons --- */
+/* --- Enhanced Micro-interactions --- */
+
+/* Publication and Project Action Buttons */
+.publication-actions a,
+.publication-actions button {
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
 .publication-actions a:hover,
 .publication-actions button:hover {
-    transform: translateY(-1px) scale(1.01);
-    box-shadow: 0 2px 8px theme(colors.gray.900/6);
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
 }
 
 .dark .publication-actions a:hover,
 .dark .publication-actions button:hover {
-    box-shadow: 0 2px 8px theme(colors.gray.100/8);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 }
 
 .publication-actions a:active,
@@ -1129,4 +1126,164 @@ img.figure-right {
 
 .dark .prose-main blockquote::before {
     color: theme(colors.teal.400) !important;
+}
+
+/* ============================================================================
+   GOOGLE SCHOLAR IMPACT CARD
+   ============================================================================ */
+.scholar-impact-card {
+    background: linear-gradient(135deg, 
+        rgba(255, 255, 255, 0.95), 
+        rgba(240, 253, 250, 0.95)
+    );
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(20, 184, 166, 0.2);
+    border-radius: 1.25rem;
+    padding: 2rem;
+    box-shadow: 
+        0 4px 6px -1px rgba(0, 0, 0, 0.05),
+        0 2px 4px -1px rgba(0, 0, 0, 0.03);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+}
+
+.scholar-impact-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, #14b8a6, #10b981, #06b6d4);
+    opacity: 0.8;
+}
+
+.dark .scholar-impact-card {
+    background: linear-gradient(135deg, 
+        rgba(30, 41, 59, 0.95), 
+        rgba(19, 78, 74, 0.95)
+    );
+    border-color: rgba(20, 184, 166, 0.3);
+    box-shadow: 
+        0 4px 6px -1px rgba(0, 0, 0, 0.2),
+        0 2px 4px -1px rgba(0, 0, 0, 0.1);
+}
+
+.scholar-impact-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 
+        0 20px 25px -5px rgba(0, 0, 0, 0.1),
+        0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    border-color: rgba(20, 184, 166, 0.4);
+}
+
+.dark .scholar-impact-card:hover {
+    box-shadow: 
+        0 20px 25px -5px rgba(0, 0, 0, 0.3),
+        0 10px 10px -5px rgba(0, 0, 0, 0.15);
+}
+
+.scholar-stat {
+    text-align: center;
+    padding: 1rem;
+    transition: transform 0.2s ease;
+}
+
+.scholar-stat:hover {
+    transform: scale(1.05);
+}
+
+.scholar-stat-value {
+    display: block;
+    font-size: 3.5rem;
+    font-weight: 800;
+    line-height: 1;
+    background: linear-gradient(135deg, #0d9488, #059669);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 0.75rem;
+    font-family: 'Inter', sans-serif;
+}
+
+.dark .scholar-stat-value {
+    background: linear-gradient(135deg, #5eead4, #6ee7b7);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.scholar-stat-label {
+    display: block;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: theme(colors.gray.500);
+}
+
+.dark .scholar-stat-label {
+    color: theme(colors.gray.400);
+}
+
+/* Count-up animation for stats */
+@keyframes countUp {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.scholar-stat-value {
+    animation: countUp 0.6s ease-out;
+}
+
+/* ============================================================================
+   MOBILE OPTIMIZATIONS
+   ============================================================================ */
+
+/* Touch-friendly buttons (min 44x44px) */
+@media (max-width: 768px) {
+    .publication-actions a,
+    .publication-actions button,
+    .social-icon-link {
+        min-height: 44px;
+        min-width: 44px;
+    }
+    
+    /* Larger text on mobile for readability */
+    .fluid-heading-hero {
+        line-height: 1.1;
+    }
+    
+    .fluid-text-large {
+        font-size: clamp(1.125rem, 4vw, 1.25rem);
+        line-height: 1.6;
+    }
+    
+    /* Reduce excessive padding on mobile */
+    .elysian-card {
+        padding: 1.5rem;
+    }
+    
+    /* Better spacing for mobile hero */
+    section:first-of-type {
+        padding-top: 8rem;
+        padding-bottom: 4rem;
+    }
+    
+    /* Stack scholar stats vertically on mobile */
+    .scholar-stat-value {
+        font-size: 2.5rem;
+    }
+    
+    /* Project cards: smaller images on mobile */
+    .project-image-container {
+        height: 12rem;
+    }
 }

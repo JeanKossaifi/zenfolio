@@ -28,7 +28,7 @@ def validate_site(content_dir: Path):
     
     try:
         from zencfg import load_config_from_file
-        config = load_config_from_file(content_dir / "config.py", "config")
+        config = load_config_from_file(content_dir, "config.py", "config")
         print("✅ Configuration loaded and validated successfully")
         
         if not config.author.name or config.author.name == "Your Name":

@@ -91,9 +91,10 @@ class SEOGenerator:
         }
         
         # Add authors
-        if publication.get('author_list'):
+        author_list = publication.get('authors') or publication.get('author_list') or []
+        if author_list:
             authors = []
-            for author_name in publication['author_list']:
+            for author_name in author_list:
                 authors.append({
                     "@type": "Person",
                     "name": author_name
@@ -101,13 +102,11 @@ class SEOGenerator:
             schema["author"] = authors
         
         # Add publication date
-        if publication.get('year'):
-            year_value = publication['year']
+        year_value = publication.get('year')
+        if year_value:
             if hasattr(year_value, 'strftime'):
-                # Convert date/datetime object to year string
                 schema["datePublished"] = year_value.strftime('%Y')
             else:
-                # Already a string or number
                 schema["datePublished"] = str(year_value)
         
         # Add publisher/venue
@@ -122,9 +121,16 @@ class SEOGenerator:
             schema["abstract"] = publication['abstract']
             
         # Add PDF link if available
-        pdf_links = [link for link in publication.get('links', []) if 'PDF' in link.get('label', '')]
-        if pdf_links:
-            schema["url"] = pdf_links[0]['url']
+        pdf_url = None
+        for link in publication.get('links', []):
+            label = (link.get('label') or '').lower()
+            if label in {'pdf', 'paper'}:
+                pdf_url = link.get('url')
+                break
+        if not pdf_url:
+            pdf_url = publication.get('paper')
+        if pdf_url:
+            schema["url"] = pdf_url
             
         return json.dumps(schema, indent=2)
     
@@ -139,12 +145,17 @@ class SEOGenerator:
         }
         
         # Add code repository URL
-        if project.get('repo_url'):
-            schema["codeRepository"] = project['repo_url']
+        repo_url = project.get('github') or project.get('code') or project.get('repo_url')
+        if repo_url:
+            schema["codeRepository"] = repo_url
         
         # Add homepage URL if available
-        if project.get('url'):
-            schema["url"] = project['url']
+        primary_url = project.get('website') or project.get('demo') or project.get('documentation') or project.get('url')
+        if primary_url:
+            schema["url"] = primary_url
+        
+        if project.get('image'):
+            schema["image"] = self._build_url(f"static/{project['image']}")
             
         # Add author
         schema["author"] = {

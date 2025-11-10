@@ -1,21 +1,27 @@
 {# MathJax configuration template #}
 
 {% if mathjax_config %}
+{% set inline_pairs = mathjax_config.inline_math if mathjax_config.inline_math else [['$', '$'], ['\\(', '\\)']] %}
+{% set display_pairs = mathjax_config.display_math if mathjax_config.display_math else [['$$', '$$'], ['\\[', '\\]']] %}
+{% set ignore_class = mathjax_config.ignore_html_class if mathjax_config.ignore_html_class else 'tex2jax_ignore' %}
+{% set process_class = mathjax_config.process_html_class if mathjax_config.process_html_class else 'tex2jax_process' %}
+{% set cdn_url = mathjax_config.cdn_url if mathjax_config.cdn_url else 'https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js' %}
+
 <script>
 MathJax = {
   tex: {
-    inlineMath: [['$', '$'], ['\\(', '\\)']],
-    displayMath: [['$$', '$$'], ['\\[', '\\]']],
-    processEscapes: true,
-    processEnvironments: true
+    inlineMath: {{ inline_pairs | tojson }},
+    displayMath: {{ display_pairs | tojson }},
+    processEscapes: {{ 'true' if mathjax_config.process_escapes else 'false' }},
+    processEnvironments: {{ 'true' if mathjax_config.process_environments else 'false' }}
   },
   options: {
-    ignoreHtmlClass: 'tex2jax_ignore',
-    processHtmlClass: 'tex2jax_process'
+    ignoreHtmlClass: '{{ ignore_class }}',
+    processHtmlClass: '{{ process_class }}'
   }
 };
 </script>
 <script type="text/javascript" id="MathJax-script" async
-  src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js">
+  src="{{ cdn_url }}">
 </script>
 {% endif %}

@@ -5,6 +5,17 @@
     <div>
         <h1 class="text-7xl lg:text-8xl heading text-gray-900 dark:text-white mb-16 reveal">{{ title }}</h1>
 
+        {# Google Scholar Impact Card (for publications page) #}
+        {% if scholar_stats and scholar_stats.get('total_citations') %}
+            {{ theme.render_component('scholar_impact_card', 
+                total_citations=scholar_stats.get('total_citations', 0),
+                h_index=scholar_stats.get('h_index', 0),
+                i10_index=scholar_stats.get('i10_index', 0),
+                updated_date=scholar_stats.get('updated_date', ''),
+                scholar_url=author.get('scholar') if author else ''
+            ) }}
+        {% endif %}
+
         {# Search bar, if needed #}
         {% if has_search %}
             {{ theme.render_component('search_filter_bar') }}

@@ -1,12 +1,16 @@
-<section class="relative pt-40 pb-24 sm:pt-48 sm:pb-32">
+<section class="relative pt-48 pb-32 sm:pt-56 sm:pb-40">
     <div class="max-w-7xl mx-auto px-6 lg:px-8">
-        <div class="grid grid-cols-1 lg:grid-cols-5 gap-12 lg:gap-16 items-center">
+        <div class="grid grid-cols-1 lg:grid-cols-5 gap-16 lg:gap-20 items-center">
             <div class="lg:col-span-3 text-center lg:text-left">
-                <div class="space-y-8">
-                    <h1 class="fluid-heading-hero heading text-gray-900 dark:text-white reveal">{{ item.name }}</h1>
-                    {% if item.tagline %}<p class="fluid-text-large text-gray-600 dark:text-gray-300 max-w-xl mx-auto lg:mx-0 reveal delay-200">{{ item.tagline | safe }}</p>{% endif %}
-                    <div class="space-y-6">
-                        <div class="flex flex-wrap justify-center lg:justify-start gap-4 reveal delay-400">
+                <div class="space-y-10">
+                    <h1 class="fluid-heading-hero heading">
+                        <span class="bg-gradient-to-r from-gray-900 via-gray-800 to-gray-900 dark:from-white dark:via-gray-100 dark:to-white bg-clip-text text-transparent">{{ item.name }}</span>
+                    </h1>
+                    {% if item.tagline %}
+                    <p class="fluid-text-large text-gray-600 dark:text-gray-300 max-w-2xl mx-auto lg:mx-0 leading-relaxed">{{ item.tagline | safe }}</p>
+                    {% endif %}
+                    <div class="space-y-8">
+                        <div class="flex flex-wrap justify-center lg:justify-start gap-4">
                             {% if item.homepage_buttons %}
                                 {% for button in item.homepage_buttons %}
                                     {% if button.style == "primary" %}
@@ -24,7 +28,7 @@
                             {% endif %}
                             {% if item.cv_path %}<a href="{{ item.cv_path }}" target="_blank" rel="noopener" class="inline-block px-6 py-3 bg-teal-600 dark:bg-teal-400 text-white font-semibold rounded-full shadow-sm hover:-translate-y-1 transition-transform">Download CV</a>{% endif %}
                         </div>
-                        <div class="flex justify-center lg:justify-start gap-4 text-gray-500 dark:text-gray-400 reveal delay-600">
+                        <div class="flex justify-center lg:justify-start gap-4 text-gray-500 dark:text-gray-400">
                             {% if item.github %}<a href="{{ item.github }}" target="_blank" rel="noopener" aria-label="GitHub" class="social-icon-link"><i class="fab fa-github fa-lg"></i></a>{% endif %}
                             {% if item.scholar %}<a href="{{ item.scholar }}" target="_blank" rel="noopener" aria-label="Google Scholar" class="social-icon-link"><i class="fas fa-graduation-cap fa-lg"></i></a>{% endif %}
                             {% if item.linkedin %}<a href="{{ item.linkedin }}" target="_blank" rel="noopener" aria-label="LinkedIn" class="social-icon-link"><i class="fab fa-linkedin fa-lg"></i></a>{% endif %}
@@ -35,9 +39,8 @@
             </div>
             <div class="lg:col-span-2 relative flex justify-center order-first lg:order-last">
                 {% if item.photo_path or item.photo %}
-                <div class="relative w-72 h-72 lg:w-96 lg:h-96 reveal delay-200">
-                     <div class="absolute inset-0 bg-gradient-to-br from-cyan-200 via-purple-200 to-pink-200 dark:from-cyan-900/50 dark:via-purple-900/50 dark:to-pink-900/50 rounded-full blur-3xl animate-slow-pulse"></div>
-                     <img src="{% if item.photo %}{{ item.photo }}{% else %}static/{{ item.photo_path }}{% endif %}" alt="{{ item.name }}" class="relative w-full h-full object-cover rounded-full shadow-2xl">
+                <div class="relative w-80 h-80 lg:w-[28rem] lg:h-[28rem]">
+                     <img src="{% if item.photo %}{{ item.photo }}{% else %}static/{{ item.photo_path }}{% endif %}" alt="{{ item.name }}" class="relative w-full h-full object-cover rounded-full shadow-2xl ring-1 ring-gray-200 dark:ring-gray-700">
                 </div>
                 {% endif %}
             </div>

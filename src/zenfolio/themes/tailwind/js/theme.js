@@ -126,7 +126,53 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Initialize project card effects
     initProjectCardEffects();
+    
+    // Reading progress bar for blog posts
+    initReadingProgress();
 });
+
+// ============================================================================
+// READING PROGRESS BAR
+// ============================================================================
+
+/**
+ * Reading Progress Bar
+ * Shows progress through blog post content
+ */
+function initReadingProgress() {
+    // Only run on pages with main prose content (blog posts, pages)
+    const blogContent = document.querySelector('.prose-main');
+    if (!blogContent) return;
+    
+    // Create progress bar element
+    const progressBar = document.createElement('div');
+    progressBar.className = 'reading-progress';
+    progressBar.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 3px;
+        background: linear-gradient(90deg, #14b8a6, #10b981);
+        transform-origin: left;
+        transform: scaleX(0);
+        z-index: 100;
+        transition: transform 0.1s ease-out;
+    `;
+    document.body.appendChild(progressBar);
+    
+    // Update progress on scroll
+    function updateProgress() {
+        const windowHeight = window.innerHeight;
+        const documentHeight = document.documentElement.scrollHeight - windowHeight;
+        const scrolled = window.scrollY;
+        const progress = Math.min(Math.max(scrolled / documentHeight, 0), 1);
+        progressBar.style.transform = `scaleX(${progress})`;
+    }
+    
+    window.addEventListener('scroll', updateProgress, { passive: true });
+    updateProgress(); // Initial update
+}
 
 // Simple search-only functionality - let server handle grouping/sorting
 if (document.title.includes('Publications')) {

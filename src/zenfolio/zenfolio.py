@@ -25,7 +25,7 @@ class ZenFolio:
         self.debug = debug
         
         # Load user config directly - ZenCFG handles validation
-        self.config = load_config_from_file(self.content_dir / "config.py", "config")
+        self.config = load_config_from_file(self.content_dir, "config.py", "config")
         
         # Apply theme override if provided (before loading theme)
         if theme_override:
@@ -286,7 +286,10 @@ class ZenFolio:
         
         # Now build the pages
         self._build_home_page(self.content.publications, self.content.bio, base_url, seo_generator)
-        self._build_list_page("Publications", "publications.html", self.content.publications, 'publication_item', 1, base_url, group_by='year', has_search=True, seo_generator=seo_generator)
+        
+        # Get scholar stats from config if available
+        scholar_stats = getattr(self.config, 'scholar_stats', None) or {}
+        self._build_list_page("Publications", "publications.html", self.content.publications, 'publication_item', 1, base_url, group_by='year', has_search=True, seo_generator=seo_generator, scholar_stats=scholar_stats)
         
         # Conditionally build pages only if content exists
         if self.config.projects and hasattr(self.config.projects, 'items') and self.config.projects.items:
@@ -532,14 +535,15 @@ class ZenFolio:
         self._render_and_write_page("index.html", content, page_title=self.config.site.title, base_url=base_url, 
                                    seo_generator=seo_generator, page_type="homepage")
 
-    def _build_list_page(self, title: str, filename: str, items: List[Any], item_type: str, columns: int, base_url: str, layout: str = 'grid', group_by: Optional[str] = None, has_search: bool = False, seo_generator: Optional['SEOGenerator'] = None):
+    def _build_list_page(self, title: str, filename: str, items: List[Any], item_type: str, columns: int, base_url: str, layout: str = 'grid', group_by: Optional[str] = None, has_search: bool = False, seo_generator: Optional['SEOGenerator'] = None, scholar_stats: Optional[dict] = None):
         """Generic function to build list pages (Publications, News, etc.)."""
         processed_items = self._process_items(items, item_type, seo_generator)
         
         # This data will be passed to the page_layout.html.j2 template
         page_data = {
             'title': title, 'columns': columns, 'layout': layout,
-            'items': None, 'grouped_items': None, 'items_html': '', 'has_search': has_search
+            'items': None, 'grouped_items': None, 'items_html': '', 'has_search': has_search,
+            'scholar_stats': scholar_stats
         }
 
         if group_by:
@@ -652,7 +656,7 @@ class ZenFolio:
 def get_output_dir(content_dir: Path) -> Path:
     """Get output directory from configuration"""
     try:
-        config = load_config_from_file(content_dir / "config.py", "config")
+        config = load_config_from_file(content_dir, "config.py", "config")
         return resolve_directory_path(config.output_path, content_dir.parent)
     except Exception:
         return Path("_site")

@@ -1,0 +1,89 @@
+{# Google Scholar Impact Card - showcases research impact #}
+<div class="scholar-impact-card mb-16">
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8">
+        <div class="flex items-center gap-4">
+            <div class="flex items-center justify-center w-14 h-14 bg-gradient-to-br from-teal-100 to-emerald-100 dark:from-teal-900/40 dark:to-emerald-900/40 rounded-2xl">
+                <i class="fas fa-graduation-cap text-3xl text-teal-600 dark:text-teal-400"></i>
+            </div>
+            <div>
+                <h2 class="text-3xl font-bold text-gray-900 dark:text-white heading">Research Impact</h2>
+                <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Google Scholar Metrics</p>
+            </div>
+        </div>
+        {% if scholar_url %}
+        <a href="{{ scholar_url }}" target="_blank" rel="noopener" class="inline-flex items-center gap-2 px-6 py-3 text-sm font-semibold text-white bg-teal-600 dark:bg-teal-500 rounded-full hover:bg-teal-700 dark:hover:bg-teal-600 shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all">
+            <span>View Scholar Profile</span>
+            <i class="fas fa-external-link-alt text-xs"></i>
+        </a>
+        {% endif %}
+    </div>
+    
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+        {# Total Citations #}
+        <div class="scholar-stat">
+            <span class="scholar-stat-value" data-target="{{ total_citations }}">0</span>
+            <span class="scholar-stat-label">Citations</span>
+        </div>
+        
+        {# h-index #}
+        <div class="scholar-stat">
+            <span class="scholar-stat-value" data-target="{{ h_index }}">0</span>
+            <span class="scholar-stat-label">h-index</span>
+        </div>
+        
+        {# i10-index #}
+        <div class="scholar-stat">
+            <span class="scholar-stat-value" data-target="{{ i10_index }}">0</span>
+            <span class="scholar-stat-label">i10-index</span>
+        </div>
+    </div>
+    
+    {% if updated_date %}
+    <div class="mt-8 pt-6 border-t border-gray-200/50 dark:border-gray-700/50">
+        <p class="text-sm text-center text-gray-500 dark:text-gray-400 font-medium">
+            <i class="fas fa-sync-alt mr-2"></i>
+            Updated {{ updated_date }}
+        </p>
+    </div>
+    {% endif %}
+</div>
+
+{# JavaScript for count-up animation #}
+<script>
+(function() {
+    const stats = document.querySelectorAll('.scholar-stat-value[data-target]');
+    
+    function animateCount(element) {
+        const target = parseInt(element.getAttribute('data-target'));
+        const duration = 1500; // 1.5 seconds
+        const steps = 60;
+        const stepDuration = duration / steps;
+        const increment = target / steps;
+        let current = 0;
+        
+        const timer = setInterval(() => {
+            current += increment;
+            if (current >= target) {
+                element.textContent = target.toLocaleString();
+                clearInterval(timer);
+            } else {
+                element.textContent = Math.floor(current).toLocaleString();
+            }
+        }, stepDuration);
+    }
+    
+    // Trigger animation when card is in view
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                stats.forEach(stat => animateCount(stat));
+                observer.disconnect();
+            }
+        });
+    }, { threshold: 0.3 });
+    
+    const card = document.querySelector('.scholar-impact-card');
+    if (card) observer.observe(card);
+})();
+</script>
+

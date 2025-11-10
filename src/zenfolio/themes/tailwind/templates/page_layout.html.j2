@@ -12,7 +12,7 @@
                 h_index=scholar_stats.get('h_index', 0),
                 i10_index=scholar_stats.get('i10_index', 0),
                 updated_date=scholar_stats.get('updated_date', ''),
-                scholar_url=author.get('scholar') if author else ''
+                scholar_url=scholar_stats.get('scholar_url', '')
             ) }}
         {% endif %}
 

@@ -287,8 +287,10 @@ class ZenFolio:
         # Now build the pages
         self._build_home_page(self.content.publications, self.content.bio, base_url, seo_generator)
         
-        # Get scholar stats from config if available
+        # Get scholar stats from config and add scholar URL
         scholar_stats = getattr(self.config, 'scholar_stats', None) or {}
+        if scholar_stats and hasattr(self.config.author, 'scholar'):
+            scholar_stats['scholar_url'] = self.config.author.scholar
         self._build_list_page("Publications", "publications.html", self.content.publications, 'publication_item', 1, base_url, group_by='year', has_search=True, seo_generator=seo_generator, scholar_stats=scholar_stats)
         
         # Conditionally build pages only if content exists

@@ -73,9 +73,10 @@
     font-family: "Inter", sans-serif;
 }
 
-/* Bio/about section prose */
+/* Bio/about section prose - enhanced for readability */
 .prose-bio {
-    @apply prose lg:prose-lg dark:prose-invert max-w-none text-lg;
+    @apply prose lg:prose-lg dark:prose-invert max-w-none;
+    font-size: 1.125rem;
     line-height: 1.8;
 }
 
@@ -88,11 +89,67 @@
     font-family: "Playfair Display", serif;
 }
 
-.prose-bio p,
+.prose-bio p {
+    font-family: "Inter", sans-serif;
+    margin-bottom: 1.5rem;
+    color: theme(colors.gray.700);
+}
+
+.dark .prose-bio p {
+    color: theme(colors.gray.300);
+}
+
 .prose-bio li,
 .prose-bio blockquote,
 .prose-bio strong {
     font-family: "Inter", sans-serif;
+}
+
+.prose-bio a {
+    color: theme(colors.teal.600);
+    text-decoration: none;
+    font-weight: 600;
+    transition: color 0.2s ease;
+}
+
+.dark .prose-bio a {
+    color: theme(colors.teal.400);
+}
+
+.prose-bio a:hover {
+    color: theme(colors.teal.700);
+    text-decoration: underline;
+}
+
+.dark .prose-bio a:hover {
+    color: theme(colors.teal.300);
+}
+
+.prose-bio code {
+    background: theme(colors.gray.100);
+    color: theme(colors.gray.900);
+    padding: 0.125rem 0.25rem;
+    border-radius: 0.25rem;
+    font-size: 0.95em;
+    font-weight: 600;
+}
+
+.dark .prose-bio code {
+    background: theme(colors.gray.800);
+    color: theme(colors.gray.100);
+}
+
+/* Code inside links inherits link color */
+.prose-bio a code {
+    background: transparent;
+    color: inherit;
+    padding: 0;
+}
+
+/* Remove backticks from code elements in bio */
+.prose-bio code::before,
+.prose-bio code::after {
+    content: none;
 }
 
 /* --- Enhanced Social Media Icons --- */
@@ -735,9 +792,11 @@ img.figure-right {
 /* --- Scroll-Triggered Elysian Dividers --- */
 .elysian-divider {
     height: 1px;
-    margin: 1.5rem auto;
+    margin: 0;
     width: 100%;
     max-width: 400px;
+    margin-left: auto;
+    margin-right: auto;
     position: relative;
     overflow: hidden;
 }
@@ -779,7 +838,7 @@ img.figure-right {
 /* Triggered when divider enters viewport */
 .elysian-divider.divider-visible::before {
     transform: scaleX(1);
-    opacity: 0.6 !important;
+    opacity: 0.8 !important;
     transition: transform 2.2s cubic-bezier(0.25, 0.1, 0.25, 1);
 }
 
@@ -1103,29 +1162,56 @@ img.figure-right {
 
 .prose-main blockquote {
     position: relative !important;
-    padding-left: 3.5rem !important;
-    margin-left: 0 !important;
-    border-left: none !important;
-    font-style: italic !important; /* Italicize the quoted text */
+    padding: 1.5rem 1.75rem !important;
+    margin: 2rem 0 !important;
+    border-left: 3px solid theme(colors.gray.300) !important;
+    background: theme(colors.gray.50) !important;
+    border-radius: 0.5rem !important;
+    font-style: normal !important;
+    color: theme(colors.gray.700) !important;
+    quotes: none !important; /* Remove Tailwind prose automatic quotes */
 }
 
-.prose-main blockquote::before {
-    content: '"' !important;
-    position: absolute !important;
-    left: 0.5rem !important;
-    top: -1rem !important;
-    font-size: 6rem !important;
-    line-height: 1 !important;
-    font-family: "Playfair Display", serif !important;
-    font-weight: 400 !important;
-    color: theme(colors.teal.600) !important;
-    opacity: 0.4 !important;
-    pointer-events: none !important;
-    z-index: 0 !important;
+.dark .prose-main blockquote {
+    background: theme(colors.gray.800/30) !important;
+    border-left-color: theme(colors.gray.600) !important;
+    color: theme(colors.gray.300) !important;
 }
 
-.dark .prose-main blockquote::before {
-    color: theme(colors.teal.400) !important;
+/* Remove decorative quote marks and auto-generated quotes */
+.prose-main blockquote::before,
+.prose-main blockquote::after {
+    content: none !important;
+}
+
+.prose-main blockquote p:first-of-type::before,
+.prose-main blockquote p:last-of-type::after {
+    content: none !important;
+}
+
+/* Clean styling for definition lists inside blockquotes (pseudo-code) */
+.prose-main blockquote dl {
+    margin: 0.75rem 0 !important;
+}
+
+.prose-main blockquote dt {
+    margin-top: 0.75rem !important;
+    font-weight: normal !important;
+    color: inherit !important;
+}
+
+.prose-main blockquote dd {
+    margin-left: 2rem !important;
+    margin-top: 0.25rem !important;
+    color: theme(colors.gray.600) !important;
+}
+
+.dark .prose-main blockquote dd {
+    color: theme(colors.gray.400) !important;
+}
+
+.prose-main blockquote p {
+    margin: 0.5rem 0 !important;
 }
 
 /* ============================================================================

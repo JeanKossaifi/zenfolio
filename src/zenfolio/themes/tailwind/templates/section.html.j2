@@ -1,7 +1,7 @@
-<section class="py-24 sm:py-32 {{ 'bg-gray-50 dark:bg-gray-800 border-y border-gray-200 dark:border-gray-700' if background|default(false) }}">
+<section class="py-24 sm:py-32 {{ 'bg-gray-50/50 dark:bg-gray-800/50' if background|default(false) }}">
     <div class="max-w-7xl mx-auto px-6 lg:px-8">
         <div class="mb-16">
-            <h2 class="{% if layout|default('grid') == 'bio' %}fluid-heading-medium{% else %}text-5xl sm:text-6xl{% endif %} heading text-gray-900 dark:text-white mb-4">{{ title }}</h2>
+            <h2 class="text-4xl lg:text-5xl heading text-gray-900 dark:text-white mb-4">{{ title }}</h2>
             {% if subtitle|default('') %}<p class="mt-6 text-xl text-gray-600 dark:text-gray-300 max-w-3xl">{{ subtitle }}</p>{% endif %}
         </div>
 
@@ -14,18 +14,6 @@
             <div class="prose-bio max-w-4xl mx-auto">
                 {{ content | safe }}
             </div>
-            {% if interests %}
-            <div class="mt-12 max-w-4xl mx-auto">
-                <h3 class="text-2xl heading text-gray-900 dark:text-white">Research Interests</h3>
-                <div class="mt-6 flex flex-wrap justify-start gap-3">
-                    {% for interest in interests %}
-                    <span class="inline-block px-4 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-full text-sm font-medium text-gray-600 dark:text-gray-300">
-                        {{ interest }}
-                    </span>
-                    {% endfor %}
-                </div>
-            </div>
-            {% endif %}
             {% elif layout|default('grid') == 'service' %}
             <div class="grid grid-cols-1 gap-8">
                 {# Leadership & Editorial Section #}

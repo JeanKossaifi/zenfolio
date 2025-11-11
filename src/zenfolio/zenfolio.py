@@ -455,21 +455,16 @@ class ZenFolio:
         # This list declaratively controls the homepage layout AFTER the hero.
         sections = [
             {"id": "bio", "data": {
-                "title": "About Me", 
+                "title": "About",
                 "layout": "bio",
                 "content": markdown.markdown(bio_data.get('bio',''), extensions=self.config.site.markdown_extensions),
                 "interests": hero_data.get('interests', [])
             }},
             {"id": "featured_work", "data": {
                 "title": "Featured Work", "grid_cols": 2,
-                "subtitle": "A selection of projects and research I'm particularly proud of.",
+                "background": True,  # Light gray background for visual rhythm
                 "items": self._process_items(highlighted_projects, 'project_item', seo_generator=seo_generator),
                 "view_all_link": {"url": "projects.html", "text": "View all projects"}
-            }},
-            {"id": "academic_service", "data": {
-                "title": "Academic Service", 
-                "layout": "service",
-                "items": self._process_service_items(self.config.author.service, seo_generator=seo_generator),
             }},
             {"id": "recent_publications", "data": {
                 "title": pub_section_title, "grid_cols": 1,
@@ -477,13 +472,20 @@ class ZenFolio:
                 "view_all_link": {"url": "publications.html", "text": "View all publications"}
             }},
             {"id": "recent_news", "data": {
-                "title": "Recent News", "layout": "timeline",
+                "title": "Recent News", 
+                "layout": "timeline",
+                "background": True,  # Light gray background for visual rhythm
                 "items": self._process_items(
                     self.config.news.items[:self.config.site.homepage_news_count] if self.config.site.homepage_news_count is not None else self.config.news.items, 
                     'news_item',
                     seo_generator=seo_generator
                 ),
                 "view_all_link": {"url": "news.html", "text": "View all news"}
+            }},
+            {"id": "academic_service", "data": {
+                "title": "Academic Service",
+                "layout": "service",
+                "items": self._process_service_items(self.config.author.service, seo_generator=seo_generator),
             }}
         ]
         

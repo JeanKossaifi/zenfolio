@@ -8,7 +8,7 @@
 {# Dynamically render all content sections passed from the builder #}
 {% for section in sections %}
     {% if section.rendered_html %}
-        {# Add elegant divider before each section (except the first) #}
+        {# Divider at the exact intersection between consecutive sections #}
         {% if not loop.first %}
         <div class="elysian-divider"></div>
         {% endif %}

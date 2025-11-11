@@ -3,11 +3,25 @@
         <div class="grid grid-cols-1 lg:grid-cols-5 gap-12 lg:gap-16 items-center">
             <div class="lg:col-span-3 text-center lg:text-left">
                 <div class="space-y-8">
-                    <h1 class="fluid-heading-hero heading">
-                        <span class="bg-gradient-to-r from-gray-900 via-gray-800 to-gray-900 dark:from-white dark:via-gray-100 dark:to-white bg-clip-text text-transparent">{{ item.name }}</span>
-                    </h1>
+                    <div class="space-y-4">
+                        <h1 class="fluid-heading-hero heading text-gray-900 dark:text-white">
+                            {{ item.name }}
+                        </h1>
+                        <p class="text-lg text-gray-600 dark:text-gray-400 font-medium">
+                            {{ item.title }}, {{ item.affiliation }} <span class="text-gray-400 dark:text-gray-500">·</span> PhD, Imperial College London
+                        </p>
+                    </div>
                     {% if item.tagline %}
                     <p class="fluid-text-large text-gray-600 dark:text-gray-300 max-w-2xl mx-auto lg:mx-0 leading-relaxed">{{ item.tagline | safe }}</p>
+                    {% endif %}
+                    
+                    {# Research interests moved from bio section #}
+                    {% if item.interests %}
+                    <div class="flex flex-wrap justify-center lg:justify-start gap-2">
+                        {% for interest in item.interests %}
+                        <span class="px-4 py-2 text-sm font-semibold bg-teal-50 dark:bg-teal-900/20 text-teal-700 dark:text-teal-300 rounded-full border border-teal-200 dark:border-teal-800/50">{{ interest }}</span>
+                        {% endfor %}
+                    </div>
                     {% endif %}
                     <div class="space-y-6">
                         <div class="flex flex-wrap justify-center lg:justify-start gap-4">

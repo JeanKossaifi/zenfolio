@@ -178,7 +178,7 @@ body {
 
     PUBLICATION_ITEM_TEMPLATE = """<article class="card publication-card reveal-on-scroll">
     <h3 class="card-title">{{ item.title }}</h3>
-    <p class="card-meta pub-authors">{{ item.authors | safe }}</p>
+    <p class="card-meta pub-authors">{{ item.authors | join(', ') | safe }}</p>
     <p class="card-meta pub-venue">{{ item.venue }}, {{ item.year }}</p>
     <div class="card-links">
     {% if item.links %}

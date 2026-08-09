@@ -64,6 +64,7 @@ class TalkItem(ConfigBase):
     code: Optional[str] = None      # e.g., "https://github.com/user/talk-code"
     materials: Optional[str] = None # e.g., "talks/handouts.pdf"
     demo: Optional[str] = None      # e.g., "https://demo-site.com"
+    link: Optional[str] = None      # e.g., "https://conference.com/talk" - event/talk page link
     
     template_name: str = "talk_item"
 

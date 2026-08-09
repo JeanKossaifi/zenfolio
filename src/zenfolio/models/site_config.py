@@ -87,7 +87,7 @@ class MathJaxConfig(ConfigBase):
     ignore_html_class: str = 'tex2jax_ignore'
     process_html_class: str = 'tex2jax_process'
 
-
+    
 class SEOConfig(ConfigBase):
     """SEO and structured data configuration - smart defaults with override options"""
     

@@ -1,0 +1,163 @@
+{# Talk Item - Clean elegant horizontal card with video preview #}
+{# Extract YouTube video ID for thumbnail preview #}
+{% set youtube_id = none %}
+{% if item.video %}
+    {% if 'youtube.com/watch?v=' in item.video %}
+        {% set youtube_id = item.video.split('v=')[1].split('&')[0] %}
+    {% elif 'youtu.be/' in item.video %}
+        {% set youtube_id = item.video.split('youtu.be/')[1].split('?')[0] %}
+    {% elif 'youtube.com/embed/' in item.video %}
+        {% set youtube_id = item.video.split('embed/')[1].split('?')[0] %}
+    {% endif %}
+{% endif %}
+
+<article class="group">
+    <div class="bg-white dark:bg-slate-800/50 rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-shadow duration-500 border border-gray-100 dark:border-gray-700/50" style="display: flex; flex-direction: row;">
+        
+        {# Content Section - Left Side (60%) #}
+        <div style="flex: 0 0 60%; padding: 2.5rem 3rem; display: flex; flex-direction: column;">
+            
+            {# Venue as subtle overline #}
+            {% if item.venue %}
+            <p style="font-size: 0.8rem; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; margin-bottom: 0.75rem;" class="text-teal-600 dark:text-teal-400">
+                {{ item.venue }}
+            </p>
+            {% endif %}
+            
+            {# Title - Large elegant serif #}
+            <h3 style="font-family: 'Playfair Display', Georgia, serif; font-size: 1.75rem; font-weight: 700; line-height: 1.25; margin-bottom: 1rem;" class="text-gray-900 dark:text-white group-hover:text-teal-600 dark:group-hover:text-teal-400 transition-colors duration-300">
+                {{ item.title }}
+            </h3>
+            
+            {# Date - Simple and clean #}
+            {% if item.date %}
+            <p style="font-size: 0.9rem; margin-bottom: 1.25rem;" class="text-gray-500 dark:text-gray-400">
+                {{ item.date }}
+            </p>
+            {% endif %}
+            
+            {# Description - Readable body text #}
+            {% if item.description %}
+            <p style="font-size: 1rem; line-height: 1.7; flex-grow: 1;" class="text-gray-600 dark:text-gray-400">
+                {{ item.description | striptags }}
+            </p>
+            {% endif %}
+            
+            {# Action buttons - Fancy but proportionate #}
+            {% if item.slides or item.code or item.materials or item.demo or item.link %}
+            <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; margin-top: 1.75rem;">
+                {% if item.link %}
+                <a href="{{ item.link }}" target="_blank" rel="noopener" 
+                   style="display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.5rem 1rem; font-size: 0.75rem; font-weight: 600; border-radius: 9999px; background: linear-gradient(135deg, #0d9488, #14b8a6); color: white; box-shadow: 0 2px 8px -2px rgba(20, 184, 166, 0.5); transition: all 0.2s ease;"
+                   class="hover:shadow-md hover:shadow-teal-500/25">
+                    <i class="fas fa-globe" style="font-size: 10px;"></i>
+                    <span>Event Page</span>
+                </a>
+                {% endif %}
+                
+                {% if item.slides %}
+                <a href="{{ item.slides }}" target="_blank" rel="noopener" 
+                   style="display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.5rem 1rem; font-size: 0.75rem; font-weight: 600; border-radius: 9999px; background: linear-gradient(135deg, #7c3aed, #8b5cf6); color: white; box-shadow: 0 2px 8px -2px rgba(139, 92, 246, 0.5); transition: all 0.2s ease;"
+                   class="hover:shadow-md hover:shadow-violet-500/25">
+                    <i class="fas fa-display" style="font-size: 10px;"></i>
+                    <span>Slides</span>
+                </a>
+                {% endif %}
+                
+                {% if item.code %}
+                <a href="{{ item.code }}" target="_blank" rel="noopener" 
+                   style="display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.5rem 1rem; font-size: 0.75rem; font-weight: 600; border-radius: 9999px; background: linear-gradient(135deg, #2563eb, #3b82f6); color: white; box-shadow: 0 2px 8px -2px rgba(59, 130, 246, 0.5); transition: all 0.2s ease;"
+                   class="hover:shadow-md hover:shadow-blue-500/25">
+                    <i class="fas fa-code" style="font-size: 10px;"></i>
+                    <span>Code</span>
+                </a>
+                {% endif %}
+                
+                {% if item.materials %}
+                <a href="{{ item.materials }}" target="_blank" rel="noopener" 
+                   style="display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.5rem 1rem; font-size: 0.75rem; font-weight: 600; border-radius: 9999px; background: linear-gradient(135deg, #d97706, #f59e0b); color: white; box-shadow: 0 2px 8px -2px rgba(245, 158, 11, 0.5); transition: all 0.2s ease;"
+                   class="hover:shadow-md hover:shadow-amber-500/25">
+                    <i class="fas fa-folder-open" style="font-size: 10px;"></i>
+                    <span>Materials</span>
+                </a>
+                {% endif %}
+                
+                {% if item.demo %}
+                <a href="{{ item.demo }}" target="_blank" rel="noopener" 
+                   style="display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.5rem 1rem; font-size: 0.75rem; font-weight: 600; border-radius: 9999px; background: linear-gradient(135deg, #059669, #10b981); color: white; box-shadow: 0 2px 8px -2px rgba(16, 185, 129, 0.5); transition: all 0.2s ease;"
+                   class="hover:shadow-md hover:shadow-emerald-500/25">
+                    <i class="fas fa-rocket" style="font-size: 10px;"></i>
+                    <span>Demo</span>
+                </a>
+                {% endif %}
+            </div>
+            {% endif %}
+        </div>
+        
+        {# Video Preview Section - Right Side (40%) #}
+        {% if item.video %}
+        <div style="flex: 0 0 40%; position: relative; min-height: 280px;">
+            <a href="{{ item.video }}" target="_blank" rel="noopener" 
+               class="group/video"
+               style="display: block; position: absolute; inset: 0; overflow: hidden;">
+                
+                {# Background - Elegant gradient fallback #}
+                <div style="position: absolute; inset: 0; background: linear-gradient(135deg, #1e293b 0%, #0f172a 50%, #000 100%);"></div>
+                
+                {# YouTube Thumbnail #}
+                {% if youtube_id %}
+                <img 
+                    src="https://img.youtube.com/vi/{{ youtube_id }}/maxresdefault.jpg" 
+                    alt="{{ item.title }}" 
+                    style="position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover;"
+                    class="transition-all duration-700 group-hover/video:scale-105 group-hover/video:opacity-80"
+                    onerror="this.onerror=null; this.src='https://img.youtube.com/vi/{{ youtube_id }}/hqdefault.jpg';"
+                >
+                {% endif %}
+                
+                {# Elegant dark vignette overlay #}
+                <div style="position: absolute; inset: 0; background: linear-gradient(to top, rgba(0,0,0,0.6) 0%, transparent 60%, rgba(0,0,0,0.1) 100%);"></div>
+                
+                {# Centered Play Button - Refined #}
+                <div style="position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;">
+                    <div class="relative">
+                        <div class="absolute inset-0 rounded-full bg-white/20 blur-xl scale-150 opacity-0 group-hover/video:opacity-100 transition-opacity duration-500"></div>
+                        <div style="position: relative; width: 64px; height: 64px; border-radius: 50%; background: rgba(255,255,255,0.95); display: flex; align-items: center; justify-content: center; box-shadow: 0 20px 40px -12px rgba(0,0,0,0.4);" 
+                             class="transform transition-all duration-300 group-hover/video:scale-110">
+                            <svg style="width: 24px; height: 24px; margin-left: 3px; color: #0f172a;" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M8 5v14l11-7z"/>
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+                
+                {# Bottom info - Minimal #}
+                <div style="position: absolute; bottom: 0; left: 0; right: 0; padding: 1.25rem;">
+                    <div style="display: flex; align-items: center; justify-content: space-between;">
+                        <span style="display: inline-flex; align-items: center; gap: 0.5rem; color: rgba(255,255,255,0.9); font-size: 0.8rem; font-weight: 500; letter-spacing: 0.02em;">
+                            <i class="fas fa-play text-xs"></i>
+                            Watch Recording
+                        </span>
+                        {% if youtube_id %}
+                        <span style="display: inline-flex; align-items: center; gap: 0.375rem; padding: 0.25rem 0.625rem; background: rgba(255,255,255,0.15); backdrop-filter: blur(4px); border-radius: 0.25rem; font-size: 10px; font-weight: 600; color: white; text-transform: uppercase; letter-spacing: 0.05em;">
+                            <i class="fab fa-youtube"></i>
+                            YouTube
+                        </span>
+                        {% endif %}
+                    </div>
+                </div>
+            </a>
+        </div>
+        {% else %}
+        {# No video - Elegant minimal placeholder #}
+        <div style="flex: 0 0 40%; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);" class="dark:bg-gradient-to-br dark:from-slate-800 dark:to-slate-900">
+            <div style="text-align: center; padding: 2rem;">
+                <div style="width: 48px; height: 48px; margin: 0 auto 1rem; border-radius: 50%; background: rgba(20,184,166,0.08); display: flex; align-items: center; justify-content: center;">
+                    <i class="fas fa-microphone text-lg text-teal-500/60"></i>
+                </div>
+                <p style="font-size: 0.75rem; font-weight: 500; letter-spacing: 0.05em; text-transform: uppercase;" class="text-gray-400 dark:text-gray-500">Talk</p>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</article>

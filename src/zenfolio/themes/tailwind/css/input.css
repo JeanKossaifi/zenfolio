@@ -1160,33 +1160,69 @@ img.figure-right {
     backdrop-filter: blur(1px);
 }
 
+/* ============================================================================
+   BLOCKQUOTE - Elegant editorial-style quotes
+   ============================================================================ */
 .prose-main blockquote {
     position: relative !important;
-    padding: 1.5rem 1.75rem !important;
+    padding: 0.5rem 0 0.5rem 2.5rem !important;
     margin: 2rem 0 !important;
-    border-left: 3px solid theme(colors.gray.300) !important;
-    background: theme(colors.gray.50) !important;
-    border-radius: 0.5rem !important;
+    background: transparent !important;
+    border: none !important;
+    font-family: 'Playfair Display', Georgia, 'Times New Roman', serif !important;
+    font-style: italic !important;
+    font-size: 1.125rem !important;
+    line-height: 1.8 !important;
+    color: theme(colors.gray.600) !important;
+    quotes: none !important;
+}
+
+/* Elegant opening quote mark */
+.prose-main blockquote::before {
+    content: '"' !important;
+    display: block !important;
+    position: absolute !important;
+    left: 0 !important;
+    top: -0.25rem !important;
+    font-family: 'Playfair Display', Georgia, serif !important;
+    font-size: 3.5rem !important;
     font-style: normal !important;
-    color: theme(colors.gray.700) !important;
-    quotes: none !important; /* Remove Tailwind prose automatic quotes */
+    font-weight: 400 !important;
+    line-height: 1 !important;
+    color: theme(colors.teal.300) !important;
+    opacity: 0.8 !important;
+}
+
+.prose-main blockquote::after {
+    content: none !important;
+    display: none !important;
 }
 
 .dark .prose-main blockquote {
-    background: theme(colors.gray.800/30) !important;
-    border-left-color: theme(colors.gray.600) !important;
-    color: theme(colors.gray.300) !important;
+    color: theme(colors.gray.400) !important;
 }
 
-/* Remove decorative quote marks and auto-generated quotes */
-.prose-main blockquote::before,
-.prose-main blockquote::after {
-    content: none !important;
+.dark .prose-main blockquote::before {
+    color: theme(colors.teal.600) !important;
+    opacity: 0.6 !important;
 }
 
 .prose-main blockquote p:first-of-type::before,
 .prose-main blockquote p:last-of-type::after {
     content: none !important;
+    display: none !important;
+}
+
+.prose-main blockquote p {
+    margin: 0.5rem 0 !important;
+}
+
+.prose-main blockquote p:first-child {
+    margin-top: 0 !important;
+}
+
+.prose-main blockquote p:last-child {
+    margin-bottom: 0 !important;
 }
 
 /* Clean styling for definition lists inside blockquotes (pseudo-code) */
@@ -1213,6 +1249,202 @@ img.figure-right {
 .prose-main blockquote p {
     margin: 0.5rem 0 !important;
 }
+
+/* ============================================================================
+   ADMONITIONS - ZEN FLUIDITY
+   ============================================================================ 
+   Layout: Flexbox for perfect alignment.
+   Style: Minimalist, icon-driven, breathable.
+*/
+
+.admonition {
+    display: flex;
+    gap: 1.25rem;
+    margin: 2.5rem 0;
+    padding: 0;
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    align-items: flex-start; /* Default: Align top for readability */
+}
+
+/* Remove pseudo-elements */
+.admonition::before, .admonition::after { display: none; }
+.admonition:hover { transform: none; box-shadow: none; }
+
+/* TITLE / ICON CONTAINER */
+.admonition-title {
+    margin: 0;
+    padding: 0;
+    font-size: 0; /* Hide text label */
+    line-height: 0;
+    width: 1.5rem;
+    height: 1.5rem;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-top: 0.2rem; /* Optically align with first line of text */
+}
+
+/* SVG ICON Base */
+.admonition-title::before {
+    content: '';
+    width: 100%;
+    height: 100%;
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+    opacity: 1;
+}
+
+/* Content */
+.admonition > p:not(.admonition-title) {
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 1.05rem;
+    line-height: 1.6;
+    color: #334155;
+    margin: 0;
+}
+.dark .admonition > p:not(.admonition-title) { color: #cbd5e1; }
+
+/* --- ICON VARIANTS (Lucide/Heroicons Style) --- */
+
+/* Note - Info Circle */
+.admonition.note .admonition-title::before {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='10'/%3E%3Cpath d='M12 16v-4'/%3E%3Cpath d='M12 8h.01'/%3E%3C/svg%3E");
+}
+.dark .admonition.note .admonition-title::before {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='10'/%3E%3Cpath d='M12 16v-4'/%3E%3Cpath d='M12 8h.01'/%3E%3C/svg%3E");
+}
+
+/* Tip - Sparkles */
+.admonition.tip .admonition-title::before {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%230d9488' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z'/%3E%3C/svg%3E");
+}
+.dark .admonition.tip .admonition-title::before {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%232dd4bf' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z'/%3E%3C/svg%3E");
+}
+
+/* Warning - Triangle */
+.admonition.warning .admonition-title::before {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23d97706' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z'/%3E%3Cpath d='M12 9v4'/%3E%3Cpath d='M12 17h.01'/%3E%3C/svg%3E");
+}
+
+/* Danger - Octagon/X */
+.admonition.danger .admonition-title::before {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23e11d48' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolygon points='7.86 2 16.14 2 22 7.86 22 16.14 16.14 22 7.86 22 2 16.14 2 7.86 7.86 2'/%3E%3Cline x1='15' y1='9' x2='9' y2='15'/%3E%3Cline x1='9' y1='9' x2='15' y2='15'/%3E%3C/svg%3E");
+}
+
+
+/* ============================================================================
+   QUESTION - ZEN CENTERED
+   ============================================================================ */
+.admonition.question {
+    align-items: center; /* VERTICAL CENTER */
+    gap: 2rem;
+    margin: 3.5rem 0;
+    padding-left: 0;
+}
+
+.admonition.question .admonition-title {
+    width: 2.5rem;
+    height: 2.5rem;
+    margin-top: 0; /* Reset optical alignment for centering */
+}
+
+/* Elegant Thin Question Mark */
+.admonition.question .admonition-title::before {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%238b5cf6' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='10'/%3E%3Cpath d='M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3'/%3E%3Cpath d='M12 17h.01'/%3E%3C/svg%3E");
+    opacity: 1;
+    /* Subtle pulse, very slow */
+    animation: zen-breath 6s ease-in-out infinite;
+}
+
+.admonition.question > p:not(.admonition-title) {
+    font-size: 1.25rem;
+    font-weight: 450;
+    color: #1e293b;
+    letter-spacing: -0.01em;
+}
+
+.dark .admonition.question .admonition-title::before {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23a78bfa' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='10'/%3E%3Cpath d='M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3'/%3E%3Cpath d='M12 17h.01'/%3E%3C/svg%3E");
+}
+.dark .admonition.question > p:not(.admonition-title) { color: #f1f5f9; }
+
+@keyframes zen-breath {
+    0%, 100% { transform: scale(1); opacity: 0.8; }
+    50% { transform: scale(1.03); opacity: 1; }
+}
+
+
+/* ============================================================================
+   HIGHLIGHT - "Typographic Centerpiece"
+   ============================================================================ */
+.admonition.highlight {
+    display: flex;
+    flex-direction: column; /* Stack text and link vertically */
+    align-items: center;    /* Center align both */
+    justify-content: center;
+    gap: 2rem;              /* Space between text and link */
+    padding: 0;
+    margin: 5rem 0;
+    text-align: center;
+    background: transparent;
+    border: none;
+    box-shadow: none;
+}
+.admonition.highlight .admonition-title { display: none; }
+
+.admonition.highlight > p {
+    font-family: 'Playfair Display', Georgia, serif;
+    font-size: 2.5rem;      /* Larger, more impactful */
+    font-weight: 500;
+    line-height: 1.2;
+    color: #1e293b;
+    margin: 0;              /* Remove bottom margin, let gap handle it */
+    letter-spacing: -0.03em;
+    max-width: 32ch;        /* Optimal reading width for headlines */
+}
+
+/* Link Style - Elegant Editorial Arrow Link */
+.admonition.highlight a {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-family: 'Inter', sans-serif;
+    font-size: 0.875rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: #0d9488;         /* Teal 600 */
+    text-decoration: none;
+    background: transparent;
+    padding: 0;             /* Remove button padding */
+    border: none;           /* Remove border */
+    transition: all 0.3s ease;
+}
+
+/* Custom underline animation */
+.admonition.highlight a::after {
+    content: '→';
+    transition: transform 0.2s ease;
+    display: inline-block;
+}
+
+.admonition.highlight a:hover {
+    color: #0f766e;
+    opacity: 0.8;
+}
+
+.admonition.highlight a:hover::after {
+    transform: translateX(4px);
+}
+
+.dark .admonition.highlight > p { color: #f8fafc; }
+.dark .admonition.highlight a { color: #2dd4bf; }
+.dark .admonition.highlight a:hover { color: #5eead4; }
 
 /* ============================================================================
    GOOGLE SCHOLAR IMPACT CARD

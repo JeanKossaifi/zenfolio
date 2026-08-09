@@ -11,7 +11,6 @@ class MinimalTheme(BaseTheme):
     """World-class zen minimal academic theme with sophisticated aesthetics"""
     
 
-    
     def _register_templates(self):
         """Register component templates - file-based with inline fallbacks"""
         # First, load any file-based templates (these take priority)

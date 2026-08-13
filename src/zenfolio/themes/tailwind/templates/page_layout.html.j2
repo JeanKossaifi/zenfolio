@@ -4,6 +4,7 @@
 <div class="max-w-7xl mx-auto px-6 lg:px-8 pt-32 pb-20">
     <div>
         <h1 class="text-7xl lg:text-8xl heading text-gray-900 dark:text-white mb-16 reveal">{{ title }}</h1>
+        {% if intro %}<div class="prose-main max-w-4xl mb-14">{{ intro | safe }}</div>{% endif %}
 
         {# Google Scholar Impact Card (for publications page) #}
         {% if scholar_stats and scholar_stats.get('total_citations') %}
@@ -18,21 +19,21 @@
 
         {# Search bar, if needed #}
         {% if has_search %}
-            {{ theme.render_component('search_filter_bar') }}
+            {{ theme.render_component('search_filter_bar', filter_years=filter_years, filter_directions=filter_directions) | safe }}
         {% endif %}
 
         {# Main Content Area #}
         {% if grouped_items %}
         <div class="space-y-12">
             {% for group in grouped_items %}
-            <div data-group="{{ group.group_name }}">
-                <h2 class="text-3xl font-bold heading text-gray-700 dark:text-gray-300 mb-6">{{ group.group_name }}</h2>
-                <div class="grid grid-cols-1 gap-8">
+            <section data-group="{{ group.get('group_name', group.get('key', '')) }}">
+                <h2 class="text-3xl font-bold heading text-gray-700 dark:text-gray-300 mb-6">{{ group.get('title', group.get('group_name', '')) }}</h2>
+                <div class="grid grid-cols-1 {% if layout == 'team' %}md:grid-cols-2 lg:grid-cols-3{% endif %} gap-8">
                     {% for item in group['items'] %}
                         {{ item.rendered_html | safe }}
                     {% endfor %}
                 </div>
-            </div>
+            </section>
             {% endfor %}
         </div>
         {% elif layout == 'timeline' %}
@@ -45,5 +46,4 @@
         </div>
         {% endif %}
     </div>
-</div>
 </div>

@@ -44,7 +44,7 @@ This creates:
 # Development build (relative URLs)
 zenfolio build --content-dir my-site --dev
 
-# Production build (absolute URLs + deployment files)
+# Production build (portable links + absolute SEO metadata)
 zenfolio deploy --content-dir my-site
 
 # Development server
@@ -135,6 +135,52 @@ config = Config(
     publications=publication_config
 )
 ```
+
+### Research-group sites
+
+Group sites keep a separate identity model and can configure clean routes,
+navigation, team categories, and homepage sections:
+
+```python
+from zenfolio.models import (
+    Config, GroupConfig, HomepageSection, NavItem, PeopleConfig, SiteConfig
+)
+
+config = Config(
+    site_type="group",
+    identity=GroupConfig(
+        name="Example Research Group",
+        parent_name="Example Research",
+        tagline="Foundational research for physical systems",
+    ),
+    site=SiteConfig(
+        title="Example Research Group",
+        description="Research-group description.",
+        blog_folder="updates",
+        blog_label="Updates",
+        blog_route="/updates/",
+    ),
+    people=PeopleConfig(route="/team/"),
+    navigation=[
+        NavItem(key="research", label="Research", route="/research/"),
+        NavItem(key="publications", label="Publications", route="/publications/"),
+        NavItem(key="team", label="Team", route="/team/"),
+        NavItem(key="updates", label="Updates", route="/updates/"),
+    ],
+    homepage_sections=[
+        HomepageSection(id="hero", type="hero"),
+        HomepageSection(
+            id="team",
+            type="team_preview",
+            source="people",
+            limit=6,
+        ),
+    ],
+)
+```
+
+Directory-style routes generate `route/index.html`; navigation, canonical URLs,
+active state, and sitemap entries all use the configured public route.
 
 ### Content Management
 
@@ -237,7 +283,8 @@ static/
 
 The same paths work for both:
 - **Local Development**: Relative URLs (`./static/file.pdf`)
-- **Production**: Absolute URLs (`https://yoursite.com/static/file.pdf`)
+- **Production**: Relative internal URLs plus absolute canonical, social,
+  structured-data, and sitemap URLs
 
 ### Supported Link Types
 
@@ -260,13 +307,13 @@ ZenFolio automatically uses the right URLs for your deployment:
 ```python
 # In config.py
 site_config = SiteConfig(
-    base_url="https://yoursite.com",  # Used automatically for production builds!
+    base_url="https://yoursite.com",  # Canonical SEO and sitemap base
 )
 ```
 
 **Build Commands:**
 ```bash
-zenfolio build                    # 🚀 Production: uses site.base_url (https://yoursite.com)
+zenfolio build                    # 🚀 Production: uses site.base_url for SEO metadata
 zenfolio build --dev              # 🔧 Development: uses relative URLs (./static/...)
 zenfolio deploy                   # 🚀 Production: build + create .nojekyll + validate
 zenfolio dev                      # 🔧 Development: build + serve with relative URLs
@@ -376,6 +423,23 @@ site_config = SiteConfig(
 - Lightweight and fast
 - Easy to customize
 
+**Site-local themes**:
+
+Keep private branding beside the content site while reusing ZenFolio:
+
+```python
+config = Config(
+    theme="research",
+    theme_path="themes/research",
+    # Optional template and asset fallback:
+    # theme_parent="tailwind",
+)
+```
+
+The local theme must provide `templates/` and a prebuilt `css/theme.css`.
+Template lookup is child-first, then the optional parent. Run the theme's
+single `npm run build` command before building the site.
+
 ### 🚀 Deployment & GitHub Actions
 
 Built-in GitHub Actions workflow:
@@ -461,7 +525,15 @@ pip install -e .
 zenfolio/
 ├── src/zenfolio/
 │   ├── __init__.py
-│   ├── zenfolio.py         # Main generator class
+│   ├── zenfolio.py         # Backward-compatible public facade
+│   ├── build_context.py    # Configuration, identity, and path setup
+│   ├── site_builder.py     # Top-level build orchestration
+│   ├── routing.py          # Public routes and navigation
+│   ├── output_manager.py   # Safe output lifecycle
+│   ├── content_processor.py # Markdown, components, and link resolution
+│   ├── homepage_composer.py # Configurable homepage composition
+│   ├── collection_builder.py # Aggregate and standalone pages
+│   ├── page_renderer.py    # SEO context and HTML output
 │   ├── cli.py              # Command line interface
 │   ├── deploy.py           # Deployment utilities
 │   ├── validators.py       # Site validation

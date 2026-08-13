@@ -3,32 +3,25 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% if page_title %}{{ page_title }}{% else %}{{ author_name }}{% endif %}</title>
-    <meta name="description" content="{% if meta_description %}{{ meta_description }}{% else %}{{ site_description }}{% endif %}">
-
+    <title>{{ page_title or author_name }}</title>
+    <meta name="description" content="{{ meta_description or site_description }}">
+    <meta name="author" content="{{ author_name }}">
+    <meta name="robots" content="{{ robots_meta }}">
+    <meta property="og:title" content="{{ social_title or page_title }}">
+    <meta property="og:description" content="{{ social_description or meta_description or site_description }}">
+    <meta property="og:type" content="website">
+    {% if canonical_url %}<meta property="og:url" content="{{ canonical_url }}">{% endif %}
+    {% if og_image %}<meta property="og:image" content="{{ og_image }}">{% endif %}
+    <meta name="twitter:card" content="{{ site_seo.twitter_card_type }}">
+    <meta name="twitter:title" content="{{ social_title or page_title }}">
+    <meta name="twitter:description" content="{{ social_description or meta_description or site_description }}">
+    {% if og_image %}<meta name="twitter:image" content="{{ og_image }}">{% endif %}
+    {% if canonical_url %}<link rel="canonical" href="{{ canonical_url }}">{% endif %}
+    {% if structured_data %}
+    <script type="application/ld+json">{{ structured_data | safe }}</script>
+    {% endif %}
     
-<meta name="author" content="{{ author_name }}">
-
-<meta property="og:title" content="{{ page_title }}">
-<meta property="og:description" content="{{ meta_description }}">
-<meta property="og:type" content="website">
-<meta property="og:url" content="{{ canonical_url }}">
-<meta property="og:image" content="{{ og_image }}">
-
-<meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="{{ page_title }}">
-<meta name="twitter:description" content="{{ meta_description }}">
-<meta name="twitter:image" content="{{ og_image }}">
-
-<link rel="canonical" href="{{ canonical_url }}">
-
-{% if structured_data %}
-<script type="application/ld+json">
-{{ structured_data | safe }}
-</script>
-{% endif %}
-    
-    <link rel="stylesheet" href="{{ file('theme.css') }}">
+    <link rel="stylesheet" href="{{ asset('theme.css') }}">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
@@ -36,7 +29,7 @@
     
     {% if mathjax_html %}{{ mathjax_html | safe }}{% endif %}
     
-    <script src="{{ file('theme.js') }}"></script>
+    <script src="{{ asset('theme.js') }}"></script>
 </head>
 <body class="antialiased bg-white dark:bg-slate-900 text-gray-900 dark:text-white">
     <div class="elysian-background noise-texture"></div>

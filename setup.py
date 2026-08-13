@@ -15,6 +15,19 @@ setup(
     url="https://github.com/JeanKossaifi/zenfolio",
     packages=find_packages(where="src"),
     package_dir={"": "src"},
+    include_package_data=True,
+    package_data={
+        "zenfolio": [
+            "themes/minimal/templates/*.html.j2",
+            "themes/minimal/css/*.css",
+            "themes/minimal/js/*.js",
+            "themes/tailwind/templates/*.html.j2",
+            "themes/tailwind/css/*.css",
+            "themes/tailwind/js/*.js",
+            "themes/tailwind/package.json",
+            "themes/tailwind/tailwind.config.js",
+        ]
+    },
     python_requires=">=3.8",
     install_requires=[
         "zencfg>=0.1.0",

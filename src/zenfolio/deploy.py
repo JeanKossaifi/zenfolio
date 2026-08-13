@@ -6,9 +6,11 @@ from pathlib import Path
 from .zenfolio import get_output_dir
 
 
-def create_github_pages_files(content_dir: Path):
+def create_github_pages_files(
+    content_dir: Path, output_override: Path = None
+):
     """Create deployment configuration files for GitHub Pages"""
-    output_dir = content_dir / get_output_dir(content_dir)
+    output_dir = get_output_dir(content_dir, output_override)
     print("📦 Creating GitHub Pages deployment files...")
     
     nojekyll_file = output_dir / '.nojekyll'

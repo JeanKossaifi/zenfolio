@@ -1,4 +1,4 @@
-<article class="elysian-card p-10{% if item.image %} publication-with-image relative pr-40{% endif %}" data-pub-item data-title="{{ item.title }}" data-highlighted="{{ item.highlight|default(false)|string|lower }}">
+<article class="elysian-card p-10{% if item.image %} publication-with-image relative pr-40{% endif %}" data-pub-item data-title="{{ item.title }}" data-year="{{ item.year }}" data-directions="{{ item.directions | join('|') }}" data-highlighted="{{ item.highlight|default(false)|string|lower }}">
         <!-- Content: Main publication information with actions -->
         <div class="flex flex-col">
             <!-- Primary Focus: Title -->
@@ -30,7 +30,7 @@
         {% if item.image %}
         <!-- Publication Image: Absolute positioned to span full height -->
         <div class="publication-image-container">
-            <img src="{{ file(item.image) }}" alt="{{ item.title }}" class="publication-image">
+            <img src="{{ asset(item.image) }}" alt="{{ item.title }}" class="publication-image">
             <div class="publication-image-overlay"></div>
         </div>
         {% endif %}

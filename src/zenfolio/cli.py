@@ -44,8 +44,8 @@ def cli():
     parser.add_argument(
         '--output-dir',
         type=Path,
-        default=Path("_site"),
-        help="Output directory for generated site (default: _site)"
+        default=None,
+        help="Override the output directory configured by the site"
     )
     parser.add_argument(
         '--port',
@@ -72,8 +72,7 @@ def cli():
     parser.add_argument(
         '--theme',
         type=str,
-        choices=['minimal', 'tailwind'],
-        help="Theme to use (overrides config.py setting)"
+        help="Built-in or configured site-local theme name"
     )
     parser.add_argument(
         '--debug',
@@ -91,10 +90,12 @@ def cli():
         config_valid = validate_site(args.content_dir)
         
         # Also validate generated site if it exists
-        output_dir = get_output_dir(args.content_dir)
+        output_dir = get_output_dir(args.content_dir, args.output_dir)
         if output_dir.exists():
             print("\n🔍 Validating generated site...")
-            site_valid = validate_generated_site(args.content_dir, args.debug)
+            site_valid = validate_generated_site(
+                args.content_dir, args.debug, args.output_dir
+            )
             if not config_valid or not site_valid:
                 sys.exit(1)
         else:
@@ -108,11 +109,23 @@ def cli():
         # Theme assets are now built directly during site generation
         
         # Build the site using centralized error handling
-        success = build_site(args.content_dir, args.theme, args.debug, args.base_url, args.dev)
+        success = build_site(
+            args.content_dir,
+            args.theme,
+            args.debug,
+            args.base_url,
+            args.dev,
+            output_dir=args.output_dir,
+        )
         if not success:
             sys.exit(1)
     elif args.command == 'serve':
-        serve_site(args.content_dir, args.port, not args.no_browser)
+        serve_site(
+            args.content_dir,
+            args.port,
+            not args.no_browser,
+            output_dir=args.output_dir,
+        )
     elif args.command == 'dev':
         # Development mode: build then serve with fresh server
         print("🚀 Development mode: Building and serving...")
@@ -123,30 +136,57 @@ def cli():
         # Theme assets are now built directly during site generation
         
         # Build the site using centralized error handling (force dev=True)
-        success = build_site(args.content_dir, args.theme, args.debug, args.base_url, dev=True)
+        success = build_site(
+            args.content_dir,
+            args.theme,
+            args.debug,
+            args.base_url,
+            dev=True,
+            output_dir=args.output_dir,
+        )
         if not success:
             print("❌ Build failed. Cannot start development server.")
             sys.exit(1)
         
         print("✅ Build complete, starting server...")
-        serve_site(args.content_dir, args.port, not args.no_browser)
+        serve_site(
+            args.content_dir,
+            args.port,
+            not args.no_browser,
+            output_dir=args.output_dir,
+        )
     elif args.command == 'deploy':
         # Always build first, then create deployment files
         print("🔨 Building site for deployment...")
+        if not validate_site(args.content_dir):
+            print("❌ Source validation failed. Deployment stopped.")
+            sys.exit(1)
         
         # Theme assets are now built directly during site generation
         
-        success = build_site(args.content_dir, args.theme, args.debug, args.base_url, dev=False)
+        success = build_site(
+            args.content_dir,
+            args.theme,
+            args.debug,
+            args.base_url,
+            dev=False,
+            output_dir=args.output_dir,
+        )
         if not success:
             print("❌ Build failed. Cannot prepare deployment.")
             sys.exit(1)
         
         # Create deployment files first
-        create_github_pages_files(args.content_dir)
+        create_github_pages_files(args.content_dir, args.output_dir)
         
         # Then validate the complete deployment package
         print("🔍 Validating generated site...")
-        validation_passed = validate_generated_site(args.content_dir, args.debug)
+        validation_passed = validate_generated_site(
+            args.content_dir,
+            args.debug,
+            args.output_dir,
+            production=True,
+        )
         if not validation_passed:
             print("❌ Site validation failed. Fix the issues above before deploying.")
             sys.exit(1)

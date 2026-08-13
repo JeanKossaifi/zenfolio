@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 80" role="img" aria-labelledby="title">
+  <title id="title">Applied Systems Lab</title>
+  <rect width="160" height="80" fill="#111827"/>
+  <path d="M20 55 48 20l28 35 28-35 36 35" fill="none" stroke="#14b8a6" stroke-width="6"/>
+</svg>

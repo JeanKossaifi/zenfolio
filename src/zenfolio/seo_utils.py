@@ -1,312 +1,367 @@
-"""
-SEO utilities for ZenFolio - Generate structured data and metadata
-Implements Person, ScholarlyArticle, and BlogPosting schemas for enhanced search appearance
-"""
+"""SEO metadata, structured data, and sitemap generation."""
 
 import json
-from typing import Dict, List, Any, Optional
-from .utils import build_url
+import re
+from html import escape
+from typing import Any, Dict, List, Optional
+
+from .models.site_config import AuthorConfig, GroupConfig
+from .utils import build_url, is_external_url
 
 
 class SEOGenerator:
-    """Generates SEO metadata and structured data for academic websites"""
-    
-    def __init__(self, config, base_url: str = ""):
+    """Generate entity-aware metadata for personal and group sites."""
+
+    def __init__(
+        self,
+        config: Any,
+        base_url: str = "",
+        identity: Any = None,
+        site_type: Optional[str] = None,
+    ):
         self.config = config
-        self.base_url = base_url.rstrip('/')
-        
+        self.base_url = (base_url or "").rstrip("/")
+        self.identity = identity or getattr(config, "identity", None) or config.author
+        self.site_type = site_type or getattr(config, "site_type", "person")
+
+    @property
+    def structured_data_enabled(self) -> bool:
+        return not self.config.site.seo.disable_structured_data
+
+    @property
+    def has_absolute_base_url(self) -> bool:
+        return self.base_url.startswith(("http://", "https://"))
+
     def _build_url(self, path: str) -> str:
-        """Build absolute URL from relative path"""
+        if is_external_url(path):
+            return path
         return build_url(self.base_url, path)
-    
-    def generate_person_schema(self) -> str:
-        """Generate Person schema for homepage"""
-        if self.config.site.seo.disable_structured_data:
-            return ""
-            
-        author = self.config.author
-        seo_config = self.config.site.seo
-        
-        schema = {
-            "@context": "https://schema.org",
-            "@type": "Person",
-            "name": author.name,
-            "url": self.base_url if self.base_url else "",
-            "jobTitle": author.title,
-            "description": self.config.site.description
+
+    def _image_url(self, image: str) -> str:
+        if is_external_url(image):
+            return image
+        clean_image = str(image).lstrip("/")
+        if clean_image.startswith("static/"):
+            clean_image = clean_image[len("static/"):]
+        return self._build_url(f"static/{clean_image}")
+
+    def _identity_type(self) -> str:
+        if self.site_type == "group" or isinstance(self.identity, GroupConfig):
+            return "Organization"
+        return "Person"
+
+    def _identity_reference(self) -> Dict[str, Any]:
+        reference = {
+            "@type": self._identity_type(),
+            "name": self.identity.name,
         }
-        
-        # Add profile image if available
-        if hasattr(author, 'photo_path') and author.photo_path:
-            schema["image"] = self._build_url(f"static/{author.photo_path}")
-            
-        # Add affiliation if available
-        if hasattr(author, 'affiliation') and author.affiliation:
-            schema["affiliation"] = {
-                "@type": "Organization",
-                "name": author.affiliation
-            }
-            
-        # Add social media profiles
-        same_as = []
-        for social in ['github', 'scholar', 'linkedin', 'twitter']:
-            if hasattr(author, social) and getattr(author, social):
-                same_as.append(getattr(author, social))
-        
-        if same_as:
-            schema["sameAs"] = same_as
-            
-        # Add email if available
-        if hasattr(author, 'email') and author.email:
-            schema["email"] = author.email
-        
-        # Add knowledge areas - use custom override or auto-detect from interests
-        knowledge_areas = seo_config.custom_knowledge_areas or (author.interests if hasattr(author, 'interests') else None)
-        if knowledge_areas:
-            schema["knowsAbout"] = knowledge_areas
-            
-        # Add work organization
-        if hasattr(author, 'affiliation') and author.affiliation:
-            schema["worksFor"] = {
-                "@type": "Organization",
-                "name": author.affiliation
-            }
-            
-        # Add alumni information from config
-        if seo_config.alumni_of:
-            schema["alumniOf"] = {
-                "@type": "EducationalOrganization",
-                "name": seo_config.alumni_of
-            }
-            
+        if self.base_url:
+            reference["url"] = self.base_url + "/"
+        return reference
+
+    def generate_identity_schema(self, people: Optional[List[Any]] = None) -> str:
+        """Generate homepage JSON-LD for the configured identity."""
+
+        if not self.structured_data_enabled:
+            return ""
+
+        identity = self.identity
+        schema: Dict[str, Any] = {
+            "@context": "https://schema.org",
+            "@type": self._identity_type(),
+            "name": identity.name,
+            "description": self.config.site.description,
+        }
+        if self.has_absolute_base_url:
+            schema["url"] = self.base_url + "/"
+
+        if isinstance(identity, AuthorConfig) and self.site_type != "group":
+            if identity.title:
+                schema["jobTitle"] = identity.title
+            if identity.email:
+                schema["email"] = identity.email
+            image = getattr(identity, "image", None) or identity.photo_path
+            if image:
+                schema["image"] = self._image_url(image)
+            if identity.affiliation:
+                organization = {
+                    "@type": "Organization",
+                    "name": identity.affiliation,
+                }
+                schema["affiliation"] = organization
+                schema["worksFor"] = organization
+            same_as = [
+                value
+                for value in (
+                    identity.github,
+                    identity.scholar,
+                    identity.linkedin,
+                    identity.twitter,
+                )
+                if value
+            ]
+            if same_as:
+                schema["sameAs"] = same_as
+            knowledge = (
+                self.config.site.seo.custom_knowledge_areas
+                or identity.interests
+            )
+            if knowledge:
+                schema["knowsAbout"] = knowledge
+            if self.config.site.seo.alumni_of:
+                schema["alumniOf"] = {
+                    "@type": "EducationalOrganization",
+                    "name": self.config.site.seo.alumni_of,
+                }
+        else:
+            logo = getattr(identity, "logo", None) or getattr(identity, "image", None)
+            if logo:
+                schema["logo"] = self._image_url(logo)
+            parent_name = getattr(identity, "parent_name", "")
+            if parent_name:
+                parent = {"@type": "Organization", "name": parent_name}
+                parent_url = getattr(identity, "parent_url", None)
+                if parent_url:
+                    parent["url"] = parent_url
+                schema["parentOrganization"] = parent
+            research_areas = getattr(identity, "research_areas", [])
+            if research_areas:
+                schema["knowsAbout"] = research_areas
+            members = []
+            for person in people or []:
+                profile = person.to_dict() if hasattr(person, "to_dict") else person
+                member = {"@type": "Person", "name": profile.get("name", "")}
+                if profile.get("profile"):
+                    member["url"] = profile["profile"]
+                if profile.get("role"):
+                    member["jobTitle"] = profile["role"]
+                members.append(member)
+            if members:
+                schema["member"] = members
+
         return json.dumps(schema, indent=2)
-    
-    def generate_scholarly_article_schema(self, publication: Dict[str, Any]) -> str:
-        """Generate ScholarlyArticle schema for publication"""
-        schema = {
+
+    def generate_person_schema(self) -> str:
+        """Compatibility wrapper for older callers."""
+
+        return self.generate_identity_schema()
+
+    def generate_scholarly_article_schema(
+        self, publication: Dict[str, Any]
+    ) -> str:
+        if not self.structured_data_enabled:
+            return ""
+
+        schema: Dict[str, Any] = {
             "@context": "https://schema.org",
             "@type": "ScholarlyArticle",
-            "headline": publication.get('title', ''),
-            "name": publication.get('title', ''),
+            "headline": publication.get("title", ""),
+            "name": publication.get("title", ""),
         }
-        
-        # Add authors
-        author_list = publication.get('authors') or publication.get('author_list') or []
-        if author_list:
-            authors = []
-            for author_name in author_list:
-                authors.append({
-                    "@type": "Person",
-                    "name": author_name
-                })
-            schema["author"] = authors
-        
-        # Add publication date
-        year_value = publication.get('year')
-        if year_value:
-            if hasattr(year_value, 'strftime'):
-                schema["datePublished"] = year_value.strftime('%Y')
-            else:
-                schema["datePublished"] = str(year_value)
-        
-        # Add publisher/venue
-        if publication.get('venue'):
+        authors = publication.get("authors") or publication.get("author_list") or []
+        if authors:
+            schema["author"] = [
+                {"@type": "Person", "name": name} for name in authors
+            ]
+        if publication.get("year"):
+            schema["datePublished"] = str(publication["year"])
+        if publication.get("venue"):
             schema["publisher"] = {
                 "@type": "Organization",
-                "name": publication['venue']
+                "name": publication["venue"],
             }
-            
-        # Add abstract if available
-        if publication.get('abstract'):
-            schema["abstract"] = publication['abstract']
-            
-        # Add PDF link if available
-        pdf_url = None
-        for link in publication.get('links', []):
-            label = (link.get('label') or '').lower()
-            if label in {'pdf', 'paper'}:
-                pdf_url = link.get('url')
+        if publication.get("abstract"):
+            schema["abstract"] = publication["abstract"]
+
+        for link in publication.get("links", []):
+            label = (
+                link.get("label", "")
+                if isinstance(link, dict)
+                else getattr(link, "label", "")
+            ).lower()
+            if label in {"paper", "pdf", "arxiv"}:
+                schema["url"] = (
+                    link.get("url")
+                    if isinstance(link, dict)
+                    else getattr(link, "url", "")
+                )
                 break
-        if not pdf_url:
-            pdf_url = publication.get('paper')
-        if pdf_url:
-            schema["url"] = pdf_url
-            
         return json.dumps(schema, indent=2)
-    
-    def generate_software_application_schema(self, project: Dict[str, Any]) -> str:
-        """Generate SoftwareApplication schema for a project"""
-        schema = {
+
+    def generate_software_application_schema(
+        self, project: Dict[str, Any]
+    ) -> str:
+        if not self.structured_data_enabled:
+            return ""
+
+        schema: Dict[str, Any] = {
             "@context": "https://schema.org",
             "@type": "SoftwareApplication",
-            "name": project.get('title', ''),
-            "description": project.get('description', ''),
+            "name": project.get("title", ""),
+            "description": self._plain_text(project.get("description", "")),
             "applicationCategory": "DeveloperApplication",
+            "author": self._identity_reference(),
         }
-        
-        # Add code repository URL
-        repo_url = project.get('github') or project.get('code') or project.get('repo_url')
-        if repo_url:
-            schema["codeRepository"] = repo_url
-        
-        # Add homepage URL if available
-        primary_url = project.get('website') or project.get('demo') or project.get('documentation') or project.get('url')
+        repository = (
+            project.get("github")
+            or project.get("code")
+            or project.get("repo_url")
+        )
+        if repository:
+            schema["codeRepository"] = repository
+        primary_url = (
+            project.get("website")
+            or project.get("demo")
+            or project.get("documentation")
+            or project.get("url")
+        )
         if primary_url:
             schema["url"] = primary_url
-        
-        if project.get('image'):
-            schema["image"] = self._build_url(f"static/{project['image']}")
-            
-        # Add author
-        schema["author"] = {
-            "@type": "Person",
-            "name": self.config.author.name
-        }
-            
+        if project.get("image"):
+            schema["image"] = self._image_url(project["image"])
         return json.dumps(schema, indent=2)
-    
+
     def generate_blog_posting_schema(self, blog_post: Dict[str, Any]) -> str:
-        """Generate BlogPosting schema for blog posts"""
-        if self.config.site.seo.disable_structured_data:
+        if not self.structured_data_enabled:
             return ""
-            
+
         seo_config = self.config.site.seo
-        
-        schema = {
+        schema: Dict[str, Any] = {
             "@context": "https://schema.org",
             "@type": "BlogPosting",
-            "headline": blog_post.get('title', ''),
-            "author": {
-                "@type": "Person",
-                "name": self.config.author.name
-            }
+            "headline": blog_post.get("title", ""),
+            "author": self._identity_reference(),
         }
-        
-        # Add publication date
-        if blog_post.get('date'):
-            date_value = blog_post['date']
-            if hasattr(date_value, 'strftime'):
-                # Convert date/datetime object to ISO format string
-                schema["datePublished"] = date_value.strftime('%Y-%m-%d')
-            else:
-                # Already a string
-                schema["datePublished"] = str(date_value)
-            
-        # Add description/excerpt
-        if blog_post.get('excerpt'):
-            schema["description"] = blog_post['excerpt']
-            
-        # Add URL and mainEntityOfPage
-        if blog_post.get('slug'):
-            blog_url = self._build_url(f"blog/{blog_post['slug']}.html")
-            schema["url"] = blog_url
+        if blog_post.get("date"):
+            date_value = blog_post["date"]
+            schema["datePublished"] = (
+                date_value.strftime("%Y-%m-%d")
+                if hasattr(date_value, "strftime")
+                else str(date_value)
+            )
+        excerpt = blog_post.get("description") or blog_post.get("excerpt")
+        if excerpt:
+            schema["description"] = self._plain_text(excerpt)
+        if blog_post.get("route") and self.has_absolute_base_url:
+            page_url = self._build_url(blog_post["route"].lstrip("/"))
+            schema["url"] = page_url
             schema["mainEntityOfPage"] = {
                 "@type": "WebPage",
-                "@id": blog_url
+                "@id": page_url,
             }
-            
-        # Add publisher - use custom overrides or auto-detect from author
-        publisher_name = seo_config.custom_publisher_name or self.config.author.name
-        publisher_logo_path = seo_config.custom_publisher_logo or (self.config.author.photo_path if hasattr(self.config.author, 'photo_path') else None)
-        publisher_logo_url = self._build_url(f"static/{publisher_logo_path}") if publisher_logo_path else None
-        
+
+        publisher_name = seo_config.custom_publisher_name or self.identity.name
+        publisher_logo = (
+            seo_config.custom_publisher_logo
+            or getattr(self.identity, "logo", None)
+            or getattr(self.identity, "image", None)
+            or getattr(self.identity, "photo_path", None)
+        )
         schema["publisher"] = {
             "@type": "Organization",
-            "name": publisher_name
+            "name": publisher_name,
         }
-        if publisher_logo_url:
+        if publisher_logo:
+            logo_url = self._image_url(publisher_logo)
             schema["publisher"]["logo"] = {
                 "@type": "ImageObject",
-                "url": publisher_logo_url
+                "url": logo_url,
             }
-            
-        # Add image - prioritize blog post image, fallback to publisher logo
-        if blog_post.get('image'):
-            schema["image"] = self._build_url(f"static/{blog_post['image']}")
-        elif publisher_logo_url:
-            schema["image"] = publisher_logo_url
-            
+        image = blog_post.get("social_image") or blog_post.get("image")
+        if image:
+            schema["image"] = self._image_url(image)
+        elif publisher_logo:
+            schema["image"] = self._image_url(publisher_logo)
         return json.dumps(schema, indent=2)
-    
+
     def generate_website_schema(self) -> str:
-        """Generate Website schema for the entire site"""
+        if not self.structured_data_enabled:
+            return ""
         schema = {
-            "@context": "https://schema.org",
-            "@type": "Website",
-            "name": self.config.site.title,
-            "description": self.config.site.description,
-            "url": self.base_url,
-            "author": {
-                "@type": "Person",
-                "name": self.config.author.name
+                "@context": "https://schema.org",
+                "@type": "WebSite",
+                "name": self.config.site.title,
+                "description": self.config.site.description,
+                "author": self._identity_reference(),
             }
-        }
-        
+        if self.has_absolute_base_url:
+            schema["url"] = self.base_url + "/"
         return json.dumps(schema, indent=2)
-    
-    def generate_meta_description(self, page_type: str, item: Optional[Dict[str, Any]] = None) -> str:
-        """Generate optimized meta descriptions for different page types"""
-        author_name = self.config.author.name
-        
+
+    def generate_meta_description(
+        self,
+        page_type: str,
+        item: Optional[Dict[str, Any]] = None,
+    ) -> str:
         if page_type == "homepage":
             return self.config.site.description
-            
-        elif page_type == "publications":
-            return f"Research publications by {author_name}, covering {', '.join(self.config.author.interests[:3])} and more."
-            
-        elif page_type == "blog":
-            return f"Insights and thoughts on {', '.join(self.config.author.interests[:3])} by {author_name}."
-            
-        elif page_type == "blog_post" and item:
-            if item.get('excerpt'):
-                # Clean HTML tags from excerpt for meta description
-                import re
-                clean_excerpt = re.sub('<[^<]+?>', '', item['excerpt'])
-                return clean_excerpt[:155] + ('...' if len(clean_excerpt) > 155 else '')
-            return f"A blog post by {author_name} about {item.get('title', 'research and development')}."
-            
-        elif page_type == "publication" and item:
-            return f"A {item.get('year', 'recent')} publication by {author_name} et al. in {item.get('venue', 'a leading journal')}, titled '{item.get('title', '')}'."
-            
-        elif page_type == "projects":
-            return f"Research projects and open-source contributions by {author_name} in {', '.join(self.config.author.interests[:3])}."
-            
-        elif page_type == "talks":
-            return f"Conference talks and presentations by {author_name} on {', '.join(self.config.author.interests[:3])}."
-            
-        elif page_type == "news":
-            return f"Latest news and updates from {author_name}'s research and academic activities."
-            
-        # Fallback
+        if item:
+            explicit = item.get("description") or item.get("excerpt")
+            if explicit:
+                return self._plain_text(explicit)
+
+        identity_name = self.identity.name
+        interests = (
+            getattr(self.identity, "interests", None)
+            or getattr(self.identity, "research_areas", None)
+            or []
+        )
+        topic_text = ", ".join(interests[:3])
+        if page_type == "publications":
+            return (
+                f"Selected research by {identity_name}"
+                + (f" on {topic_text}." if topic_text else ".")
+            )
+        if page_type in {"blog", "updates"}:
+            return (
+                self.config.site.blog_description
+                or f"Research updates from {identity_name}."
+            )
+        if page_type == "blog_post" and item:
+            return f"{item.get('title', 'Research update')} — {identity_name}."
+        if page_type == "team":
+            return f"Meet the {identity_name} research team."
+        if page_type == "research":
+            return (
+                f"Research directions from {identity_name}"
+                + (f": {topic_text}." if topic_text else ".")
+            )
+        if page_type == "projects":
+            return f"Featured research and open-source work from {identity_name}."
         return self.config.site.description
-    
+
     def generate_sitemap_xml(self, pages: List[Dict[str, str]]) -> str:
-        """Generate sitemap.xml content"""
-        sitemap_entries = []
-        
-        for page in pages:
-            url = self._build_url(page['path'])
-            priority = page.get('priority', '0.5')
-            changefreq = page.get('changefreq', 'monthly')
-            lastmod = page.get('lastmod', '')
-            
-            entry = f"""  <url>
-    <loc>{url}</loc>
-    <changefreq>{changefreq}</changefreq>
-    <priority>{priority}</priority>"""
-            
-            if lastmod:
-                entry += f"""
-    <lastmod>{lastmod}</lastmod>"""
-                
-            entry += """
-  </url>"""
-            
-            sitemap_entries.append(entry)
-        
-        sitemap_xml = f"""<?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-{chr(10).join(sitemap_entries)}
-</urlset>"""
-        
-        return sitemap_xml
+        """Generate a valid absolute sitemap, or an empty URL set in dev."""
+
+        entries = []
+        if self.has_absolute_base_url:
+            for page in pages:
+                route = page["route"]
+                url = self._build_url(route.lstrip("/"))
+                priority = page.get("priority", "0.5")
+                changefreq = page.get("changefreq", "monthly")
+                lastmod = page.get("lastmod", "")
+                entry = (
+                    "  <url>\n"
+                    f"    <loc>{escape(url)}</loc>\n"
+                    f"    <changefreq>{escape(changefreq)}</changefreq>\n"
+                    f"    <priority>{escape(priority)}</priority>"
+                )
+                if lastmod:
+                    entry += f"\n    <lastmod>{escape(lastmod)}</lastmod>"
+                entry += "\n  </url>"
+                entries.append(entry)
+        return (
+            '<?xml version="1.0" encoding="UTF-8"?>\n'
+            '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
+            + "\n".join(entries)
+            + "\n</urlset>"
+        )
+
+    @staticmethod
+    def _plain_text(value: str) -> str:
+        return re.sub(r"\s+", " ", re.sub(r"<[^>]+>", "", str(value))).strip()
+
+    @staticmethod
+    def _truncate(value: str, length: int = 155) -> str:
+        return value if len(value) <= length else value[: length - 1].rstrip() + "…"

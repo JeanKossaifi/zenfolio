@@ -8,7 +8,7 @@
                             {{ item.name }}
                         </h1>
                         <p class="text-lg text-gray-600 dark:text-gray-400 font-medium">
-                            {{ item.title }}, {{ item.affiliation }} <span class="text-gray-400 dark:text-gray-500">·</span> PhD, Imperial College London
+                            {{ item.title }}{% if item.affiliation %}, {{ item.affiliation }}{% endif %}
                         </p>
                     </div>
                     {% if item.tagline %}
@@ -25,19 +25,25 @@
                     {% endif %}
                     <div class="space-y-6">
                         <div class="flex flex-wrap justify-center lg:justify-start gap-4">
-                            {% if item.homepage_buttons %}
+                            {% if item.actions|default([]) %}
+                                {% for action in item.actions %}
+                                    {% set action_url = action.route if action.route is defined else action.url %}
+                                    {% set action_label = action.label if action.label is defined else action.text %}
+                                    <a href="{{ url_for(action_url) }}" class="inline-block px-6 py-3 {% if action.style == 'primary' %}bg-gray-900 dark:bg-white text-white dark:text-gray-900{% elif action.style == 'accent' %}bg-teal-600 dark:bg-teal-400 text-white{% else %}bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white{% endif %} text-base font-semibold rounded-full shadow-sm hover:-translate-y-1 transition-transform" {% if action_url.startswith('http') %}target="_blank" rel="noopener"{% endif %}>{{ action_label }}</a>
+                                {% endfor %}
+                            {% elif item.homepage_buttons %}
                                 {% for button in item.homepage_buttons %}
                                     {% if button.style == "primary" %}
-                                        <a href="{{ button.url }}" class="inline-block px-6 py-3 bg-gray-900 dark:bg-white text-white dark:text-gray-900 text-base font-semibold rounded-full shadow-lg hover:-translate-y-1 transition-transform" {% if button.url.startswith('http') %}target="_blank" rel="noopener"{% endif %}>{{ button.text }}</a>
+                                        <a href="{{ url_for(button.url) }}" class="inline-block px-6 py-3 bg-gray-900 dark:bg-white text-white dark:text-gray-900 text-base font-semibold rounded-full shadow-lg hover:-translate-y-1 transition-transform" {% if button.url.startswith('http') %}target="_blank" rel="noopener"{% endif %}>{{ button.text }}</a>
                                     {% elif button.style == "secondary" %}
-                                        <a href="{{ button.url }}" class="inline-block px-6 py-3 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white font-semibold rounded-full shadow-sm hover:-translate-y-1 transition-transform" {% if button.url.startswith('http') %}target="_blank" rel="noopener"{% endif %}>{{ button.text }}</a>
+                                        <a href="{{ url_for(button.url) }}" class="inline-block px-6 py-3 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white font-semibold rounded-full shadow-sm hover:-translate-y-1 transition-transform" {% if button.url.startswith('http') %}target="_blank" rel="noopener"{% endif %}>{{ button.text }}</a>
                                     {% elif button.style == "accent" %}
-                                        <a href="{{ button.url }}" class="inline-block px-6 py-3 bg-teal-600 dark:bg-teal-400 text-white font-semibold rounded-full shadow-sm hover:-translate-y-1 transition-transform" {% if button.url.startswith('http') %}target="_blank" rel="noopener"{% endif %}>{{ button.text }}</a>
+                                        <a href="{{ url_for(button.url) }}" class="inline-block px-6 py-3 bg-teal-600 dark:bg-teal-400 text-white font-semibold rounded-full shadow-sm hover:-translate-y-1 transition-transform" {% if button.url.startswith('http') %}target="_blank" rel="noopener"{% endif %}>{{ button.text }}</a>
                                     {% endif %}
                                 {% endfor %}
                             {% else %}
                                 <!-- Fallback buttons if no homepage_buttons configured -->
-                                <a href="publications.html" class="inline-block px-6 py-3 bg-gray-900 dark:bg-white text-white dark:text-gray-900 text-base font-semibold rounded-full shadow-lg hover:-translate-y-1 transition-transform">View Publications</a>
+                                <a href="{{ url_for(item.publications_route|default('/publications.html')) }}" class="inline-block px-6 py-3 bg-gray-900 dark:bg-white text-white dark:text-gray-900 text-base font-semibold rounded-full shadow-lg hover:-translate-y-1 transition-transform">View Publications</a>
                                 <a href="mailto:{{ item.email }}" class="inline-block px-6 py-3 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white font-semibold rounded-full shadow-sm hover:-translate-y-1 transition-transform">Get in Touch</a>
                             {% endif %}
                             {% if item.cv_path %}<a href="{{ item.cv_path }}" target="_blank" rel="noopener" class="inline-block px-6 py-3 bg-teal-600 dark:bg-teal-400 text-white font-semibold rounded-full shadow-sm hover:-translate-y-1 transition-transform">Download CV</a>{% endif %}
@@ -54,7 +60,7 @@
             <div class="lg:col-span-2 relative flex justify-center order-first lg:order-last">
                 {% if item.photo_path or item.photo %}
                 <div class="relative w-80 h-80 lg:w-[28rem] lg:h-[28rem]">
-                     <img src="{% if item.photo %}{{ item.photo }}{% else %}static/{{ item.photo_path }}{% endif %}" alt="{{ item.name }}" class="relative w-full h-full object-cover rounded-full shadow-2xl ring-1 ring-gray-200 dark:ring-gray-700">
+                     <img src="{{ asset(item.photo or item.photo_path) }}" alt="{{ item.name }}" class="relative w-full h-full object-cover rounded-full shadow-2xl ring-1 ring-gray-200 dark:ring-gray-700">
                 </div>
                 {% endif %}
             </div>

@@ -1,4 +1,4 @@
-<section class="py-24 sm:py-32 {{ 'bg-gray-50/50 dark:bg-gray-800/50' if background|default(false) }}">
+<section id="{{ section_id }}" data-section="{{ section_id }}" class="py-24 sm:py-32 {{ 'bg-gray-50/50 dark:bg-gray-800/50' if background|default(false) }}">
     <div class="max-w-7xl mx-auto px-6 lg:px-8">
         <div class="mb-16">
             <h2 class="text-4xl lg:text-5xl heading text-gray-900 dark:text-white mb-4">{{ title }}</h2>
@@ -6,7 +6,16 @@
         </div>
 
         {# Section Content #}
-            {% if layout|default('grid') == 'timeline' %}
+            {% if steps|default([]) %}
+            <div class="grid grid-cols-1 {% if grid_cols|default(1) == 2 %}md:grid-cols-2{% elif grid_cols|default(1) == 3 %}md:grid-cols-2 lg:grid-cols-3{% elif grid_cols|default(1) >= 4 %}md:grid-cols-2 lg:grid-cols-4{% endif %} gap-8">
+                {% for step in steps %}
+                <article class="border border-gray-200 dark:border-gray-700 p-6">
+                    <h3 class="text-xl font-semibold text-gray-900 dark:text-white">{{ step.title }}</h3>
+                    {% if step.description %}<p class="mt-3 text-gray-600 dark:text-gray-300">{{ step.description }}</p>{% endif %}
+                </article>
+                {% endfor %}
+            </div>
+            {% elif layout|default('grid') == 'timeline' %}
             <div class="timeline-container">
                 {% for item in items|default([]) %}{{ item.rendered_html | safe }}{% endfor %}
             </div>
@@ -46,10 +55,17 @@
                 {% for item in items|default([]) %}{{ item.rendered_html | safe }}{% endfor %}
             </div>
             {% endif %}
+            {% if actions|default([]) %}
+            <div class="mt-10 flex flex-wrap gap-4">
+                {% for action in actions %}
+                <a href="{{ url_for(action.route) }}" class="font-semibold text-teal-600 dark:text-teal-400">{{ action.label }} →</a>
+                {% endfor %}
+            </div>
+            {% endif %}
         </div>
         {% if view_all_link|default(false) %}
         <div class="mt-16 text-center">
-            <a href="{{ view_all_link.url }}" class="inline-flex items-center gap-2 text-lg font-semibold text-teal-600 dark:text-teal-400 hover:gap-3 transition-all">
+            <a href="{{ url_for(view_all_link.url) }}" class="inline-flex items-center gap-2 text-lg font-semibold text-teal-600 dark:text-teal-400 hover:gap-3 transition-all">
                 {{ view_all_link.text }} 
                 <i class="fas fa-arrow-right text-sm"></i>
             </a>

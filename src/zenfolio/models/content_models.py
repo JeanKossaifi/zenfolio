@@ -7,6 +7,14 @@ from typing import List, Optional, Union, Any
 from datetime import date
 # Paths handled as strings, resolved during rendering
 
+
+class Link(ConfigBase):
+    """A labeled internal route or external URL."""
+
+    label: str = ""
+    url: str = ""
+
+
 class NewsItem(ConfigBase):
     """News entry with optional links as direct attributes"""
     date: str
@@ -47,6 +55,12 @@ class ProjectItem(ConfigBase):
     website: Optional[str] = None      # e.g., "https://project-site.com"
     demo: Optional[str] = None         # e.g., "https://demo.com" or "demos/interactive.html"
     code: Optional[str] = None         # e.g., "https://github.com/user/code"
+    label: Optional[str] = None
+    image_alt: str = ""
+    image_caption: str = ""
+    image_source: str = ""
+    attribution: str = ""
+    links: List[Link] = []
     
     template_name: str = "project_item"
 
@@ -69,6 +83,54 @@ class TalkItem(ConfigBase):
     template_name: str = "talk_item"
 
 
+class TeamCategory(ConfigBase):
+    """Ordered heading used to keep team groups distinct."""
+
+    key: str = ""
+    title: str = ""
+    description: str = ""
+
+
+class TeamMember(ConfigBase):
+    """A member of a research group."""
+
+    name: str = ""
+    role: str = ""
+    category: str = "core"
+    years: str = ""
+    affiliation: str = ""
+    bio: str = ""
+    research_interests: List[str] = []
+    photo: Optional[str] = None
+    photo_alt: str = ""
+    profile: Optional[str] = None
+    links: List[Link] = []
+    highlight: bool = False
+    template_name: str = "person_item"
+    content_type: str = "markdown"
+
+
+class PersonItem(TeamMember):
+    """Backward-compatible name for the generic person-card model."""
+
+
+class ResearchAreaItem(ConfigBase):
+    """A structured research direction."""
+
+    title: str = ""
+    description: str = ""
+    slug: str = ""
+    image: Optional[str] = None
+    image_alt: str = ""
+    image_caption: str = ""
+    image_source: str = ""
+    highlight: bool = False
+    tags: List[str] = []
+    links: List[Link] = []
+    template_name: str = "research_area_item"
+    content_type: str = "markdown"
+
+
 
 # Content Config Classes
 class NewsConfig(ConfigBase):
@@ -79,11 +141,37 @@ class NewsConfig(ConfigBase):
 class ProjectsConfig(ConfigBase):
     """Projects content configuration"""
     items: List[ProjectItem] = []
+    title: str = "Projects"
+    description: str = ""
+    route: Optional[str] = None
 
 
 class TalksConfig(ConfigBase):
     """Talks content configuration"""
     items: List[TalkItem] = []
+    title: str = "Talks"
+    description: str = ""
+    route: Optional[str] = None
+
+
+class PeopleConfig(ConfigBase):
+    """Team-page configuration."""
+
+    items: List[TeamMember] = []
+    categories: List[TeamCategory] = []
+    title: str = "Team"
+    description: str = ""
+    meta_description: str = ""
+    route: Optional[str] = None
+
+
+class ResearchAreasConfig(ConfigBase):
+    """Research-direction card configuration."""
+
+    items: List[ResearchAreaItem] = []
+    title: str = "Research"
+    description: str = ""
+    route: Optional[str] = None
 
 
 class BlogPost(ConfigBase):
@@ -94,6 +182,17 @@ class BlogPost(ConfigBase):
     excerpt: str = ""
     tags: List[str] = []  # ZenCFG handles mutable defaults
     image: str = ""  # Hero image for blog post and social media preview
+    image_alt: str = ""
+    image_caption: str = ""
+    image_source: str = ""
+    subtitle: str = ""
+    category: str = ""
+    description: str = ""
+    social_title: str = ""
+    social_description: str = ""
+    social_image: str = ""
+    actions: List[Link] = []
+    route: str = ""
     content: str = ""
     content_raw: str = ""
     content_type: str = "markdown"  # Type of content: markdown or notebook
@@ -106,6 +205,11 @@ class Page(ConfigBase):
     """Standalone page parsed from markdown with frontmatter"""
     title: str = ""
     slug: str = ""
+    route: str = ""
+    description: str = ""
+    social_title: str = ""
+    social_description: str = ""
+    social_image: str = ""
     content: str = ""
     
     template_name: str = "page"

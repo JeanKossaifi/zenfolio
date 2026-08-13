@@ -24,8 +24,9 @@ class MinimalTheme(BaseTheme):
                     if self.debug:
                         print(f"✅ Loaded file template: {component_name}")
                 except Exception as e:
-                    if self.debug:
-                        print(f"⚠️ Failed to load template '{component_name}': {e}")
+                    raise RuntimeError(
+                        f"Failed to load template '{component_name}': {e}"
+                    ) from e
         
         # Then register inline templates for components not covered by files
         inline_templates = {
@@ -35,6 +36,7 @@ class MinimalTheme(BaseTheme):
             'page_layout': self.PAGE_LAYOUT_TEMPLATE,
             'landing_page': self.LANDING_PAGE_TEMPLATE,
             'profile_hero': self.PROFILE_HERO_TEMPLATE,
+            'group_hero': self.GROUP_HERO_TEMPLATE,
             'bio_section': self.BIO_SECTION_TEMPLATE,
             'section': self.SECTION_TEMPLATE,
             'divider': self.DIVIDER_TEMPLATE,
@@ -46,6 +48,8 @@ class MinimalTheme(BaseTheme):
             'talk_item': self.TALK_ITEM_TEMPLATE,
             'blog_post_item': self.BLOG_POST_ITEM_TEMPLATE,
             'service_item': self.SERVICE_ITEM_TEMPLATE,
+            'person_item': self.PERSON_ITEM_TEMPLATE,
+            'research_area_item': self.RESEARCH_AREA_ITEM_TEMPLATE,
             
             # Page templates
             'blog_post_page': self.BLOG_POST_PAGE_TEMPLATE,
@@ -72,13 +76,18 @@ class MinimalTheme(BaseTheme):
                     site_description: str = "", base_url: str = "", **context) -> str:
         """Override base render_page to handle SEO and built_pages context"""
         # Make base_url available to the url_for and file global functions
-        self.env.globals['base_url'] = base_url
+        self.set_render_context(base_url)
         
         template = self.env.from_string(self.BASE_LAYOUT_TEMPLATE)
         # built_pages will be available in context
         navbar_html = self.render_component('navbar', author_name=author_name, base_url=base_url, **context)
         from datetime import datetime
-        footer_html = self.render_component('footer', author_name=author_name, current_year=datetime.now().year)
+        footer_html = self.render_component(
+            'footer',
+            author_name=author_name,
+            identity=context.get('identity'),
+            current_year=datetime.now().year,
+        )
         seo_head_html = self.render_component('seo_head', page_title=page_title, author_name=author_name, site_description=site_description, **context)
         # Render MathJax configuration if provided
         mathjax_config = context.get('mathjax_config')
@@ -134,7 +143,7 @@ body {
     <meta name="description" content="{% if meta_description %}{{ meta_description }}{% else %}{{ site_description }}{% endif %}">
     {% if seo_head %}{{ seo_head | safe }}{% endif %}
     {% if mathjax_html %}{{ mathjax_html | safe }}{% endif %}
-    <link rel="stylesheet" href="{{ file('style.css') }}">
+    <link rel="stylesheet" href="{{ asset('style.css') }}">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -149,7 +158,7 @@ body {
     
     {% if include_navbar %}{{ footer | safe }}{% endif %}
     
-    <script src="{{ file('theme.js') }}"></script>
+    <script src="{{ asset('theme.js') }}"></script>
 </body>
 </html>"""
 
@@ -158,10 +167,10 @@ body {
     # Navigation with dynamic menu items
     NAVBAR_TEMPLATE = """<header class="site-header">
     <nav class="nav-container">
-        <a href="{{ url_for('index.html') }}" class="nav-home">{{ author_name }}</a>
+        <a href="{{ url_for('/') }}" class="nav-home">{{ identity.name }}</a>
         <ul class="nav-links">
-            {% for key, label in built_pages %}
-            <li><a href="{{ url_for(key ~ '.html') }}" class="nav-link {% if current_page == key %}active{% endif %}">{{ label }}</a></li>
+            {% for item in navigation if item.visible %}
+            <li><a href="{{ url_for(item.route) }}" class="nav-link {% if current_page == item.key %}active{% endif %}" {% if item.external %}target="_blank" rel="noopener"{% endif %}>{{ item.label }}</a></li>
             {% endfor %}
         </ul>
     </nav>
@@ -258,11 +267,11 @@ body {
 
     BLOG_POST_ITEM_TEMPLATE = """<article class="card blog-preview reveal-on-scroll">
     <time class="card-meta">{{ item.date }}</time>
-    <h3 class="card-title"><a href="{{ url_for('blog/' ~ item.slug ~ '.html') }}">{{ item.title }}</a></h3>
+    <h3 class="card-title"><a href="{{ url_for(item.route) }}">{{ item.title }}</a></h3>
     {% if item.excerpt %}
     <p class="card-content">{{ item.excerpt }}</p>
     {% endif %}
-    <a href="{{ url_for('blog/' ~ item.slug ~ '.html') }}" class="read-more">Read more <i class="fas fa-arrow-right"></i></a>
+    <a href="{{ url_for(item.route) }}" class="read-more">Read more <i class="fas fa-arrow-right"></i></a>
 </article>"""
 
     BLOG_POST_PAGE_TEMPLATE = """<article class="blog-post">
@@ -281,6 +290,24 @@ body {
 
     PAGE_TEMPLATE = """<article class="page-content">
         {{ item.content | safe }}
+        {% if research_areas %}
+        <section>
+            <h2>Research directions</h2>
+            <div class="grid-3">{% for area in research_areas %}{{ area.rendered_html | safe }}{% endfor %}</div>
+        </section>
+        {% endif %}
+        {% if related_publications %}
+        <section>
+            <h2>Related publications</h2>
+            <div class="list-container">{% for publication in related_publications %}{{ publication.rendered_html | safe }}{% endfor %}</div>
+        </section>
+        {% endif %}
+        {% if related_projects %}
+        <section>
+            <h2>Public projects</h2>
+            <div class="grid-2">{% for project in related_projects %}{{ project.rendered_html | safe }}{% endfor %}</div>
+        </section>
+        {% endif %}
 </article>"""
 
 
@@ -299,6 +326,7 @@ body {
     <header class="page-header">
         <h1>{{ title }}</h1>
     </header>
+    {% if intro %}<div class="page-intro">{{ intro | safe }}</div>{% endif %}
     
     {% if has_search %}
         {{ theme.render_component('search_filter_bar') }}
@@ -308,8 +336,8 @@ body {
     <div class="grouped-content">
         {% for group in grouped_items %}
         <section class="group-section">
-            <h2 class="year-heading">{{ group.group_name }}</h2>
-            <div class="list-container">
+            <h2 class="year-heading">{{ group.get('title', group.get('group_name', '')) }}</h2>
+            <div class="{% if layout == 'team' %}grid-3{% else %}list-container{% endif %}">
                 {% for item in group['items'] %}
                     {{ theme.render_component(item.template_type, item=item) }}
                 {% endfor %}
@@ -328,9 +356,7 @@ body {
     {% endif %}
 </div>"""
 
-    LANDING_PAGE_TEMPLATE = """{{ theme.render_component('profile_hero', item=hero) }}
-{{ theme.render_component('bio_section', bio_content=bio_content, interests=hero.interests) }}
-{{ theme.render_component('divider') }}
+    LANDING_PAGE_TEMPLATE = """{{ theme.render_component(hero_component|default('profile_hero'), item=hero) }}
 {% for section in sections %}
     {% if not loop.first %}
         {{ theme.render_component('divider') }}
@@ -345,19 +371,62 @@ body {
                 <h1>{{ item.name }}</h1>
                 {% if item.tagline %}<p class="hero-tagline">{{ item.tagline }}</p>{% endif %}
                 <div class="hero-actions">
-                    <a href="publications.html" class="primary-button">View Publications</a>
+                    {% if item.actions|default([]) %}
+                    {% for action in item.actions %}
+                    {% set action_url = action.route if action.route is defined else action.url %}
+                    {% set action_label = action.label if action.label is defined else action.text %}
+                    <a href="{{ url_for(action_url) }}" class="{% if action.style == 'primary' %}primary-button{% else %}secondary-button{% endif %}">{{ action_label }}</a>
+                    {% endfor %}
+                    {% else %}
+                    <a href="{{ url_for(item.publications_route|default('/publications.html')) }}" class="primary-button">View Publications</a>
                     <a href="mailto:{{ item.email }}" class="secondary-button">Get in Touch</a>
+                    {% endif %}
                     {% if item.cv_path %}<a href="{{ item.cv_path }}" target="_blank" rel="noopener" class="primary-button">Download CV</a>{% endif %}
                 </div>
             </div>
             {% if item.photo_path %}
             <div class="hero-photo">
-                <img src="static/{{ item.photo_path }}" alt="{{ item.name }}" class="photo">
+                <img src="{{ asset(item.photo_path) }}" alt="{{ item.name }}" class="photo">
             </div>
             {% endif %}
         </div>
     </div>
 </section>"""
+
+    GROUP_HERO_TEMPLATE = """<section class="hero-section group-hero">
+    <div class="container">
+        {% if item.eyebrow %}<p class="hero-eyebrow">{{ item.eyebrow }}</p>{% endif %}
+        <h1>{{ item.name }}</h1>
+        {% if item.tagline %}<p class="hero-tagline">{{ item.tagline }}</p>{% endif %}
+        {% if item.description %}<p>{{ item.description }}</p>{% endif %}
+        {% if item.actions|default([]) %}
+        <div class="hero-actions">
+            {% for action in item.actions %}<a href="{{ url_for(action.route) }}" class="{% if action.style == 'primary' %}primary-button{% else %}secondary-button{% endif %}">{{ action.label }}</a>{% endfor %}
+        </div>
+        {% endif %}
+        {% if item.hero_media and item.hero_media_approved %}
+        <figure>
+            <img src="{{ asset(item.hero_media) }}" alt="{{ item.hero_media_alt }}">
+            {% if item.hero_media_caption %}<figcaption>{{ item.hero_media_caption }}</figcaption>{% endif %}
+        </figure>
+        {% endif %}
+    </div>
+</section>"""
+
+    PERSON_ITEM_TEMPLATE = """<article class="card person-card">
+    {% if item.photo %}<img src="{{ asset(item.photo) }}" alt="{{ item.photo_alt or item.name }}">{% endif %}
+    <h3>{{ item.name }}</h3>
+    {% if item.role %}<p class="card-meta">{{ item.role }}</p>{% endif %}
+    {% if item.bio %}<div class="card-content">{{ item.bio | safe }}</div>{% endif %}
+    {% if item.profile %}<a href="{{ item.profile }}">Profile →</a>{% endif %}
+</article>"""
+
+    RESEARCH_AREA_ITEM_TEMPLATE = """<article class="card research-area-card">
+    {% if item.image %}<img src="{{ asset(item.image) }}" alt="{{ item.image_alt }}">{% endif %}
+    <h3>{{ item.title }}</h3>
+    <div class="card-content">{{ item.description | safe }}</div>
+    {% if item.tags %}<p class="card-meta">{{ item.tags | join(' · ') }}</p>{% endif %}
+</article>"""
 
     BIO_SECTION_TEMPLATE = """<section class="bio-section">
     <div class="container">
@@ -378,13 +447,22 @@ body {
     </div>
 </section>"""
 
-    SECTION_TEMPLATE = """<section class="content-section">
+    SECTION_TEMPLATE = """<section id="{{ section_id }}" data-section="{{ section_id }}" class="content-section">
     <div class="container">
         <header class="section-header">
             <h2>{{ title }}</h2>
             {% if subtitle|default('') %}<p class="section-subtitle">{{ subtitle }}</p>{% endif %}
         </header>
-        {% if layout|default('grid') == 'timeline' %}
+        {% if steps|default([]) %}
+        <div class="{% if grid_cols|default(1) == 2 %}grid-2{% elif grid_cols|default(1) >= 3 %}grid-3{% else %}list-container{% endif %}">
+            {% for step in steps %}
+            <article class="card">
+                <h3>{{ step.title }}</h3>
+                {% if step.description %}<p>{{ step.description }}</p>{% endif %}
+            </article>
+            {% endfor %}
+        </div>
+        {% elif layout|default('grid') == 'timeline' %}
         <div class="timeline-container">
             {% for item in items %}{{ theme.render_component(item.template_type, item=item) }}{% endfor %}
         </div>
@@ -393,9 +471,14 @@ body {
             {% for item in items %}{{ theme.render_component(item.template_type, item=item) }}{% endfor %}
         </div>
         {% endif %}
+        {% if actions|default([]) %}
+        <div class="section-footer">
+            {% for action in actions %}<a href="{{ url_for(action.route) }}">{{ action.label }} →</a>{% endfor %}
+        </div>
+        {% endif %}
         {% if view_all_link|default(false) %}
         <div class="section-footer">
-            <a href="{{ view_all_link.url }}" class="view-all-link">{{ view_all_link.text }} →</a>
+            <a href="{{ url_for(view_all_link.url) }}" class="view-all-link">{{ view_all_link.text }} →</a>
         </div>
         {% endif %}
     </div>

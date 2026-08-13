@@ -69,17 +69,39 @@ class BibtexParser(ContentParser):
         
         authors = self._parse_authors(entry.get('author', ''))
         highlighted_authors = self._highlight_authors(authors)
+        links = self._extract_links(entry)
+        primary_url = next(
+            (
+                link["url"]
+                for link in links
+                if link["label"] in {"Paper", "arXiv"}
+            ),
+            links[0]["url"] if links else "",
+        )
         
         return {
+            'id': entry.get('ID', ''),
             'title': entry.get('title', '').replace('{', '').replace('}', ''),
             'year': int(entry.get('year', 0)),
             'venue': self._get_venue(entry),
             'authors': authors,
             'highlighted_authors': highlighted_authors,
-            'links': self._extract_links(entry),
+            'links': links,
+            'primary_url': primary_url,
             'bibtex': self._get_raw_bibtex(entry),
             'highlight': entry.get('highlight', '').lower() in ['true', 'yes', '1'],
-            'image': entry.get('image', '')  # Add image support for publications
+            'image': entry.get('image', ''),
+            'abstract': entry.get('abstract', ''),
+            'directions': [
+                value.strip()
+                for value in entry.get('direction', '').split(',')
+                if value.strip()
+            ],
+            'homepage_order': (
+                int(entry['homepage_order'])
+                if entry.get('homepage_order', '').isdigit()
+                else None
+            ),
         }
 
     def _get_raw_bibtex(self, entry: dict) -> str:
@@ -89,7 +111,7 @@ class BibtexParser(ContentParser):
             'pdf', 'code', 'website', 'video', 'slides', 'poster', 'demo', 
             'supplement', 'supplementary', 'image', 'file', 'mendeley-tags',
             'abstract',  # Often too long for citations
-            'highlight'  # Website-specific field for homepage display
+            'highlight', 'direction', 'homepage_order', 'project', 'dataset'
         }
         
         # Create a filtered entry with only citation-appropriate fields
@@ -200,6 +222,10 @@ class BibtexParser(ContentParser):
             links.append({'label': 'Poster', 'url': entry['poster']})
         if 'demo' in entry:
             links.append({'label': 'Demo', 'url': entry['demo']})
+        if 'project' in entry:
+            links.append({'label': 'Project', 'url': entry['project']})
+        if 'dataset' in entry:
+            links.append({'label': 'Dataset', 'url': entry['dataset']})
         if 'supplement' in entry or 'supplementary' in entry:
             supp_url = entry.get('supplement', entry.get('supplementary'))
             links.append({'label': 'Supplement', 'url': supp_url})

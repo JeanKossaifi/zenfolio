@@ -15,5 +15,32 @@
             {{ item.content | safe }}
         </article>
 
+        {% if research_areas %}
+        <section class="mt-20">
+            <h2 class="text-3xl heading mb-8">Research directions</h2>
+            <div class="grid md:grid-cols-2 gap-8">
+                {% for area in research_areas %}{{ area.rendered_html | safe }}{% endfor %}
+            </div>
+        </section>
+        {% endif %}
+
+        {% if related_publications %}
+        <section class="mt-20">
+            <h2 class="text-3xl heading mb-8">Related publications</h2>
+            <div class="grid gap-8">
+                {% for publication in related_publications %}{{ publication.rendered_html | safe }}{% endfor %}
+            </div>
+        </section>
+        {% endif %}
+
+        {% if related_projects %}
+        <section class="mt-20">
+            <h2 class="text-3xl heading mb-8">Public projects</h2>
+            <div class="grid gap-8">
+                {% for project in related_projects %}{{ project.rendered_html | safe }}{% endfor %}
+            </div>
+        </section>
+        {% endif %}
+
     </div>
 </div>

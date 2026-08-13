@@ -4,51 +4,168 @@ Provides common Jinja2 setup and rendering functionality
 """
 
 from datetime import datetime
-from jinja2 import Environment, StrictUndefined, DebugUndefined, FileSystemLoader
+import re
+from jinja2 import (
+    ChoiceLoader,
+    Environment,
+    FileSystemLoader,
+    PrefixLoader,
+    StrictUndefined,
+    select_autoescape,
+)
 from pathlib import Path
 from abc import ABC, abstractmethod
-from ..utils import build_url
+from typing import Iterable, Optional
+
+import markdown
+
+from ..utils import build_url, is_external_url, normalize_route
+
+
+class ThemeRenderError(RuntimeError):
+    """Raised when a required theme template cannot be loaded or rendered."""
 
 
 class BaseTheme(ABC):
     """Base class for all ZenFolio themes with common Jinja2 functionality"""
+
+    MARKDOWN_EXTENSIONS = [
+        "fenced_code",
+        "codehilite",
+        "tables",
+        "admonition",
+        "def_list",
+        "attr_list",
+        "footnotes",
+    ]
     
-    def __init__(self, template_dir: Path = None, debug=False):
-        # Configure Jinja2 environment with debugging options
-        undefined_handler = StrictUndefined if debug else DebugUndefined
-        
-        loader = FileSystemLoader(template_dir) if template_dir else None
-        
+    def __init__(
+        self,
+        template_dir: Path = None,
+        debug: bool = False,
+        template_dirs: Optional[Iterable[Path]] = None,
+        parent_template_dir: Optional[Path] = None,
+        shared_template_dir: Optional[Path] = None,
+    ):
+        directories = [Path(path) for path in (template_dirs or [])]
+        if template_dir is not None and not directories:
+            directories.append(Path(template_dir))
+
+        loaders = [FileSystemLoader(str(path)) for path in directories]
+        if parent_template_dir is not None:
+            parent_loader = FileSystemLoader(str(parent_template_dir))
+            loaders.append(parent_loader)
+            loaders.append(PrefixLoader({"parent": parent_loader}))
+        if shared_template_dir is not None:
+            loaders.append(FileSystemLoader(str(shared_template_dir)))
+
+        loader = ChoiceLoader(loaders) if loaders else None
         self.env = Environment(
             loader=loader,
             trim_blocks=True, 
             lstrip_blocks=True,
-            undefined=undefined_handler
+            undefined=StrictUndefined,
+            autoescape=select_autoescape(
+                enabled_extensions=("html", "html.j2", "xml"),
+                default_for_string=False,
+            ),
         )
-        self.env.globals['theme'] = self
-        
-        # Add a global url_for function for page links
-        def url_for(path: str) -> str:
-            base_url = self.env.globals.get('base_url', '')
-            return build_url(base_url, path)
+        self.debug = debug
+        self.template_dirs = directories
+        self.template_dir = directories[0] if directories else template_dir
+        self.base_url = ""
 
-        # Add a global file function for static files
-        def file(path: str) -> str:
-            base_url = self.env.globals.get('base_url', '')
-            return build_url(base_url, f'static/{path.lstrip("/")}')
-
-        self.env.globals['url_for'] = url_for
-        self.env.globals['file'] = file
+        self.env.globals["theme"] = self
+        self.env.globals["url_for"] = self.url_for
+        self.env.globals["asset"] = self.asset_url
+        self.env.globals["file"] = self.asset_url
+        self.env.globals["render_component"] = self.render_component
         
         # Register all custom filters
         self.env.filters['strip_files_prefix'] = self._strip_files_prefix_filter
         self.env.filters['markdown'] = self._markdown_filter
         self.env.filters['highlight_code'] = self._highlight_code_filter
 
-        self.debug = debug
-        self.env.globals['theme'] = self
-        
         self._register_templates()
+
+    def set_render_context(self, base_url: str = "") -> None:
+        """Set URL context before rendering components for a page."""
+
+        self.base_url = base_url or ""
+        self.env.globals["base_url"] = self.base_url
+
+    @staticmethod
+    def content_requires_math(content: str) -> bool:
+        """Return whether rendered content contains supported math syntax."""
+
+        if any(
+            marker in content
+            for marker in ("$$", "\\(", "\\[", "<math", 'class="math')
+        ):
+            return True
+        return bool(
+            re.search(
+                r"(?<!\\)\$(?!\$)(?=\S)[^$\n]+(?<=\S)\$",
+                content,
+            )
+        )
+
+    def url_for(self, path: str) -> str:
+        """Resolve a public route against the current render context."""
+
+        raw_path = str(path)
+        if is_external_url(raw_path):
+            return raw_path
+        route = normalize_route(raw_path)
+        if route == "/":
+            if self.base_url.startswith(("http://", "https://")):
+                return build_url(self.base_url, "")
+            return self.base_url or "./"
+        if route.startswith("/#"):
+            home_url = build_url(self.base_url, "") or "./"
+            return f"{home_url}{route[1:]}"
+        return build_url(self.base_url, route.lstrip("/"))
+
+    def asset_url(self, path: str) -> str:
+        """Resolve a theme/content asset against the current render context."""
+
+        raw_path = str(path or "")
+        if not raw_path:
+            return ""
+        if is_external_url(raw_path):
+            return raw_path
+        clean_path = raw_path.lstrip("/")
+        if clean_path.startswith("static/"):
+            clean_path = clean_path[len("static/"):]
+        return build_url(self.base_url, f"static/{clean_path}")
+
+    def register_file_templates(self, template_names=None) -> set:
+        """Register loader-visible component templates by filename."""
+
+        if self.env.loader is None:
+            return set()
+
+        available = set(self.env.list_templates())
+        if template_names is None:
+            template_names = [
+                name
+                for name in available
+                if name.endswith(".html.j2") and "/" not in name
+            ]
+
+        loaded = set()
+        for template_name in template_names:
+            if template_name.startswith("parent/"):
+                continue
+            component_name = Path(template_name).stem.replace(".html", "")
+            try:
+                self.env.globals[component_name] = self.env.get_template(template_name)
+            except Exception as exc:
+                raise ThemeRenderError(
+                    f"Failed to load template '{template_name}': {exc}"
+                ) from exc
+            loaded.add(component_name)
+        return loaded
 
     def _highlight_code_filter(self, code: str, **kwargs) -> str:
         """A placeholder for syntax highlighting."""
@@ -56,8 +173,9 @@ class BaseTheme(ABC):
 
     def _markdown_filter(self, text: str) -> str:
         """Render markdown text to HTML."""
-        import markdown
-        return markdown.markdown(text, extensions=['fenced_code', 'codehilite', 'tables', 'admonition', 'def_list', 'attr_list', 'footnotes'])
+        return markdown.markdown(
+            text, extensions=self.MARKDOWN_EXTENSIONS
+        )
 
     def _strip_files_prefix_filter(self, text: str) -> str:
         """A simple placeholder filter."""
@@ -94,26 +212,27 @@ class BaseTheme(ABC):
         pass
     
     def render_component(self, component_name: str, **kwargs) -> str:
-        """Render a component template with given context, with robust error handling"""
+        """Render a required component or fail the build."""
+
         template = self.env.globals.get(component_name)
-        if template:
-            try:
-                return template.render(**kwargs)
-            except Exception as e:
-                error_msg = f"❌ Template rendering failed for '{component_name}': {str(e)}"
-                if self.debug:
-                    print(error_msg)
-                    import traceback
-                    traceback.print_exc()
-                return f"<!-- {error_msg} -->"
-        else:
-            # Missing template - this should NOT be silent!
-            error_msg = f"❌ Missing template: '{component_name}'"
+        if template is None:
+            available = sorted(
+                key for key in self.env.globals if not key.startswith("_")
+            )
+            raise ThemeRenderError(
+                f"Missing required template '{component_name}'. "
+                f"Available components: {', '.join(available)}"
+            )
+        try:
+            return template.render(**kwargs)
+        except Exception as exc:
             if self.debug:
-                print(error_msg)
-                available_templates = [k for k in self.env.globals.keys() if not k.startswith('_')]
-                print(f"💡 Available templates: {available_templates}")
-            return f"<!-- {error_msg} -->"
+                import traceback
+
+                traceback.print_exc()
+            raise ThemeRenderError(
+                f"Template rendering failed for '{component_name}': {exc}"
+            ) from exc
     
     @abstractmethod
     def write_css_file(self, output_dir: Path):
@@ -127,8 +246,7 @@ class BaseTheme(ABC):
     def render_page(self, content: str, page_title: str = "", author_name: str = "",
                     site_description: str = "", base_url: str = "", include_navbar: bool = True, **context) -> str:
         """Render a complete page using the base layout template"""
-        # Make base_url available to the url_for global function
-        self.env.globals['base_url'] = base_url
+        self.set_render_context(base_url)
         
         template = self.env.from_string(self.BASE_LAYOUT_TEMPLATE)
         
@@ -141,7 +259,8 @@ class BaseTheme(ABC):
                 **context)
             footer_html = self.render_component('footer', 
                 author_name=author_name, 
-                current_year=datetime.now().year)
+                current_year=datetime.now().year,
+                **context)
         
         return template.render(
             content=content,

@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" role="img" aria-labelledby="title">
+  <title id="title">Ada Researcher</title>
+  <rect width="200" height="200" fill="#d7e5e5"/>
+  <circle cx="100" cy="78" r="38" fill="#4b6666"/>
+  <path d="M35 190c8-48 35-70 65-70s57 22 65 70" fill="#4b6666"/>
+</svg>

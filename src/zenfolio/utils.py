@@ -3,7 +3,7 @@ Shared utilities for ZenFolio - Common functions used across modules
 """
 
 from pathlib import Path
-from urllib.parse import urljoin
+from urllib.parse import unquote, urljoin, urlsplit, urlunsplit
 
 
 def build_url(base_url: str, path: str) -> str:
@@ -17,8 +17,13 @@ def build_url(base_url: str, path: str) -> str:
     Returns:
         Properly constructed URL
     """
-    # Clean the path
-    clean_path = str(path).lstrip('/')
+    raw_path = str(path)
+    if is_external_url(raw_path):
+        return raw_path
+    if raw_path.startswith(("#", "?")):
+        return raw_path
+
+    clean_path = raw_path.lstrip("/")
     
     # Handle absolute URLs (deployment)
     if base_url.startswith(('http://', 'https://')):
@@ -26,15 +31,80 @@ def build_url(base_url: str, path: str) -> str:
         return urljoin(base_url.rstrip('/') + '/', clean_path)
     
     # Handle relative URLs (debugging/local)
-    if not base_url or base_url in ['', './']:
-        # Simple relative path
+    if not base_url:
         return clean_path
-    
-    # Handle custom relative base (e.g., "../" for nested pages)
-    # Use pathlib for proper path joining, then convert to forward slashes for URLs
-    result_path = Path(base_url) / clean_path
-    # Convert to forward slashes for web URLs (works on all platforms)
-    return str(result_path).replace('\\', '/')
+
+    # URL joining must preserve explicit directory slashes, queries, and
+    # fragments; pathlib intentionally normalizes those away.
+    return f"{base_url.rstrip('/')}/{clean_path}"
+
+
+def normalize_route(route: str, directory_default: bool = True) -> str:
+    """Normalize an internal public route while preserving external URLs."""
+
+    raw_route = (route or "/").strip()
+    if is_external_url(raw_route):
+        return raw_route
+    if raw_route.startswith(("#", "?")):
+        return raw_route
+    if "\\" in raw_route:
+        raise ValueError(f"Backslashes are not valid in routes: {route}")
+
+    parsed = urlsplit(raw_route)
+    decoded_path = unquote(parsed.path)
+    if "\\" in decoded_path:
+        raise ValueError(f"Encoded backslashes are not valid in routes: {route}")
+    segments = [segment for segment in decoded_path.split("/") if segment]
+    if any(segment in {".", ".."} for segment in segments):
+        raise ValueError(f"Route traversal is not allowed: {route}")
+
+    path = "/" + parsed.path.strip("/")
+    if path == "/":
+        normalized_path = "/"
+    else:
+        final_segment = path.rsplit("/", 1)[-1]
+        normalized_path = path
+        if directory_default and "." not in final_segment:
+            normalized_path += "/"
+        elif parsed.path.endswith("/") and not normalized_path.endswith("/"):
+            normalized_path += "/"
+    return urlunsplit(("", "", normalized_path, parsed.query, parsed.fragment))
+
+
+def route_to_output_path(route: str) -> Path:
+    """Map a clean public route to its generated HTML path."""
+
+    normalized = normalize_route(route)
+    if is_external_url(normalized):
+        raise ValueError(f"External route cannot be generated: {route}")
+    parsed = urlsplit(normalized)
+    if parsed.query or parsed.fragment:
+        raise ValueError(
+            f"Generated routes cannot contain a query or fragment: {route}"
+        )
+    if parsed.path == "/":
+        return Path("index.html")
+
+    clean = parsed.path.lstrip("/")
+    if parsed.path.endswith("/"):
+        return Path(clean) / "index.html"
+    return Path(clean)
+
+
+def route_depth(route: str) -> int:
+    """Return the output-directory depth for a route."""
+
+    output_path = route_to_output_path(route)
+    return len(output_path.parent.parts) if output_path.parent != Path(".") else 0
+
+
+def join_route(collection_route: str, slug: str) -> str:
+    """Join a collection route and slug as a directory-style route."""
+
+    base = normalize_route(collection_route)
+    if is_external_url(base):
+        raise ValueError("Cannot append a slug to an external collection route")
+    return normalize_route(f"{base.rstrip('/')}/{slug}/")
 
 
 def resolve_directory_path(path_str: str, base_dir: Path) -> Path:
@@ -47,7 +117,9 @@ def resolve_directory_path(path_str: str, base_dir: Path) -> Path:
 
 def is_external_url(path: str) -> bool:
     """Check if a path is an external URL"""
-    return path.startswith(('http://', 'https://', 'mailto:', 'tel:'))
+    return str(path).startswith(
+        ("http://", "https://", "//", "mailto:", "tel:", "data:")
+    )
 
 
 def get_theme_directory(theme_file: str) -> Path:

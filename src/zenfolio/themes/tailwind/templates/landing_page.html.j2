@@ -1,8 +1,8 @@
 {# Landing page template - the main homepage content #}
 
-{# Profile hero section is always displayed #}
+{# Identity-appropriate hero section is always displayed #}
 {% if hero %}
-    {{ render_component('profile_hero', item=hero, base_url=base_url) }}
+    {{ render_component(hero_component|default('profile_hero'), item=hero, base_url=base_url) | safe }}
 {% endif %}
 
 {# Dynamically render all content sections passed from the builder #}

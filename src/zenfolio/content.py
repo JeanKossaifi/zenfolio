@@ -35,6 +35,10 @@ class Content:
     def _safe_parse_bio_data(self):
         """Safely parse bio data with error handling"""
         try:
+            identity = (
+                getattr(self.config, "identity", None)
+                or getattr(self.config, "author", None)
+            )
             index_path = self.content_dir / "index.md"
             parser = self.parser_registry.get_parser_for_file(index_path)
             
@@ -44,8 +48,8 @@ class Content:
                     bio_data = raw_data.get('metadata', {}).copy()
                     bio_data['bio'] = raw_data.get('content', '')
                     # Use interests from config if available
-                    if hasattr(self.config.author, 'interests'):
-                        bio_data['interests'] = self.config.author.interests
+                    if identity is not None and hasattr(identity, 'interests'):
+                        bio_data['interests'] = identity.interests
                     else:
                         bio_data.setdefault('interests', [])
                     
@@ -53,12 +57,12 @@ class Content:
                     return bio.to_dict()
             
             # If no bio data found, use config data
-            if hasattr(self.config, 'author'):
+            if identity is not None:
                 return {
                     'bio': '',  # Empty bio content
-                    'interests': self.config.author.interests if hasattr(self.config.author, 'interests') else [],
-                    'title': self.config.author.title if hasattr(self.config.author, 'title') else '',
-                    'affiliation': self.config.author.affiliation if hasattr(self.config.author, 'affiliation') else '',
+                    'interests': identity.interests if hasattr(identity, 'interests') else [],
+                    'title': identity.title if hasattr(identity, 'title') else '',
+                    'affiliation': identity.affiliation if hasattr(identity, 'affiliation') else '',
                 }
             
             if self.debug:
@@ -179,6 +183,8 @@ class Content:
                 raw_page_data = raw_data
             
             raw_page_data.setdefault('title', raw_page_data.get('slug', file_path.stem).replace('-', ' ').title())
+            raw_page_data.setdefault('slug', file_path.stem)
+            raw_page_data.setdefault('content_type', raw_data.get('content_type', 'markdown'))
             
             try:
                 page = Page(**raw_page_data)

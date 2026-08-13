@@ -2,146 +2,243 @@
 Site configuration models for the academic website generator
 """
 
+from typing import Any, Dict, List, Optional, Union
+
 from zencfg import ConfigBase
-from typing import List, Optional, Union
-from pathlib import Path
-from .content_models import NewsConfig, ProjectsConfig, TalksConfig
-# Path types handled as strings in ZenCFG, resolved in ZenFolio core
+
+from .content_models import (
+    NewsConfig,
+    PeopleConfig,
+    ProjectsConfig,
+    ResearchAreasConfig,
+    TalksConfig,
+)
+
 
 class ServiceItem(ConfigBase):
-    """Academic service entry"""
-    description: str  # The service role/position
-    date: str         # Year or year range (e.g., "2024" or "2021-2023")
-    url: Optional[str] = None  # Optional link to more details
-    category: str = "standard"  # Category: "featured", "area_chair", "reviewer", "editorial", "standard"
-    subtitle: Optional[str] = None  # Optional subtitle/context for featured items
-    venue: Optional[str] = None  # Venue/organization for grouping (e.g., "NeurIPS", "ICML")
-    highlight: Optional[str] = None  # Highlight type: "outstanding", "award", etc.
+    """Academic service entry for personal sites."""
+
+    description: str = ""
+    date: str = ""
+    url: Optional[str] = None
+    category: str = "standard"
+    subtitle: Optional[str] = None
+    venue: Optional[str] = None
+    highlight: Optional[str] = None
+
 
 class HomepageButton(ConfigBase):
-    """Homepage button configuration"""
-    text: str  # Button text/label
-    url: str   # Button URL/link
-    style: str = "primary"  # Button style: "primary", "secondary", or "accent"
+    """Legacy personal-homepage action."""
 
-class AuthorConfig(ConfigBase):
-    """Author information"""
+    text: str = ""
+    url: str = ""
+    style: str = "primary"
+
+
+class HomepageAction(ConfigBase):
+    """Action rendered in a configured homepage section."""
+
+    label: str = ""
+    route: str = ""
+    style: str = "primary"
+
+
+class HomepageStep(ConfigBase):
+    """A connected process step or compact method pillar."""
+
+    title: str = ""
+    description: str = ""
+
+
+class HomepageSection(ConfigBase):
+    """Typed, ordered homepage section configuration."""
+
+    id: str = ""
+    type: str = "card_grid"
+    source: Optional[str] = None
+    eyebrow: str = ""
+    title: str = ""
+    headline: str = ""
+    body: str = ""
+    layout: str = "grid"
+    limit: Optional[int] = None
+    featured_only: bool = False
+    columns: int = 1
+    background: bool = False
+    steps: List[HomepageStep] = []
+    actions: List[HomepageAction] = []
+    view_all_label: Optional[str] = None
+    view_all_route: Optional[str] = None
+    template_name: Optional[str] = None
+    show_research_interests: bool = False
+
+
+class NavItem(ConfigBase):
+    """An ordered navigation destination."""
+
+    label: str = ""
+    route: str = ""
+    key: Optional[str] = None
+    visible: bool = True
+
+
+class IdentityConfig(ConfigBase):
+    """Fields shared by people and research groups."""
+
+    name: str = ""
+    short_name: Optional[str] = None
+    description: str = ""
+    image: Optional[str] = None
+    email: Optional[str] = None
+
+
+class AuthorConfig(IdentityConfig):
+    """Personal-site identity. Existing fields remain source compatible."""
+
     name: str = "Your Name"
     title: str = "Your Title"
     affiliation: str = "Your Institution"
-    email: str = "your.email@example.com"
-    
-    # Tagline for the hero section
+    email: Optional[str] = "your.email@example.com"
     tagline: str = "Your research focus and mission statement"
-    
-    # Research interests (displayed as tags)
     interests: List[str] = [
         "Research Area 1",
-        "Research Area 2", 
-        "Research Area 3"
+        "Research Area 2",
+        "Research Area 3",
     ]
-    
-    # Social links
     github: str = "https://github.com/yourusername"
     scholar: str = "https://scholar.google.com/citations?user=YOUR_ID"
     linkedin: str = "https://linkedin.com/in/yourusername"
     twitter: str = "https://twitter.com/yourusername"
-    
-    photo_path: str = "profile.jpg"  # Path to profile photo in static folder
-    
-    # Optional: CV file path (can be local file or URL)  
-    cv_path: Optional[str] = None  # e.g., "documents/cv.pdf" or "https://example.com/cv.pdf"
-    
-    # Homepage action buttons
+    photo_path: str = "profile.jpg"
+    cv_path: Optional[str] = None
     homepage_buttons: List[HomepageButton] = []
-    
-    # Academic service
     service: List[ServiceItem] = []
 
 
+class GroupConfig(IdentityConfig):
+    """Research-group identity, kept separate from personal author data."""
+
+    name: str = "Your Research Group"
+    short_name: Optional[str] = None
+    parent_name: str = ""
+    parent_url: Optional[str] = None
+    eyebrow: str = ""
+    tagline: str = ""
+    description: str = ""
+    logo: Optional[str] = None
+    hero_media: Optional[str] = None
+    hero_media_alt: str = ""
+    hero_media_caption: str = ""
+    hero_media_source: str = ""
+    hero_media_approved: bool = False
+    hero_diagram_approved: bool = False
+    hero_diagram_caption: str = ""
+    hero_diagram_source: str = ""
+    leader: Optional[str] = None
+    research_areas: List[str] = []
+
+
 class PublicationConfig(ConfigBase):
-    """Publication settings"""
-    bib_path: str = "publications.bib"  # Path to BibTeX file in content folder
-    highlight_author: Optional[Union[str, List[str]]] = None  # Author name(s) to highlight
+    """Publication source and list-page settings."""
+
+    bib_path: str = "publications.bib"
+    highlight_author: Optional[Union[str, List[str]]] = None
+    title: str = "Publications"
+    description: str = ""
+    meta_description: str = ""
+    route: Optional[str] = None
+    direction_filters: List[str] = []
 
 
 class MathJaxConfig(ConfigBase):
-    """MathJax configuration for LaTeX math rendering"""
-    # MathJax version and CDN
-    version: str = "3"  # "2" or "3"
-    cdn_url: Optional[str] = None  # Custom CDN URL, defaults to official CDN
-    
-    # Math delimiters
-    inline_math: List[List[str]] = [['$', '$'], ['\\(', '\\)']]
-    display_math: List[List[str]] = [['$$', '$$'], ['\\[', '\\]']]
-    
-    # Processing options
+    """MathJax configuration for LaTeX math rendering."""
+
+    version: str = "3"
+    cdn_url: Optional[str] = None
+    inline_math: List[List[str]] = [["$", "$"], ["\\(", "\\)"]]
+    display_math: List[List[str]] = [["$$", "$$"], ["\\[", "\\]"]]
     process_escapes: bool = True
     process_environments: bool = True
-    
-    # Extensions (for MathJax v2/v3)
-    extensions: List[str] = ["ams"]  # Common: ["ams", "boldsymbol", "color"]
-    
-    # Advanced options
-    skip_html_tags: List[str] = ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
-    ignore_html_class: str = 'tex2jax_ignore'
-    process_html_class: str = 'tex2jax_process'
+    extensions: List[str] = ["ams"]
+    skip_html_tags: List[str] = [
+        "script",
+        "noscript",
+        "style",
+        "textarea",
+        "pre",
+        "code",
+    ]
+    ignore_html_class: str = "tex2jax_ignore"
+    process_html_class: str = "tex2jax_process"
 
-    
+
 class SEOConfig(ConfigBase):
-    """SEO and structured data configuration - smart defaults with override options"""
-    
-    # Educational background (can't be auto-detected)
-    alumni_of: Optional[str] = None  # e.g., "Imperial College London"
-    
-    # Override auto-detected values (optional)
-    custom_og_image: Optional[str] = None  # Override default author photo for OG image
-    custom_knowledge_areas: Optional[List[str]] = None  # Override author.interests for structured data
-    custom_publisher_name: Optional[str] = None  # Override author.name for blog publisher
-    custom_publisher_logo: Optional[str] = None  # Override author.photo_path for blog publisher logo
-    
-    # Social media settings
-    twitter_card_type: str = "summary_large_image"  # "summary" or "summary_large_image"
-    
-    # Advanced control (for power users)
-    disable_structured_data: bool = False  # Disable all JSON-LD schemas
-    robots_meta: str = "index, follow"  # Custom robots directive
+    """SEO and structured-data overrides."""
+
+    alumni_of: Optional[str] = None
+    custom_og_image: Optional[str] = None
+    custom_knowledge_areas: Optional[List[str]] = None
+    custom_publisher_name: Optional[str] = None
+    custom_publisher_logo: Optional[str] = None
+    twitter_card_type: str = "summary_large_image"
+    disable_structured_data: bool = False
+    robots_meta: str = "index, follow"
 
 
 class SiteConfig(ConfigBase):
-    """Site settings"""
+    """Site-wide metadata and collection labels."""
+
     title: str = "Your Name - Your Title"
-    description: str = "Personal website of [Your Name], [brief description of your work]"
-    base_url: str = "https://yourdomain.com"  # Used as base_url for production builds
+    description: str = "Personal website of [Your Name]"
+    base_url: str = "https://yourdomain.com"
+    social_title: Optional[str] = None
+    social_description: Optional[str] = None
+    social_image: Optional[str] = None
+    require_social_image: bool = False
+    social_image_width: int = 1200
+    social_image_height: int = 630
     google_analytics: str = ""
-    markdown_extensions: List[str] = ['fenced_code', 'codehilite', 'tables', 'admonition', 'def_list', 'attr_list', 'footnotes']  # Markdown extensions for content rendering
-    
-    # SEO configuration
+    markdown_extensions: List[str] = [
+        "fenced_code",
+        "codehilite",
+        "tables",
+        "admonition",
+        "def_list",
+        "attr_list",
+        "footnotes",
+    ]
     seo: SEOConfig = SEOConfig()
-    
-    # Blog configuration
-    blog_folder: Optional[str] = "blog"  # Blog directory name (None = disable blog completely, "blog" = default)
-    
-    # Homepage display settings
-    homepage_publications_count: Optional[int] = 3  # Number of publications to show on homepage (None = show all highlighted)
-    homepage_news_count: Optional[int] = 3         # Number of news items to show on homepage (None = show all)
+    blog_folder: Optional[str] = "blog"
+    blog_label: str = "Blog"
+    blog_description: str = ""
+    blog_meta_description: str = ""
+    blog_route: Optional[str] = None
+    homepage_publications_count: Optional[int] = 3
+    homepage_news_count: Optional[int] = 3
 
 
 class Config(ConfigBase):
-    """Main configuration"""
+    """Main ZenFolio configuration."""
+
+    site_type: str = "person"
+    identity: Optional[IdentityConfig] = None
     author: AuthorConfig = AuthorConfig()
     site: SiteConfig = SiteConfig()
     publications: PublicationConfig = PublicationConfig()
-    
-    # Math rendering configuration
     mathjax: MathJaxConfig = MathJaxConfig()
-    
-    # Content structure - populated by user's content files (optional)
+
     news: Optional[NewsConfig] = NewsConfig()
     projects: Optional[ProjectsConfig] = ProjectsConfig()
     talks: Optional[TalksConfig] = TalksConfig()
-    
-    # Build settings
+    people: Optional[PeopleConfig] = None
+    research_areas: Optional[ResearchAreasConfig] = None
+
+    navigation: Optional[List[NavItem]] = None
+    homepage_sections: Optional[List[HomepageSection]] = None
+    scholar_stats: Optional[Dict[str, Any]] = None
+
     theme: str = "minimal"
-    output_path: str = "_site"   # Output directory for generated site
-    static_path: str = "static"  # Static files directory 
+    theme_path: Optional[str] = None
+    theme_parent: Optional[str] = None
+    output_path: str = "_site"
+    static_path: str = "static"

@@ -40,6 +40,7 @@ dependencies = [
 test = [
     "pytest>=6.0",
     "pytest-cov>=3.0",
+    "beautifulsoup4>=4.12",
 ]
 
 [project.scripts]
@@ -54,6 +55,18 @@ where = ["src"]
 
 [tool.setuptools.package-dir]
 "" = "src"
+
+[tool.setuptools.package-data]
+zenfolio = [
+    "themes/minimal/templates/*.html.j2",
+    "themes/minimal/css/*.css",
+    "themes/minimal/js/*.js",
+    "themes/tailwind/templates/*.html.j2",
+    "themes/tailwind/css/*.css",
+    "themes/tailwind/js/*.js",
+    "themes/tailwind/package.json",
+    "themes/tailwind/tailwind.config.js",
+]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

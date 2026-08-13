@@ -107,32 +107,18 @@ class ThemeBuilder:
             return False
 
     def build_css(self) -> bool:
-        """Build CSS assets.
-        
-        Returns:
-            bool: True if build succeeded
-        """
+        """Run the theme's single, canonical asset build."""
         if not self._ensure_dependencies():
             return False
             
         if self.debug:
             print("🎨 Building CSS...")
             
-        return self._run_npm_command("run build-css")
+        return self._run_npm_command("run build")
 
     def build_js(self) -> bool:
-        """Build JavaScript assets.
-        
-        Returns:
-            bool: True if build succeeded
-        """
-        if not self._ensure_dependencies():
-            return False
-            
-        if self.debug:
-            print("📜 Building JavaScript...")
-            
-        return self._run_npm_command("run build-js")
+        """JavaScript is included in the canonical build command."""
+        return True
 
     def build(self) -> bool:
         """Build all theme assets.
@@ -140,7 +126,7 @@ class ThemeBuilder:
         Returns:
             bool: True if all builds succeeded
         """
-        return self.build_css() and self.build_js()
+        return self.build_css()
 
     def watch(self) -> bool:
         """Start watching theme assets for changes.

@@ -5,7 +5,7 @@
 <div class="px-4 md:px-6 lg:px-8 pt-8">
     <div class="hero-section relative mb-16 reveal max-w-6xl mx-auto">
         <div class="relative h-80 md:h-96 lg:h-[28rem] rounded-xl overflow-hidden">
-            <img src="../static/{{ item.image }}" alt="{{ item.title }}" class="hero-image w-full h-full object-cover object-center">
+            <img src="{{ asset(item.image) }}" alt="{{ item.image_alt or item.title }}" class="hero-image w-full h-full object-cover object-center">
             <div class="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-black/10"></div>
             <div class="absolute bottom-0 left-0 right-0 p-6 lg:p-8">
                 <div class="max-w-4xl mx-auto text-center">

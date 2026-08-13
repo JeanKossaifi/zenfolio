@@ -5,14 +5,16 @@ Single import point for all configuration needs
 
 # Content models
 from .content_models import (
-    NewsItem, ProjectItem, TalkItem, BlogPost, Page, Bio,
-    NewsConfig, ProjectsConfig, TalksConfig
+    Bio, BlogPost, Link, NewsConfig, NewsItem, Page, PeopleConfig,
+    PersonItem, ProjectItem, ProjectsConfig, ResearchAreaItem,
+    ResearchAreasConfig, TalkItem, TalksConfig, TeamCategory, TeamMember,
 )
 
 # Site configuration models  
 from .site_config import (
-    Config, AuthorConfig, PublicationConfig, SiteConfig, ServiceItem, 
-    HomepageButton, MathJaxConfig, SEOConfig
+    AuthorConfig, Config, GroupConfig, HomepageAction, HomepageButton,
+    HomepageSection, HomepageStep, IdentityConfig, MathJaxConfig, NavItem,
+    PublicationConfig, SEOConfig, ServiceItem, SiteConfig,
 )
 
 # Convenience imports for common use cases
@@ -28,12 +30,16 @@ def create_basic_config(name: str, email: str, affiliation: str = "Your Institut
 
 __all__ = [
     # Content models
-    'NewsItem', 'ProjectItem', 'TalkItem', 'BlogPost', 'Page', 'Bio',
-    'NewsConfig', 'ProjectsConfig', 'TalksConfig',
+    'NewsItem', 'ProjectItem', 'TalkItem', 'BlogPost', 'Page', 'Bio', 'Link',
+    'PersonItem', 'TeamMember', 'TeamCategory', 'ResearchAreaItem',
+    'NewsConfig', 'ProjectsConfig', 'TalksConfig', 'PeopleConfig',
+    'ResearchAreasConfig',
     
     # Site models
-    'Config', 'AuthorConfig', 'PublicationConfig', 'SiteConfig', 'ServiceItem',
-    'HomepageButton', 'MathJaxConfig', 'SEOConfig',
+    'Config', 'IdentityConfig', 'AuthorConfig', 'GroupConfig',
+    'PublicationConfig', 'SiteConfig', 'ServiceItem', 'HomepageButton',
+    'HomepageAction', 'HomepageStep', 'HomepageSection', 'NavItem',
+    'MathJaxConfig', 'SEOConfig',
     
     # Helper functions
     'create_basic_config'

@@ -53,9 +53,14 @@ class RobustHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
             pass
 
 
-def serve_site(content_dir: Path, port: int = 8000, open_browser: bool = True):
+def serve_site(
+    content_dir: Path,
+    port: int = 8000,
+    open_browser: bool = True,
+    output_dir: Path = None,
+):
     """Serve the generated website locally"""
-    output_dir = get_output_dir(content_dir)
+    output_dir = get_output_dir(content_dir, output_dir)
     if not output_dir.exists():
         print(f"❌ Output directory {output_dir} does not exist. Run 'zenfolio build' first.")
         return

@@ -148,13 +148,28 @@ class RouteRegistry:
                     "external": False,
                 }
             ]
+            news_config = self.config.news
+            merge_talks = bool(
+                news_config and getattr(news_config, "merge_talks", False)
+            )
             optional_collections = [
                 ("projects", "Projects", self.config.projects),
-                ("talks", "Talks", self.config.talks),
-                ("news", "News", self.config.news),
-                ("research", "Research", self.config.research_areas),
-                ("team", "Team", self.config.people),
             ]
+            if not merge_talks:
+                optional_collections.append(
+                    ("talks", "Talks", self.config.talks)
+                )
+            optional_collections.extend(
+                [
+                    (
+                        "news",
+                        getattr(news_config, "title", "News"),
+                        news_config,
+                    ),
+                    ("research", "Research", self.config.research_areas),
+                    ("team", "Team", self.config.people),
+                ]
+            )
             for key, label, collection in optional_collections:
                 if collection and getattr(collection, "items", None):
                     navigation.append(

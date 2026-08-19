@@ -157,6 +157,38 @@ def validate_site(content_dir: Path):
                 errors.append(f"Duplicate navigation route: {item.route}")
             seen_routes.add(item.route)
 
+        featured_orders = {}
+        allowed_featured_sizes = {"standard", "wide", "full"}
+        allowed_image_styles = {"logo", "media"}
+        for project in getattr(getattr(config, "projects", None), "items", []) or []:
+            title = getattr(project, "title", "Untitled project")
+            order = getattr(project, "featured_order", 0)
+            size = getattr(project, "featured_size", "wide")
+            image_style = getattr(project, "image_style", "logo")
+
+            if isinstance(order, bool) or not isinstance(order, int) or order < 0:
+                errors.append(
+                    f"{title} featured_order must be a non-negative integer"
+                )
+            elif order:
+                if order in featured_orders:
+                    errors.append(
+                        "Duplicate project featured_order "
+                        f"{order}: {featured_orders[order]} and {title}"
+                    )
+                featured_orders[order] = title
+
+            if size not in allowed_featured_sizes:
+                errors.append(
+                    f"{title} featured_size must be one of "
+                    f"{sorted(allowed_featured_sizes)}"
+                )
+            if image_style not in allowed_image_styles:
+                errors.append(
+                    f"{title} image_style must be one of "
+                    f"{sorted(allowed_image_styles)}"
+                )
+
         if site_type == "group":
             media_items = []
             for collection_name in ("research_areas", "projects"):

@@ -26,6 +26,19 @@ def kill_existing_servers():
         pass
 
 
+class ThreadedHTTPServer(socketserver.ThreadingTCPServer):
+    """Concurrent dev server.
+
+    The previous ``socketserver.TCPServer`` handled one request at a time, so a
+    single idle keep-alive socket blocked every other request. Browsers open
+    several parallel connections per host, which was enough to wedge the server
+    until those connections timed out.
+    """
+
+    daemon_threads = True
+    allow_reuse_address = True
+
+
 class RobustHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
     """HTTP request handler that gracefully handles broken pipe errors"""
 
@@ -71,7 +84,7 @@ def serve_site(
     handler = functools.partial(RobustHTTPRequestHandler, directory=str(serve_dir))
 
     try:
-        with socketserver.TCPServer(("", port), handler) as httpd:
+        with ThreadedHTTPServer(("", port), handler) as httpd:
             url = f"http://localhost:{port}"
             print(f"🌐 Serving website at {url}")
             print(f"📁 Serving files from {serve_dir}")

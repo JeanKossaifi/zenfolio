@@ -25,6 +25,7 @@ class LocalTheme(BaseTheme):
         shared_template_dir: Optional[Path] = None,
     ):
         self.theme_dir = Path(theme_dir).resolve()
+        self._asset_version_cache = {}
         self.parent_theme_dir = (
             Path(parent_theme_dir).resolve() if parent_theme_dir else None
         )
@@ -84,6 +85,29 @@ class LocalTheme(BaseTheme):
                 static_dir / "theme",
                 dirs_exist_ok=True,
             )
+
+    def asset_version(self, path: str) -> str:
+        """Return a deterministic short hash for a copied theme asset."""
+        clean_path = str(path or "").lstrip("/")
+        if clean_path in self._asset_version_cache:
+            return self._asset_version_cache[clean_path]
+
+        if clean_path == "theme.css":
+            source = self.theme_dir / "css" / "theme.css"
+        elif clean_path == "theme.js":
+            source = self.theme_dir / "js" / "theme.js"
+        elif clean_path.startswith("theme/"):
+            source = self.theme_dir / "assets" / clean_path[len("theme/"):]
+        else:
+            source = self.theme_dir / clean_path
+
+        version = (
+            hashlib.sha256(source.read_bytes()).hexdigest()[:12]
+            if source.is_file()
+            else "missing"
+        )
+        self._asset_version_cache[clean_path] = version
+        return version
 
     def write_css_file(self, output_dir: Path):
         if self.parent_theme_dir:

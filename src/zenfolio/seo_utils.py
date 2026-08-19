@@ -55,8 +55,16 @@ class SEOGenerator:
             "@type": self._identity_type(),
             "name": self.identity.name,
         }
-        if self.base_url:
+        if self.has_absolute_base_url:
             reference["url"] = self.base_url + "/"
+            reference["@id"] = (
+                self.base_url
+                + (
+                    "/#organization"
+                    if self._identity_type() == "Organization"
+                    else "/#person"
+                )
+            )
         return reference
 
     def generate_identity_schema(self, people: Optional[List[Any]] = None) -> str:
@@ -66,33 +74,32 @@ class SEOGenerator:
             return ""
 
         identity = self.identity
-        schema: Dict[str, Any] = {
-            "@context": "https://schema.org",
-            "@type": self._identity_type(),
-            "name": identity.name,
-            "description": self.config.site.description,
-        }
-        if self.has_absolute_base_url:
-            schema["url"] = self.base_url + "/"
+        entity: Dict[str, Any] = self._identity_reference()
+        entity["description"] = self.config.site.description
 
         if isinstance(identity, AuthorConfig) and self.site_type != "group":
             if identity.title:
-                schema["jobTitle"] = identity.title
+                entity["jobTitle"] = identity.title
             if identity.email:
-                schema["email"] = identity.email
+                entity["email"] = identity.email
             image = getattr(identity, "image", None) or identity.photo_path
             if image:
-                schema["image"] = self._image_url(image)
+                entity["image"] = self._image_url(image)
             if identity.affiliation:
                 organization = {
                     "@type": "Organization",
                     "name": identity.affiliation,
                 }
-                schema["affiliation"] = organization
-                schema["worksFor"] = organization
+                entity["affiliation"] = organization
+                entity["worksFor"] = organization
+            orcid = getattr(identity, "orcid", None)
+            if orcid and not str(orcid).startswith(("http://", "https://")):
+                orcid = f"https://orcid.org/{str(orcid).strip()}"
             same_as = [
                 value
                 for value in (
+                    getattr(identity, "profile_url", None),
+                    orcid,
                     identity.github,
                     identity.scholar,
                     identity.linkedin,
@@ -101,32 +108,42 @@ class SEOGenerator:
                 if value
             ]
             if same_as:
-                schema["sameAs"] = same_as
+                entity["sameAs"] = same_as
             knowledge = (
                 self.config.site.seo.custom_knowledge_areas
                 or identity.interests
             )
             if knowledge:
-                schema["knowsAbout"] = knowledge
+                entity["knowsAbout"] = knowledge
             if self.config.site.seo.alumni_of:
-                schema["alumniOf"] = {
+                entity["alumniOf"] = {
                     "@type": "EducationalOrganization",
                     "name": self.config.site.seo.alumni_of,
                 }
+            profile: Dict[str, Any] = {
+                "@context": "https://schema.org",
+                "@type": "ProfilePage",
+                "name": self.config.site.title,
+                "mainEntity": entity,
+            }
+            if self.has_absolute_base_url:
+                profile["@id"] = self.base_url + "/#profile"
+                profile["url"] = self.base_url + "/"
+            return json.dumps(profile, indent=2)
         else:
             logo = getattr(identity, "logo", None) or getattr(identity, "image", None)
             if logo:
-                schema["logo"] = self._image_url(logo)
+                entity["logo"] = self._image_url(logo)
             parent_name = getattr(identity, "parent_name", "")
             if parent_name:
                 parent = {"@type": "Organization", "name": parent_name}
                 parent_url = getattr(identity, "parent_url", None)
                 if parent_url:
                     parent["url"] = parent_url
-                schema["parentOrganization"] = parent
+                entity["parentOrganization"] = parent
             research_areas = getattr(identity, "research_areas", [])
             if research_areas:
-                schema["knowsAbout"] = research_areas
+                entity["knowsAbout"] = research_areas
             members = []
             for person in people or []:
                 profile = person.to_dict() if hasattr(person, "to_dict") else person
@@ -137,9 +154,10 @@ class SEOGenerator:
                     member["jobTitle"] = profile["role"]
                 members.append(member)
             if members:
-                schema["member"] = members
+                entity["member"] = members
 
-        return json.dumps(schema, indent=2)
+        entity["@context"] = "https://schema.org"
+        return json.dumps(entity, indent=2)
 
     def generate_person_schema(self) -> str:
         """Compatibility wrapper for older callers."""
@@ -188,26 +206,24 @@ class SEOGenerator:
                 break
         return json.dumps(schema, indent=2)
 
-    def generate_software_application_schema(
-        self, project: Dict[str, Any]
-    ) -> str:
+    def generate_project_schema(self, project: Dict[str, Any]) -> str:
         if not self.structured_data_enabled:
             return ""
 
+        schema_type = project.get("schema_type") or "SoftwareSourceCode"
         schema: Dict[str, Any] = {
             "@context": "https://schema.org",
-            "@type": "SoftwareApplication",
+            "@type": schema_type,
             "name": project.get("title", ""),
             "description": self._plain_text(project.get("description", "")),
-            "applicationCategory": "DeveloperApplication",
-            "author": self._identity_reference(),
+            "creator": self._identity_reference(),
         }
         repository = (
             project.get("github")
             or project.get("code")
             or project.get("repo_url")
         )
-        if repository:
+        if repository and schema_type == "SoftwareSourceCode":
             schema["codeRepository"] = repository
         primary_url = (
             project.get("website")
@@ -217,9 +233,25 @@ class SEOGenerator:
         )
         if primary_url:
             schema["url"] = primary_url
+        elif repository:
+            schema["url"] = repository
+        if schema_type == "SoftwareSourceCode":
+            if project.get("programming_language"):
+                schema["programmingLanguage"] = project["programming_language"]
+            if project.get("license"):
+                schema["license"] = project["license"]
+        elif schema_type == "Dataset":
+            if project.get("paper"):
+                schema["citation"] = project["paper"]
         if project.get("image"):
             schema["image"] = self._image_url(project["image"])
         return json.dumps(schema, indent=2)
+
+    def generate_software_application_schema(
+        self, project: Dict[str, Any]
+    ) -> str:
+        """Backward-compatible wrapper for project structured data."""
+        return self.generate_project_schema(project)
 
     def generate_blog_posting_schema(self, blog_post: Dict[str, Any]) -> str:
         if not self.structured_data_enabled:
@@ -239,6 +271,17 @@ class SEOGenerator:
                 if hasattr(date_value, "strftime")
                 else str(date_value)
             )
+        modified = (
+            blog_post.get("updated")
+            or blog_post.get("modified")
+            or blog_post.get("date_modified")
+        )
+        if modified:
+            schema["dateModified"] = (
+                modified.strftime("%Y-%m-%d")
+                if hasattr(modified, "strftime")
+                else str(modified)
+            )
         excerpt = blog_post.get("description") or blog_post.get("excerpt")
         if excerpt:
             schema["description"] = self._plain_text(excerpt)
@@ -257,21 +300,61 @@ class SEOGenerator:
             or getattr(self.identity, "image", None)
             or getattr(self.identity, "photo_path", None)
         )
-        schema["publisher"] = {
-            "@type": "Organization",
-            "name": publisher_name,
-        }
+        schema["publisher"] = self._identity_reference()
+        schema["publisher"]["name"] = publisher_name
         if publisher_logo:
             logo_url = self._image_url(publisher_logo)
-            schema["publisher"]["logo"] = {
+            image_object = {
                 "@type": "ImageObject",
                 "url": logo_url,
             }
+            if schema["publisher"]["@type"] == "Organization":
+                schema["publisher"]["logo"] = image_object
+            else:
+                schema["publisher"]["image"] = image_object
         image = blog_post.get("social_image") or blog_post.get("image")
         if image:
             schema["image"] = self._image_url(image)
         elif publisher_logo:
             schema["image"] = self._image_url(publisher_logo)
+        return json.dumps(schema, indent=2)
+
+    def generate_collection_schema(
+        self,
+        title: str,
+        route: str,
+        item_schemas: List[str],
+    ) -> str:
+        """Describe an archive as a canonical collection and ordered item list."""
+        if not self.structured_data_enabled or not item_schemas:
+            return ""
+
+        items = []
+        for position, raw_schema in enumerate(item_schemas, start=1):
+            item = json.loads(raw_schema)
+            item.pop("@context", None)
+            items.append(
+                {
+                    "@type": "ListItem",
+                    "position": position,
+                    "item": item,
+                }
+            )
+
+        schema: Dict[str, Any] = {
+            "@context": "https://schema.org",
+            "@type": "CollectionPage",
+            "name": title,
+            "mainEntity": {
+                "@type": "ItemList",
+                "numberOfItems": len(items),
+                "itemListElement": items,
+            },
+        }
+        if self.has_absolute_base_url:
+            page_url = self._build_url(route.lstrip("/"))
+            schema["url"] = page_url
+            schema["@id"] = page_url + "#collection"
         return json.dumps(schema, indent=2)
 
     def generate_website_schema(self) -> str:
@@ -318,7 +401,7 @@ class SEOGenerator:
                 or f"Research updates from {identity_name}."
             )
         if page_type == "blog_post" and item:
-            return f"{item.get('title', 'Research update')} — {identity_name}."
+            return f"{item.get('title', 'Research update')}: {identity_name}."
         if page_type == "team":
             return f"Meet the {identity_name} research team."
         if page_type == "research":
@@ -338,15 +421,8 @@ class SEOGenerator:
             for page in pages:
                 route = page["route"]
                 url = self._build_url(route.lstrip("/"))
-                priority = page.get("priority", "0.5")
-                changefreq = page.get("changefreq", "monthly")
                 lastmod = page.get("lastmod", "")
-                entry = (
-                    "  <url>\n"
-                    f"    <loc>{escape(url)}</loc>\n"
-                    f"    <changefreq>{escape(changefreq)}</changefreq>\n"
-                    f"    <priority>{escape(priority)}</priority>"
-                )
+                entry = "  <url>\n" f"    <loc>{escape(url)}</loc>"
                 if lastmod:
                     entry += f"\n    <lastmod>{escape(lastmod)}</lastmod>"
                 entry += "\n  </url>"

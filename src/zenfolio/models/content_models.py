@@ -40,14 +40,23 @@ class ProjectItem(ConfigBase):
     """Project entry with optional links as direct attributes"""
     title: str
     description: str
+    # Schema.org type for machine-readable project metadata.
+    schema_type: str = "SoftwareSourceCode"
     # Optional image for visual card display
     image: Optional[str] = None  # Path to image in static folder (e.g., "projects/screenshot.png")
     # Optional category for tagging (e.g., "Open Source", "Industry Impact")
     category: Optional[str] = None
     # Optional collaborators
     collaborators: List[str] = []
-    # Highlight flag for homepage display
+    # Backward-compatible legacy feature flag.
     highlight: bool = False
+    # Ordered feature placement shared by the homepage and Projects page.
+    # Zero means regular project; positive values determine feature order.
+    featured_order: int = 0
+    # Constrained Projects-page span for featured projects.
+    featured_size: str = "wide"  # standard, wide, or full
+    # Visual treatment for the supplied image.
+    image_style: str = "logo"  # logo or media
     # Optional links as direct attributes - can be local files or URLs
     github: Optional[str] = None       # e.g., "https://github.com/user/repo"
     documentation: Optional[str] = None # e.g., "docs/manual.pdf" or "https://docs.example.com"
@@ -79,6 +88,8 @@ class TalkItem(ConfigBase):
     materials: Optional[str] = None # e.g., "talks/handouts.pdf"
     demo: Optional[str] = None      # e.g., "https://demo-site.com"
     link: Optional[str] = None      # e.g., "https://conference.com/talk" - event/talk page link
+    website: Optional[str] = None   # Backward-compatible event website alias
+    archive_url: Optional[str] = None  # Preserved copy of a retired event page
     
     template_name: str = "talk_item"
 
@@ -136,6 +147,11 @@ class ResearchAreaItem(ConfigBase):
 class NewsConfig(ConfigBase):
     """News content configuration"""
     items: List[NewsItem] = []
+    title: str = "News"
+    # One-line tagline shown beside the page title, like the other sections.
+    description: str = ""
+    # Merge talks into this archive and present one Updates navigation entry.
+    merge_talks: bool = False
 
 
 class ProjectsConfig(ConfigBase):

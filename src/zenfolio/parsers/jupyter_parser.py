@@ -12,6 +12,37 @@ from nbconvert import HTMLExporter
 from .base_parser import ContentParser
 
 
+_MATH_CODE_TOKEN = "\x00zfcode{}\x00"
+
+
+def _normalise_dollar_math(text: str) -> str:
+    """Rewrite ``$...$`` math into the ``\\(...\\)`` form the site configures.
+
+    Notebook authors write ``$x$``, but MathJax here is configured for
+    ``\\(...\\)`` only, so the raw LaTeX rendered as literal text. This runs on the
+    exported HTML rather than the cell source: markdown treats ``\\(`` as an
+    escaped paren and strips the backslash. ``<pre>`` and ``<code>`` are stashed
+    first so shell prompts like ``$ pip install`` are left alone.
+    """
+    import re
+
+    stash: list = []
+
+    def _keep(match):
+        stash.append(match.group(0))
+        return _MATH_CODE_TOKEN.format(len(stash) - 1)
+
+    text = re.sub(r"<pre\b.*?</pre>", _keep, text, flags=re.S | re.I)
+    text = re.sub(r"<code\b.*?</code>", _keep, text, flags=re.S | re.I)
+
+    text = re.sub(r"\$\$(.+?)\$\$", lambda m: r"\[" + m.group(1) + r"\]", text, flags=re.S)
+    text = re.sub(r"\$(?!\$)([^$\n]+?)\$", lambda m: r"\(" + m.group(1) + r"\)", text)
+
+    for index, original in enumerate(stash):
+        text = text.replace(_MATH_CODE_TOKEN.format(index), original)
+    return text
+
+
 class JupyterParser(ContentParser):
     """
     Parser for Jupyter notebook files (.ipynb).
@@ -101,6 +132,7 @@ class JupyterParser(ContentParser):
             (body, resources) = html_exporter.from_notebook_node(notebook_node)
             
             # Clean up the HTML content
+            body = _normalise_dollar_math(body)
             body = self._clean_notebook_html(body)
             
             # Return the HTML content

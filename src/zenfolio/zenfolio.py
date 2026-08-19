@@ -260,6 +260,7 @@ class ZenFolio:
         meta_description: str = "",
         filter_directions: Optional[List[str]] = None,
         grouped_items: Optional[List[Dict[str, Any]]] = None,
+        related_collections: Optional[Dict[str, Any]] = None,
     ):
         self.collection_builder.build_list_page(
             title,
@@ -278,6 +279,7 @@ class ZenFolio:
             meta_description=meta_description,
             filter_directions=filter_directions,
             grouped_items=grouped_items,
+            related_collections=related_collections,
         )
 
     def _build_team_page(

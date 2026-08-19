@@ -48,6 +48,9 @@ class HomepageStep(ConfigBase):
 
     title: str = ""
     description: str = ""
+    # Set to "scholar" to compose the description from scholar_stats instead of
+    # hardcoding figures that then drift out of date.
+    source: str = ""
 
 
 class HomepageSection(ConfigBase):
@@ -109,7 +112,11 @@ class AuthorConfig(IdentityConfig):
     scholar: str = "https://scholar.google.com/citations?user=YOUR_ID"
     linkedin: str = "https://linkedin.com/in/yourusername"
     twitter: str = "https://twitter.com/yourusername"
+    profile_url: Optional[str] = None
+    orcid: Optional[str] = None
     photo_path: str = "profile.jpg"
+    photo_width: Optional[int] = None
+    photo_height: Optional[int] = None
     cv_path: Optional[str] = None
     homepage_buttons: List[HomepageButton] = []
     service: List[ServiceItem] = []
@@ -194,6 +201,7 @@ class SiteConfig(ConfigBase):
     social_title: Optional[str] = None
     social_description: Optional[str] = None
     social_image: Optional[str] = None
+    social_image_alt: str = ""
     require_social_image: bool = False
     social_image_width: int = 1200
     social_image_height: int = 630

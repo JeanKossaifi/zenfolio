@@ -177,9 +177,23 @@ class HomepageComposer:
         elif source == "news":
             items = getattr(host.config.news, "items", []) or []
             item_type = "news_item"
+        elif source == "talks":
+            items = getattr(host.config.talks, "items", []) or []
+            item_type = "talk_item"
         elif source == "about":
+            about_content = host.content.bio.get("bio", "")
+            about_limit = section.get("limit")
+            if about_limit is not None:
+                paragraphs = [
+                    paragraph.strip()
+                    for paragraph in about_content.split("\n\n")
+                    if paragraph.strip()
+                ]
+                about_content = "\n\n".join(
+                    paragraphs[: max(0, int(about_limit))]
+                )
             section["content"] = host._process_content_field(
-                host.content.bio.get("bio", ""), "markdown", "bio"
+                about_content, "markdown", "bio"
             )
         elif source == "service" and isinstance(
             host.identity, AuthorConfig
@@ -190,15 +204,52 @@ class HomepageComposer:
 
         if item_type:
             if section.get("featured_only"):
-                items = [
-                    item
-                    for item in items
-                    if (
-                        item.get("highlight", False)
-                        if isinstance(item, dict)
-                        else getattr(item, "highlight", False)
-                    )
-                ]
+                if source == "projects":
+                    indexed_projects = list(enumerate(items))
+
+                    def project_feature_order(entry):
+                        source_index, project = entry
+                        order = (
+                            project.get("featured_order", 0)
+                            if isinstance(project, dict)
+                            else getattr(project, "featured_order", 0)
+                        )
+                        return (
+                            order if order > 0 else 1_000_000 + source_index
+                        )
+
+                    indexed_projects = [
+                        entry
+                        for entry in indexed_projects
+                        if (
+                            (
+                                entry[1].get("featured_order", 0) > 0
+                                or entry[1].get("highlight", False)
+                            )
+                            if isinstance(entry[1], dict)
+                            else (
+                                getattr(entry[1], "featured_order", 0) > 0
+                                or getattr(entry[1], "highlight", False)
+                            )
+                        )
+                    ]
+                    items = [
+                        project
+                        for _, project in sorted(
+                            indexed_projects,
+                            key=project_feature_order,
+                        )
+                    ]
+                else:
+                    items = [
+                        item
+                        for item in items
+                        if (
+                            item.get("highlight", False)
+                            if isinstance(item, dict)
+                            else getattr(item, "highlight", False)
+                        )
+                    ]
             limit = section.get("limit")
             if limit is not None:
                 items = list(items)[: int(limit)]
@@ -231,6 +282,10 @@ class HomepageComposer:
             hero_data.get("image") or hero_data.get("photo_path")
         )
         hero_data["publications_route"] = host._route_for("publications")
+        # So proof points can quote live figures rather than copies of them.
+        hero_data["scholar_stats"] = dict(
+            getattr(host.config, "scholar_stats", None) or {}
+        )
 
         rendered_sections = []
         for configured_section in host.config.homepage_sections:
@@ -394,10 +449,28 @@ class HomepageComposer:
                 ]
             )
 
+        indexed_projects = list(
+            enumerate(
+                getattr(host.config.projects, "items", []) or []
+            )
+        )
         projects = [
-            item
-            for item in (getattr(host.config.projects, "items", []) or [])
-            if getattr(item, "highlight", False)
+            project
+            for _, project in sorted(
+                [
+                    entry
+                    for entry in indexed_projects
+                    if (
+                        getattr(entry[1], "featured_order", 0) > 0
+                        or getattr(entry[1], "highlight", False)
+                    )
+                ],
+                key=lambda entry: (
+                    getattr(entry[1], "featured_order", 0)
+                    if getattr(entry[1], "featured_order", 0) > 0
+                    else 1_000_000 + entry[0]
+                ),
+            )
         ]
         news = getattr(host.config.news, "items", []) or []
         news_count = host.config.site.homepage_news_count

@@ -81,6 +81,18 @@ def test_local_theme_requires_compiled_css(tmp_path):
         theme.write_css_file(tmp_path / "output")
 
 
+def test_local_theme_versions_copied_assets(tmp_path):
+    theme_root = tmp_path / "theme"
+    _write_theme(theme_root)
+    theme = LocalTheme(theme_root)
+
+    version = theme.asset_version("theme.css")
+
+    assert len(version) == 12
+    assert version == theme.asset_version("theme.css")
+    assert theme.asset_version("missing.css") == "missing"
+
+
 def test_local_theme_rejects_stale_compiled_css(tmp_path):
     theme_root = tmp_path / "theme"
     _write_theme(theme_root)

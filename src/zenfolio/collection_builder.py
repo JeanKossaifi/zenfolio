@@ -1,8 +1,11 @@
 """Aggregate, blog, team, and standalone page builders."""
 
+from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Protocol
+import re
+from typing import Any, Dict, List, Optional, Protocol, Tuple
 
+from .serialization import as_dict
 from .utils import join_route, normalize_route
 
 
@@ -47,6 +50,22 @@ class CollectionBuilder:
     def __init__(self, host: CollectionHost):
         self.host = host
 
+    @staticmethod
+    def _dated_item_sort_key(item: Dict[str, Any]) -> datetime:
+        value = str(item.get("date", "")).strip()
+        for date_format in (
+            "%Y-%m-%d",
+            "%d %B %Y",
+            "%B %Y",
+            "%b %Y",
+            "%Y",
+        ):
+            try:
+                return datetime.strptime(value, date_format)
+            except ValueError:
+                continue
+        return datetime.min
+
     def build_list_page(
         self,
         title: str,
@@ -65,6 +84,9 @@ class CollectionBuilder:
         meta_description: str = "",
         filter_directions: Optional[List[str]] = None,
         grouped_items: Optional[List[Dict[str, Any]]] = None,
+        related_collections: Optional[
+            Dict[str, Tuple[List[Any], str]]
+        ] = None,
     ) -> None:
         host = self.host
         route = normalize_route(filename)
@@ -72,8 +94,22 @@ class CollectionBuilder:
         processed_items = host._process_items(
             items, item_type, seo_generator
         )
+        processed_related: Dict[str, List[Dict[str, Any]]] = {}
+        for context_name, (
+            related_items,
+            related_type,
+        ) in (related_collections or {}).items():
+            related_payload = []
+            for related_item in related_items:
+                item_data = as_dict(related_item)
+                item_data["template_name"] = related_type
+                related_payload.append(item_data)
+            processed_related[context_name] = host._process_items(
+                related_payload, related_type, seo_generator
+            )
         page_data: Dict[str, Any] = {
             "title": title,
+            "page_type": page_type,
             "identity": host.identity,
             "intro": (
                 host._process_content_field(intro, "markdown", "intro")
@@ -105,6 +141,13 @@ class CollectionBuilder:
                 }
             ),
         }
+        page_data.update(processed_related)
+        if page_type == "news" and processed_related.get("talk_items"):
+            page_data["update_items"] = sorted(
+                processed_items + processed_related["talk_items"],
+                key=self._dated_item_sort_key,
+                reverse=True,
+            )
 
         if group_by and grouped_items is None:
             grouped: Dict[Any, List[Dict[str, Any]]] = {}
@@ -126,12 +169,19 @@ class CollectionBuilder:
             )
 
         content = host.theme.render_component("page_layout", **page_data)
+        all_processed_items = list(processed_items)
+        for related_items in processed_related.values():
+            all_processed_items.extend(related_items)
         schemas = [
             item["rendered_schema"]
-            for item in processed_items
+            for item in all_processed_items
             if item.get("rendered_schema")
         ]
-        combined_schema = f"[{','.join(schemas)}]" if schemas else None
+        combined_schema = (
+            seo_generator.generate_collection_schema(title, route, schemas)
+            if seo_generator and schemas
+            else None
+        )
         host._render_and_write_page(
             route,
             content,
@@ -193,7 +243,7 @@ class CollectionBuilder:
         processed_posts = host._process_items(
             blog_posts, "blog_post_item", seo_generator
         )
-        for post in processed_posts:
+        for index, post in enumerate(processed_posts):
             route = post.get("route") or join_route(
                 host._route_for("blog"), post["slug"]
             )
@@ -205,8 +255,26 @@ class CollectionBuilder:
             post["content"] = host._process_static_placeholders(
                 post["content"], nested_base_url
             )
+            for heading_level in range(5, 0, -1):
+                post["content"] = re.sub(
+                    rf"<(/?)h{heading_level}(\b[^>]*)>",
+                    rf"<\1h{heading_level + 1}\2>",
+                    post["content"],
+                    flags=re.IGNORECASE,
+                )
+            newer_post = (
+                processed_posts[index - 1] if index > 0 else None
+            )
+            older_post = (
+                processed_posts[index + 1]
+                if index + 1 < len(processed_posts)
+                else None
+            )
             content_html = host.theme.render_component(
-                "blog_post_page", item=post
+                "blog_post_page",
+                item=post,
+                newer_post=newer_post,
+                older_post=older_post,
             )
             host._render_and_write_page(
                 route,

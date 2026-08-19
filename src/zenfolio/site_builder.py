@@ -117,6 +117,10 @@ class SiteBuilder:
         if (
             host.config.talks
             and host.config.talks.items
+            and not (
+                host.config.news
+                and host.config.news.merge_talks
+            )
             and host._is_requested_page("talks")
         ):
             host._build_list_page(
@@ -137,7 +141,7 @@ class SiteBuilder:
             and host._is_requested_page("news")
         ):
             host._build_list_page(
-                "News",
+                host.config.news.title,
                 host._route_for("news"),
                 host.config.news.items,
                 "news_item",
@@ -146,6 +150,21 @@ class SiteBuilder:
                 layout="timeline",
                 seo_generator=seo_generator,
                 page_type="news",
+                intro=host.config.news.description,
+                related_collections=(
+                    {
+                        "talk_items": (
+                            host.config.talks.items,
+                            "updates_talk_item",
+                        )
+                    }
+                    if (
+                        host.config.news.merge_talks
+                        and host.config.talks
+                        and host.config.talks.items
+                    )
+                    else None
+                ),
             )
 
         if (

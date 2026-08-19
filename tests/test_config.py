@@ -1,4 +1,13 @@
-from zenfolio.models import AuthorConfig
+from types import SimpleNamespace
+
+from zenfolio.models import (
+    AuthorConfig,
+    NewsConfig,
+    NewsItem,
+    TalkItem,
+    TalksConfig,
+)
+from zenfolio.routing import RouteRegistry
 from zenfolio.themes import TailwindTheme
 from zenfolio.zenfolio import ZenFolio
 
@@ -41,3 +50,36 @@ def test_builtin_theme_override_ignores_configured_local_path(tmp_path):
     builder = ZenFolio(tmp_path, theme_override="tailwind")
 
     assert isinstance(builder.theme, TailwindTheme)
+
+
+def test_merged_updates_replaces_talks_and_news_navigation():
+    config = SimpleNamespace(
+        navigation=None,
+        publications=SimpleNamespace(route=None),
+        projects=None,
+        talks=TalksConfig(items=[TalkItem(title="Keynote")]),
+        news=NewsConfig(
+            title="Updates",
+            merge_talks=True,
+            items=[NewsItem(date="2026", content="Announcement")],
+        ),
+        research_areas=None,
+        people=None,
+        site=SimpleNamespace(
+            blog_folder="",
+            blog_label="Blog",
+            blog_route=None,
+        ),
+    )
+    content = SimpleNamespace(blog_posts=[])
+
+    navigation, _ = RouteRegistry(config, content).configure_navigation()
+
+    assert [item["label"] for item in navigation] == [
+        "Publications",
+        "Updates",
+    ]
+    assert [item["key"] for item in navigation] == [
+        "publications",
+        "news",
+    ]

@@ -4,7 +4,7 @@ BibTeX parser for academic publications
 
 import bibtexparser
 from bibtexparser.bibdatabase import BibDatabase
-from bibtexparser.customization import splitname
+from bibtexparser.customization import convert_to_unicode, splitname
 from pathlib import Path
 from typing import Dict, List, Any, Optional, Union, Set
 
@@ -66,24 +66,28 @@ class BibtexParser(ContentParser):
     def _format_entry(self, entry: dict) -> Optional[Dict[str, Any]]:
         if 'title' not in entry or 'year' not in entry:
             return None
-        
-        authors = self._parse_authors(entry.get('author', ''))
+
+        # Keep the original entry intact for copied BibTeX, while decoding
+        # LaTeX escapes in the human-readable title, authors, and venue.
+        display_entry = convert_to_unicode(dict(entry))
+
+        authors = self._parse_authors(display_entry.get('author', ''))
         highlighted_authors = self._highlight_authors(authors)
         links = self._extract_links(entry)
         primary_url = next(
             (
                 link["url"]
                 for link in links
-                if link["label"] in {"Paper", "arXiv"}
+                if link["label"] in {"Paper", "PDF", "arXiv"}
             ),
-            links[0]["url"] if links else "",
+            "",
         )
         
         return {
             'id': entry.get('ID', ''),
-            'title': entry.get('title', '').replace('{', '').replace('}', ''),
+            'title': display_entry.get('title', '').replace('{', '').replace('}', ''),
             'year': int(entry.get('year', 0)),
-            'venue': self._get_venue(entry),
+            'venue': self._get_venue(display_entry),
             'authors': authors,
             'highlighted_authors': highlighted_authors,
             'links': links,
@@ -91,10 +95,10 @@ class BibtexParser(ContentParser):
             'bibtex': self._get_raw_bibtex(entry),
             'highlight': entry.get('highlight', '').lower() in ['true', 'yes', '1'],
             'image': entry.get('image', ''),
-            'abstract': entry.get('abstract', ''),
+            'abstract': display_entry.get('abstract', ''),
             'directions': [
                 value.strip()
-                for value in entry.get('direction', '').split(',')
+                for value in display_entry.get('direction', '').split(',')
                 if value.strip()
             ],
             'homepage_order': (
@@ -133,7 +137,7 @@ class BibtexParser(ContentParser):
         
         if entry_type == 'article':
             return entry.get('journal', 'Journal')
-        elif entry_type in ['inproceedings', 'conference']:
+        elif entry_type in ['inproceedings', 'conference', 'incollection', 'inbook']:
             venue = entry.get('booktitle', 'Conference')
             return venue.replace('Proceedings of', '').strip()
         else:

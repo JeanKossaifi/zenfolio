@@ -119,7 +119,7 @@ class ContentProcessor:
                     )
                 elif item_type == "project_item":
                     item_dict["rendered_schema"] = (
-                        seo_generator.generate_software_application_schema(
+                        seo_generator.generate_project_schema(
                             item_dict
                         )
                     )
@@ -211,6 +211,7 @@ class ContentProcessor:
             "cv_path",
             "profile",
             "link",
+            "primary_url",
         }
         for key in asset_fields:
             value = item_dict.get(key)

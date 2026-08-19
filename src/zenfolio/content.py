@@ -3,6 +3,9 @@ This module defines the content model for the ZenFolio website generator.
 It handles loading, parsing, and organizing all content from the user's content directory.
 """
 import markdown
+import math
+import re
+from datetime import date, datetime
 from pathlib import Path
 from typing import Dict, List, Any, Optional
 
@@ -144,13 +147,43 @@ class Content:
             for raw_post in unique_posts:
                 try:
                     blog_post = BlogPost(**raw_post, content_raw=raw_post.get('content', ''))
-                    validated_posts.append(blog_post.to_dict())
+                    post_data = blog_post.to_dict()
+                    plain_text = re.sub(
+                        r"<[^>]+>",
+                        " ",
+                        str(raw_post.get("content", "")),
+                    )
+                    word_count = len(re.findall(r"\b[\w'-]+\b", plain_text))
+                    post_data["reading_minutes"] = max(
+                        1,
+                        math.ceil(word_count / 220),
+                    )
+                    validated_posts.append(post_data)
                 except Exception as e:
                     if self.debug:
                         print(f"⚠️  Warning: Failed to validate blog post {raw_post.get('slug', 'unknown')}: {e}")
                     continue
             
-            return validated_posts
+            def blog_date_key(post):
+                value = post.get("date", "")
+                if isinstance(value, datetime):
+                    return (1, value.date().isoformat())
+                if isinstance(value, date):
+                    return (1, value.isoformat())
+                text = str(value or "").strip()
+                try:
+                    normalized = datetime.fromisoformat(
+                        text.replace("Z", "+00:00")
+                    ).date().isoformat()
+                    return (1, normalized)
+                except ValueError:
+                    return (0, text)
+
+            return sorted(
+                validated_posts,
+                key=blog_date_key,
+                reverse=True,
+            )
         except Exception as e:
             print(f"⚠️  Warning: Failed to parse blog posts: {e}")
             return []

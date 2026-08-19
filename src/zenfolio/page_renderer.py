@@ -1,6 +1,6 @@
 """Page-level SEO context, template rendering, and safe file writing."""
 
-from datetime import datetime
+import mimetypes
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Set, Tuple
 
@@ -93,19 +93,25 @@ class PageRenderer:
         seo_context: Dict[str, Any] = {
             "canonical_url": None,
             "og_image": None,
+            "og_image_width": None,
+            "og_image_height": None,
+            "og_image_type": None,
+            "og_image_alt": None,
             "meta_description": self.config.site.description,
             "structured_data": structured_data_list,
         }
         if seo_generator:
             if not any(page["route"] == route for page in self.seo_pages):
-                self.seo_pages.append(
-                    {
-                        "route": route,
-                        "priority": "1.0" if route == "/" else "0.8",
-                        "changefreq": "weekly" if route == "/" else "monthly",
-                        "lastmod": datetime.now().strftime("%Y-%m-%d"),
-                    }
-                )
+                sitemap_entry = {"route": route}
+                if page_type == "blog_post":
+                    modified = item_data.get("updated") or item_data.get("date")
+                    if modified:
+                        sitemap_entry["lastmod"] = (
+                            modified.strftime("%Y-%m-%d")
+                            if hasattr(modified, "strftime")
+                            else str(modified)[:10]
+                        )
+                self.seo_pages.append(sitemap_entry)
 
             seo_context["meta_description"] = (
                 seo_generator.generate_meta_description(page_type, item_data)
@@ -126,6 +132,39 @@ class PageRenderer:
                 or getattr(self.identity, "photo_path", None)
             )
             if image:
+                image_width = (
+                    item_data.get("social_image_width")
+                    or item_data.get("image_width")
+                )
+                image_height = (
+                    item_data.get("social_image_height")
+                    or item_data.get("image_height")
+                )
+                if image == self.config.site.social_image:
+                    image_width = (
+                        image_width or self.config.site.social_image_width
+                    )
+                    image_height = (
+                        image_height or self.config.site.social_image_height
+                    )
+                    seo_context["og_image_alt"] = (
+                        item_data.get("social_image_alt")
+                        or self.config.site.social_image_alt
+                    )
+                identity_image = (
+                    getattr(self.identity, "logo", None)
+                    or getattr(self.identity, "image", None)
+                    or getattr(self.identity, "photo_path", None)
+                )
+                if image == identity_image:
+                    image_width = (
+                        image_width
+                        or getattr(self.identity, "photo_width", None)
+                    )
+                    image_height = (
+                        image_height
+                        or getattr(self.identity, "photo_height", None)
+                    )
                 if is_external_url(image):
                     seo_context["og_image"] = image
                 elif seo_generator.has_absolute_base_url:
@@ -134,6 +173,16 @@ class PageRenderer:
                     )
                 else:
                     seo_context["og_image"] = self.theme.asset_url(image)
+                seo_context["og_image_width"] = image_width
+                seo_context["og_image_height"] = image_height
+                seo_context["og_image_type"] = mimetypes.guess_type(
+                    str(image)
+                )[0]
+                seo_context["og_image_alt"] = (
+                    seo_context["og_image_alt"]
+                    or item_data.get("social_image_alt")
+                    or item_data.get("image_alt")
+                )
 
             if not seo_context["structured_data"]:
                 if page_type == "homepage":

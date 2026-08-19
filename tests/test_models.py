@@ -4,8 +4,11 @@ from zenfolio.models import (
     GroupConfig,
     HomepageSection,
     Link,
+    NewsConfig,
     PersonItem,
+    ProjectItem,
     ResearchAreaItem,
+    TalkItem,
     TeamMember,
 )
 
@@ -48,3 +51,32 @@ def test_config_keeps_legacy_author_and_explicit_identity():
     assert legacy.identity is None
     assert legacy.author.name == "Legacy"
     assert configured.identity is group
+
+
+def test_project_feature_metadata_serializes():
+    project = ProjectItem(
+        title="Tool",
+        description="Description",
+        featured_order=2,
+        featured_size="full",
+        image_style="media",
+    )
+
+    serialized = project.to_dict()
+    assert serialized["featured_order"] == 2
+    assert serialized["featured_size"] == "full"
+    assert serialized["image_style"] == "media"
+
+
+def test_updates_metadata_and_talk_website_serialize():
+    news = NewsConfig(title="Updates", merge_talks=True)
+    talk = TalkItem(
+        title="Keynote",
+        website="https://example.test/keynote",
+        archive_url="https://archive.example.test/keynote",
+    )
+
+    assert news.title == "Updates"
+    assert news.merge_talks is True
+    assert talk.to_dict()["website"] == "https://example.test/keynote"
+    assert talk.to_dict()["archive_url"] == "https://archive.example.test/keynote"

@@ -3,33 +3,31 @@ Template Helpers for ZenFolio
 Simple helper functions for common configuration patterns
 """
 
-from typing import List, Optional
+from typing import Optional
 from ..models import (
     NewsItem, ProjectItem, ServiceItem, HomepageButton
 )
 
 
-def news(title: str, content: str, date: str, url: Optional[str] = None, highlight: bool = False) -> NewsItem:
-    """Quick helper to create news items"""
+def news(content: str, date: str, url: Optional[str] = None, highlight: bool = False) -> NewsItem:
+    """Quick helper to create news items; url becomes the item's website link."""
     return NewsItem(
-        title=title,
-        content=content, 
+        content=content,
         date=date,
-        url=url,
+        website=url,
         highlight=highlight
     )
 
 
-def project(title: str, description: str, url: Optional[str] = None, 
-           github: Optional[str] = None, tags: Optional[List[str]] = None, 
+def project(title: str, description: str, url: Optional[str] = None,
+           github: Optional[str] = None,
            highlight: bool = False) -> ProjectItem:
-    """Quick helper to create project items"""
+    """Quick helper to create project items; url becomes the project website."""
     return ProjectItem(
         title=title,
         description=description,
-        url=url,
+        website=url,
         github=github,
-        tags=tags or [],
         highlight=highlight
     )
 

@@ -1,5 +1,3 @@
-from pathlib import Path
-
 import pytest
 
 from zenfolio.zenfolio import ZenFolio, ZenFolioBuildError

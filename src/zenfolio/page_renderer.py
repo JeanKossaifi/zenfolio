@@ -8,7 +8,12 @@ from .errors import ZenFolioBuildError
 from .models.site_config import AuthorConfig
 from .output_manager import is_relative_to
 from .serialization import as_dict
-from .utils import is_external_url, normalize_route, route_to_output_path
+from .utils import (
+    content_date_key,
+    is_external_url,
+    normalize_route,
+    route_to_output_path,
+)
 
 
 class PageRenderer:
@@ -105,12 +110,11 @@ class PageRenderer:
                 sitemap_entry = {"route": route}
                 if page_type == "blog_post":
                     modified = item_data.get("updated") or item_data.get("date")
-                    if modified:
-                        sitemap_entry["lastmod"] = (
-                            modified.strftime("%Y-%m-%d")
-                            if hasattr(modified, "strftime")
-                            else str(modified)[:10]
-                        )
+                    # Only emit a valid W3C date; human-readable strings like
+                    # "March 5, 2024" would produce an invalid <lastmod>.
+                    comparable, iso_date = content_date_key(modified)
+                    if modified and comparable:
+                        sitemap_entry["lastmod"] = iso_date
                 self.seo_pages.append(sitemap_entry)
 
             seo_context["meta_description"] = (

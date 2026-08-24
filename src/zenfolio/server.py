@@ -1,6 +1,7 @@
 """
 This module contains the development server for the ZenFolio website generator.
 """
+import errno
 import http.server
 import socketserver
 import webbrowser
@@ -9,21 +10,6 @@ import functools
 from pathlib import Path
 
 from .zenfolio import get_output_dir
-
-
-def kill_existing_servers():
-    """Kill any existing Python HTTP servers to prevent cache issues."""
-    import subprocess
-    try:
-        result = subprocess.run(
-            ["pkill", "-f", "python -m http.server"],
-            capture_output=True,
-            text=True
-        )
-        if result.returncode == 0:
-            print("🧹 Killed existing HTTP servers")
-    except Exception:
-        pass
 
 
 class ThreadedHTTPServer(socketserver.ThreadingTCPServer):
@@ -41,9 +27,6 @@ class ThreadedHTTPServer(socketserver.ThreadingTCPServer):
 
 class RobustHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
     """HTTP request handler that gracefully handles broken pipe errors"""
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
 
     def log_message(self, format, *args):
         """Override to suppress verbose logging"""
@@ -71,21 +54,30 @@ def serve_site(
     port: int = 8000,
     open_browser: bool = True,
     output_dir: Path = None,
-):
-    """Serve the generated website locally"""
+    host: str = "127.0.0.1",
+) -> bool:
+    """Serve the generated website locally.
+
+    Returns True if the server ran and stopped normally, False on failure,
+    so callers can propagate a meaningful exit code.
+    """
     output_dir = get_output_dir(content_dir, output_dir)
     if not output_dir.exists():
         print(f"❌ Output directory {output_dir} does not exist. Run 'zenfolio build' first.")
-        return
-
-    kill_existing_servers()
+        return False
 
     serve_dir = output_dir.resolve()
     handler = functools.partial(RobustHTTPRequestHandler, directory=str(serve_dir))
 
+    # Note: ThreadedHTTPServer is IPv4-only, so IPv6 hosts like ::1 will fail
+    # to bind and are reported by the OSError handler below.
+    if host not in ("127.0.0.1", "localhost"):
+        print(f"⚠️  Serving on {host}: the site is reachable from other machines on the network")
+
     try:
-        with ThreadedHTTPServer(("", port), handler) as httpd:
-            url = f"http://localhost:{port}"
+        with ThreadedHTTPServer((host, port), handler) as httpd:
+            display_host = "localhost" if host in ("127.0.0.1", "") else host
+            url = f"http://{display_host}:{port}"
             print(f"🌐 Serving website at {url}")
             print(f"📁 Serving files from {serve_dir}")
             print("🛑 Press Ctrl+C to stop the server")
@@ -95,15 +87,17 @@ def serve_site(
                     import time
                     time.sleep(1)
                     webbrowser.open(url)
-                
+
                 threading.Thread(target=open_browser_delayed, daemon=True).start()
-            
+
             httpd.serve_forever()
-            
+
     except KeyboardInterrupt:
         print("\n🛑 Server stopped")
     except OSError as e:
-        if "Address already in use" in str(e):
+        if e.errno == errno.EADDRINUSE:
             print(f"❌ Port {port} is already in use. Try a different port with --port")
         else:
             print(f"❌ Failed to start server: {e}")
+        return False
+    return True

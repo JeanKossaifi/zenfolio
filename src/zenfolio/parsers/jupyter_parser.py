@@ -5,11 +5,12 @@ Implements ContentParser protocol for parsing .ipynb files.
 
 from pathlib import Path
 from typing import Dict, List, Any, Set
-import json
 import nbformat
 import frontmatter
 from nbconvert import HTMLExporter
 from .base_parser import ContentParser
+from .markdown_parser import protect_math_blocks, restore_math_blocks
+from ..utils import DEFAULT_MARKDOWN_EXTENSIONS, content_date_key
 
 
 _MATH_CODE_TOKEN = "\x00zfcode{}\x00"
@@ -34,9 +35,19 @@ def _normalise_dollar_math(text: str) -> str:
 
     text = re.sub(r"<pre\b.*?</pre>", _keep, text, flags=re.S | re.I)
     text = re.sub(r"<code\b.*?</code>", _keep, text, flags=re.S | re.I)
+    # Stash remaining tags so attribute values (hrefs with $variables in
+    # rich outputs) are never rewritten.
+    text = re.sub(r"<[^>]+>", _keep, text)
 
     text = re.sub(r"\$\$(.+?)\$\$", lambda m: r"\[" + m.group(1) + r"\]", text, flags=re.S)
-    text = re.sub(r"\$(?!\$)([^$\n]+?)\$", lambda m: r"\(" + m.group(1) + r"\)", text)
+    # Pandoc-style guards: an escaped \$ is literal; the opening $ must be
+    # followed by non-space and the closing $ preceded by non-space and not
+    # followed by a digit — so prose like "costs $10k and $2k" is left alone.
+    text = re.sub(
+        r"(?<![\\$])\$(?![\s$])((?:[^$\n\\]|\\.)+?)(?<![\s\\])\$(?!\d)",
+        lambda m: r"\(" + m.group(1) + r"\)",
+        text,
+    )
 
     for index, original in enumerate(stash):
         text = text.replace(_MATH_CODE_TOKEN.format(index), original)
@@ -62,15 +73,19 @@ class JupyterParser(ContentParser):
         return {'blog_post', 'page', 'notebook'}
     
     def can_parse(self, file_path: Path) -> bool:
-        """Check if this parser can handle the given file."""
+        """Check if this parser can handle the given file.
+
+        Peeks at the head of the file instead of parsing the whole JSON:
+        can_parse runs for every registry lookup, and notebooks can be large.
+        """
         if file_path.suffix.lower() != '.ipynb':
             return False
-        
+
         try:
-            with open(file_path, 'r', encoding='utf-8') as f:
-                data = json.load(f)
-                return isinstance(data, dict) and 'cells' in data
-        except (json.JSONDecodeError, UnicodeDecodeError, KeyError):
+            with open(file_path, 'r', encoding='utf-8-sig') as f:
+                head = f.read(4096).lstrip()
+            return head.startswith('{') and '"cells"' in head
+        except (OSError, UnicodeDecodeError):
             return False
     
     def parse_file(self, file_path: Path) -> Dict[str, Any]:
@@ -85,8 +100,8 @@ class JupyterParser(ContentParser):
             return {}
         
         try:
-            # Read the notebook
-            with open(file_path, 'r', encoding='utf-8') as f:
+            # utf-8-sig tolerates a BOM some editors prepend
+            with open(file_path, 'r', encoding='utf-8-sig') as f:
                 notebook_node = nbformat.read(f, as_version=4)
 
             # Default metadata
@@ -98,9 +113,13 @@ class JupyterParser(ContentParser):
                 if source.strip().startswith('---'):
                     try:
                         fm = frontmatter.loads(source)
-                        metadata.update(fm.metadata)
-                        # Remove the frontmatter cell before converting
-                        notebook_node.cells.pop(0)
+                        # Only treat the cell as frontmatter if it actually
+                        # yielded metadata; a markdown cell that merely starts
+                        # with a horizontal rule must be kept as content.
+                        if fm.metadata:
+                            metadata.update(fm.metadata)
+                            # Remove the frontmatter cell before converting
+                            notebook_node.cells.pop(0)
                     except Exception:
                         pass  # Not valid frontmatter, treat as normal markdown
             
@@ -116,9 +135,11 @@ class JupyterParser(ContentParser):
             
             # Add missing filters to the nbconvert environment
             def markdown_filter(text: str) -> str:
-                """Render markdown text to HTML."""
+                """Render markdown text to HTML with LaTeX math protection."""
                 import markdown
-                return markdown.markdown(text, extensions=['fenced_code', 'codehilite', 'tables', 'admonition', 'def_list', 'attr_list', 'footnotes'])
+                protected, math_blocks = protect_math_blocks(text)
+                html = markdown.markdown(protected, extensions=DEFAULT_MARKDOWN_EXTENSIONS)
+                return restore_math_blocks(html, math_blocks)
             
             def strip_files_prefix_filter(text: str) -> str:
                 """Remove files/ prefix from paths."""
@@ -181,11 +202,10 @@ class JupyterParser(ContentParser):
                     parsed_data['metadata']['content_type'] = 'notebook'
                     items.append(parsed_data)
         
-        try:
-            items.sort(key=lambda x: x['metadata'].get('date', ''), reverse=True)
-        except TypeError:
-            pass
-        
+        items.sort(
+            key=lambda x: content_date_key(x['metadata'].get('date', '')),
+            reverse=True,
+        )
         return items
     
     def get_content_processor(self, content_type: str) -> callable:

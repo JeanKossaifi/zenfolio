@@ -7,8 +7,9 @@ from pathlib import Path
 
 def init_site(content_dir: Path):
     """Initialize a new academic website project"""
+    content_dir = Path(content_dir).expanduser().resolve()
     print(f"🚀 Initializing new academic website in {content_dir}")
-    
+
     content_dir.mkdir(parents=True, exist_ok=True)
     
     template_dir = Path(__file__).parent / "templates"
@@ -24,7 +25,11 @@ def init_site(content_dir: Path):
     for filename, description in files_to_copy:
         src = template_dir / filename
         dest = content_dir / filename
-        if src.exists() and not dest.exists():
+        if not src.exists():
+            print(f"⚠️  Warning: Template '{filename}' is missing from the zenfolio package, skipped")
+        elif dest.exists():
+            print(f"⏭️  Kept existing {filename}")
+        else:
             shutil.copy2(src, dest)
             print(f"✅ Created {filename} - {description}")
     

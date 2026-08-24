@@ -94,6 +94,11 @@ class ContentProcessor:
                     continue
                 if skip_content and key == "content":
                     continue
+                # Blog descriptions are plain-text summaries (templates and
+                # SEO consume them verbatim); wrapping them in <p> renders
+                # literal markup under autoescaping.
+                if skip_content and key == "description":
+                    continue
                 if item_type == "service_item" and key == "description":
                     continue
                 item_dict[key] = self.process_content_field(
@@ -165,11 +170,10 @@ class ContentProcessor:
                     content, self.config.site.markdown_extensions
                 )
             except Exception as error:
-                if self.debug:
-                    print(
-                        f"⚠️  Warning: Failed to process {field_name} with "
-                        f"{parser.__class__.__name__}: {error}"
-                    )
+                print(
+                    f"⚠️  Warning: Failed to process {field_name} with "
+                    f"{parser.__class__.__name__}: {error}"
+                )
 
         try:
             normalized = textwrap.dedent(content).strip()
@@ -178,11 +182,10 @@ class ContentProcessor:
                 extensions=self.config.site.markdown_extensions,
             )
         except Exception as error:
-            if self.debug:
-                print(
-                    f"⚠️  Warning: Failed to process {field_name} with "
-                    f"fallback markdown: {error}"
-                )
+            print(
+                f"⚠️  Warning: Failed to process {field_name} with "
+                f"fallback markdown, keeping raw content: {error}"
+            )
             return content
 
     def resolve_item_paths(self, item_dict: Dict[str, Any]) -> None:

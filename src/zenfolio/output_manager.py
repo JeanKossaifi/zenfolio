@@ -64,10 +64,18 @@ class OutputManager:
             configured_output = self.content_dir / configured_output
         configured_output = configured_output.resolve()
         is_empty = not any(output.iterdir())
+        # A pre-marker ZenFolio build is recognized by its generated theme
+        # assets, not just index.html + sitemap.xml — a hand-written or
+        # Jekyll site routinely has those two and must never be deleted.
+        theme_assets = (
+            output / "static" / "theme.css",
+            output / "static" / "style.css",
+        )
         is_legacy_build = (
             output == configured_output
             and (output / "index.html").is_file()
             and (output / "sitemap.xml").is_file()
+            and any(asset.is_file() for asset in theme_assets)
         )
         if not marker.is_file() and not is_empty and not is_legacy_build:
             raise ZenFolioBuildError(

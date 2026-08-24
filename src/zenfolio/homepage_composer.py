@@ -2,7 +2,6 @@
 
 from typing import Any, Dict, List, Optional, Protocol, Sequence
 
-import markdown
 
 from .models.site_config import AuthorConfig
 from .serialization import as_dict
@@ -29,12 +28,16 @@ class HomepageHost(Protocol):
     site_type: str
     theme: Any
     effective_base_url: str
+    debug: bool
 
     def _route_for(self, key: str) -> str: ...
     def _set_page_context(self, route: str) -> str: ...
     def _resolve_item_paths(self, item: Dict[str, Any]) -> None: ...
     def _process_content_field(
         self, content: str, content_type: str, field_name: str
+    ) -> str: ...
+    def _process_static_placeholders(
+        self, content: str, base_url: str = ""
     ) -> str: ...
     def _process_items(
         self, items: List[Any], item_type: str, seo_generator: Any = None
@@ -192,8 +195,9 @@ class HomepageComposer:
                 about_content = "\n\n".join(
                     paragraphs[: max(0, int(about_limit))]
                 )
-            section["content"] = host._process_content_field(
-                about_content, "markdown", "bio"
+            section["content"] = host._process_static_placeholders(
+                host._process_content_field(about_content, "markdown", "bio"),
+                host.effective_base_url,
             )
         elif source == "service" and isinstance(
             host.identity, AuthorConfig
@@ -383,14 +387,9 @@ class HomepageComposer:
                     {
                         "text": button.text,
                         "url": button.url,
-                        "style": (
-                            "bg-gray-900 dark:bg-white text-white "
-                            "dark:text-gray-900"
-                            if button.style == "primary"
-                            else "bg-gray-50 dark:bg-gray-800 border "
-                            "border-gray-200 dark:border-gray-700 "
-                            "text-gray-900 dark:text-white"
-                        ),
+                        # Pass the raw keyword; templates map style names
+                        # (primary/secondary/accent) to their own classes.
+                        "style": button.style,
                         "external": button.url.startswith("http"),
                     }
                     for button in (
@@ -480,9 +479,13 @@ class HomepageComposer:
                 "data": {
                     "title": "About",
                     "layout": "bio",
-                    "content": markdown.markdown(
-                        bio_data.get("bio", ""),
-                        extensions=host.config.site.markdown_extensions,
+                    # Route through the shared pipeline so the bio gets LaTeX
+                    # math protection and {static} placeholder resolution.
+                    "content": host._process_static_placeholders(
+                        host._process_content_field(
+                            bio_data.get("bio", ""), "markdown", "bio"
+                        ),
+                        host.effective_base_url,
                     ),
                     "interests": hero_data.get("interests", []),
                 },

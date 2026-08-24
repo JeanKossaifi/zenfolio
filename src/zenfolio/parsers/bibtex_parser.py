@@ -2,9 +2,12 @@
 BibTeX parser for academic publications
 """
 
+import re
+
 import bibtexparser
 from bibtexparser.bibdatabase import BibDatabase
 from bibtexparser.customization import convert_to_unicode, splitname
+from bibtexparser.latexenc import latex_to_unicode
 from pathlib import Path
 from typing import Dict, List, Any, Optional, Union, Set
 
@@ -39,15 +42,23 @@ class BibtexParser(ContentParser):
         if not file_path.exists():
             return []
         
-        with open(file_path, 'r', encoding='utf-8') as f:
-            self.bib_database = bibtexparser.load(f)
-        
+        try:
+            with open(file_path, 'r', encoding='utf-8') as f:
+                self.bib_database = bibtexparser.load(f)
+        except Exception as error:
+            raise ValueError(f"Could not parse BibTeX file '{file_path}': {error}") from error
+
         publications = []
         for entry in self.bib_database.entries:
-            pub = self._format_entry(entry)
+            try:
+                pub = self._format_entry(entry)
+            except Exception as error:
+                entry_id = entry.get('ID', '<no id>')
+                print(f"⚠️  Warning: Skipping BibTeX entry '{entry_id}' in {file_path.name}: {error}")
+                continue
             if pub:
                 publications.append(pub)
-        
+
         publications.sort(key=lambda x: x['year'], reverse=True)
         return publications
 
@@ -58,9 +69,11 @@ class BibtexParser(ContentParser):
             return items
         
         for file_path in directory_path.iterdir():
+            if not file_path.is_file() or file_path.name.startswith(('_', '.')):
+                continue
             if self.can_parse(file_path):
                 items.extend(self.parse_file(file_path))
-        
+
         return items
 
     def _format_entry(self, entry: dict) -> Optional[Dict[str, Any]]:
@@ -71,7 +84,13 @@ class BibtexParser(ContentParser):
         # LaTeX escapes in the human-readable title, authors, and venue.
         display_entry = convert_to_unicode(dict(entry))
 
-        authors = self._parse_authors(display_entry.get('author', ''))
+        # Split authors from the RAW field: convert_to_unicode strips the
+        # braces that protect corporate names like {Barnes and Noble}.
+        # LaTeX escapes are decoded per name after splitting.
+        authors = [
+            latex_to_unicode(name)
+            for name in self._parse_authors(entry.get('author', ''))
+        ]
         highlighted_authors = self._highlight_authors(authors)
         links = self._extract_links(entry)
         primary_url = next(
@@ -86,7 +105,9 @@ class BibtexParser(ContentParser):
         return {
             'id': entry.get('ID', ''),
             'title': display_entry.get('title', '').replace('{', '').replace('}', ''),
-            'year': int(entry.get('year', 0)),
+            # Years like "in press", "2023a", or "2023/2024" must not abort
+            # the whole file; extract the first 4-digit year or fall back to 0.
+            'year': self._extract_year(entry.get('year', '')),
             'venue': self._get_venue(display_entry),
             'authors': authors,
             'highlighted_authors': highlighted_authors,
@@ -107,6 +128,11 @@ class BibtexParser(ContentParser):
                 else None
             ),
         }
+
+    @staticmethod
+    def _extract_year(value: Any) -> int:
+        match = re.search(r'\d{4}', str(value))
+        return int(match.group()) if match else 0
 
     def _get_raw_bibtex(self, entry: dict) -> str:
         """Get clean BibTeX string for citation (without website-specific fields)"""
@@ -146,6 +172,12 @@ class BibtexParser(ContentParser):
     def _format_author_name(self, author: str) -> str:
         """Convert 'LastName, FirstName' to 'FirstName LastName' using bibtexparser's splitname"""
         author = author.strip()
+        # A fully-braced name is a corporate author ({Barnes and Noble}):
+        # display it verbatim, without the protective braces.
+        if author.startswith('{') and author.endswith('}'):
+            inner = author[1:-1]
+            if inner.count('{') == inner.count('}'):
+                return inner.strip()
         try:
             # Use bibtexparser's robust name parsing
             name_parts = splitname(author, strict_mode=False)
@@ -162,7 +194,7 @@ class BibtexParser(ContentParser):
                 parts.extend(name_parts['jr'])
                 
             return ' '.join(parts) if parts else author
-        except:
+        except Exception:
             # Fallback to simple splitting if splitname fails
             if ',' in author:
                 parts = [part.strip() for part in author.split(',', 1)]
@@ -175,7 +207,32 @@ class BibtexParser(ContentParser):
         """Parse and format authors."""
         if not author_str:
             return []
-        return [self._format_author_name(author) for author in author_str.split(' and ')]
+        return [
+            self._format_author_name(author)
+            for author in self._split_authors(author_str)
+        ]
+
+    @staticmethod
+    def _split_authors(author_str: str) -> List[str]:
+        """Split on the BibTeX 'and' separator (any case, any whitespace),
+        but never inside braces: {Barnes and Noble} is one author."""
+        authors = []
+        depth = 0
+        current = []
+        tokens = re.split(r'(\s+)', author_str)
+        for token in tokens:
+            if token.lower() == 'and' and depth == 0:
+                if ''.join(current).strip():
+                    authors.append(''.join(current).strip())
+                current = []
+                continue
+            # Clamp at zero so a stray closing brace cannot disable
+            # splitting for the rest of the field.
+            depth = max(0, depth + token.count('{') - token.count('}'))
+            current.append(token)
+        if ''.join(current).strip():
+            authors.append(''.join(current).strip())
+        return authors
 
     def _highlight_authors(self, authors: List[str]) -> str:
         """Highlight author names based on the configured terms."""

@@ -19,12 +19,29 @@ def load_theme(
     theme_override: Optional[str] = None,
     debug: bool = False,
 ) -> Any:
-    """Load one built-in theme or a configured site-local theme."""
+    """Load one built-in theme or a configured site-local theme.
 
-    theme_name = config.theme.lower()
+    theme_override wins over config.theme: a built-in name selects that
+    theme, the configured theme name keeps the (possibly local) theme, and
+    anything else fails loudly.
+    """
+
+    theme_name = str(theme_override or config.theme or "").lower()
     theme_path = getattr(config, "theme_path", None)
-    if theme_override in BUILTIN_THEMES:
-        theme_path = None
+    if theme_override:
+        if theme_name in BUILTIN_THEMES:
+            theme_path = None
+        elif theme_name != str(config.theme or "").lower():
+            available = ", ".join(sorted(BUILTIN_THEMES))
+            raise ZenFolioBuildError(
+                f"Unknown theme '{theme_override}'. "
+                f"Available: {available}"
+                + (
+                    f", or the configured local theme '{config.theme}'"
+                    if theme_path
+                    else ""
+                )
+            )
 
     if theme_path:
         local_theme_dir = Path(theme_path).expanduser()

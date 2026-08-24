@@ -1,7 +1,6 @@
 from types import SimpleNamespace
 
 from zenfolio.models import (
-    AuthorConfig,
     NewsConfig,
     NewsItem,
     TalkItem,

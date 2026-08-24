@@ -82,22 +82,6 @@ class TailwindTheme(BaseTheme):
         if theme_js_path.exists():
             shutil.copy2(theme_js_path, output_js_path)
     
-    def render_component(self, component_name: str, **kwargs) -> str:
-        """Render a component with the optional MathJax fragment."""
-        if (
-            component_name in {"page_layout", "section"}
-            and "mathjax_html" not in kwargs
-        ):
-            mathjax_config = kwargs.get("mathjax_config")
-            kwargs["mathjax_html"] = (
-                self.render_component(
-                    "mathjax", mathjax_config=mathjax_config
-                )
-                if mathjax_config
-                else ""
-            )
-        return super().render_component(component_name, **kwargs)
-    
     def render_page(
         self,
         content: str,
@@ -124,13 +108,8 @@ class TailwindTheme(BaseTheme):
             current_year=datetime.now().year,
             navigation=context.get("navigation", []),
         )
-        seo_head_html = self.render_component(
-            "seo_head",
-            page_title=page_title,
-            author_name=author_name,
-            site_description=site_description,
-            **context,
-        )
+        # base_layout.html.j2 carries its own meta block; the shared
+        # seo_head component is only used by the minimal theme.
         mathjax_config = context.get("mathjax_config")
         mathjax_html = (
             self.render_component(
@@ -144,7 +123,6 @@ class TailwindTheme(BaseTheme):
             content=content,
             navbar=navbar_html,
             footer=footer_html,
-            seo_head=seo_head_html,
             mathjax_html=mathjax_html,
             page_title=page_title,
             author_name=author_name,

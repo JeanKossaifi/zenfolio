@@ -99,13 +99,24 @@ class CollectionBuilder:
             related_items,
             related_type,
         ) in (related_collections or {}).items():
+            # Specialized components (e.g. updates_talk_item) are optional
+            # per theme; drop the collection prefix and fall back to the
+            # base item component (talk_item) so built-in themes still
+            # render merged collections.
+            template_type = related_type
+            if not host.theme.has_component(template_type):
+                parts = template_type.split("_")
+                if len(parts) > 2:
+                    candidate = "_".join(parts[-2:])
+                    if host.theme.has_component(candidate):
+                        template_type = candidate
             related_payload = []
             for related_item in related_items:
                 item_data = as_dict(related_item)
-                item_data["template_name"] = related_type
+                item_data["template_name"] = template_type
                 related_payload.append(item_data)
             processed_related[context_name] = host._process_items(
-                related_payload, related_type, seo_generator
+                related_payload, template_type, seo_generator
             )
         page_data: Dict[str, Any] = {
             "title": title,
@@ -164,8 +175,11 @@ class CollectionBuilder:
                 for key in sorted_keys
             ]
         else:
+            # A merged news+talks timeline replaces the plain item list so
+            # themes that only consume items_html still show the talks.
             page_data["items_html"] = "".join(
-                item["rendered_html"] for item in processed_items
+                item["rendered_html"]
+                for item in page_data.get("update_items") or processed_items
             )
 
         content = host.theme.render_component("page_layout", **page_data)
@@ -240,6 +254,14 @@ class CollectionBuilder:
         seo_generator: Optional[Any] = None,
     ) -> None:
         host = self.host
+        if not blog_posts:
+            return
+        # Resolve item link paths at blog-post depth; without this they are
+        # resolved against whatever page was rendered previously.
+        host._set_page_context(
+            blog_posts[0].get("route")
+            or join_route(host._route_for("blog"), blog_posts[0]["slug"])
+        )
         processed_posts = host._process_items(
             blog_posts, "blog_post_item", seo_generator
         )

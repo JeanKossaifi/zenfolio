@@ -1,9 +1,12 @@
 #!/usr/bin/env python3
 """Site configuration - Edit this file with your information"""
 
-from zenfolio.models import Config, AuthorConfig, SiteConfig, PublicationConfig
+# HomepageButton and ServiceItem are imported for the commented examples
+# below — uncomment those examples to use them.  # noqa: F401
+from zenfolio.models import (
+    AuthorConfig, Config, HomepageButton, PublicationConfig, ServiceItem, SiteConfig,
+)
 # Simple strings for paths - ZenFolio handles smart resolution
-from typing import List, Optional, Union
 
 # Customize your author information
 author_config = AuthorConfig(
@@ -67,18 +70,19 @@ publication_config = PublicationConfig(
     highlight_author="Your Name"
 )
 
-# Import content (you'll create these files)
+# Content imports: news.py, projects.py, and talks.py were created next to
+# this file by `zenfolio init`. To enable a section, uncomment BOTH its
+# import here and the matching argument in Config below.
 # from news import news_config
 # from projects import projects_config
 # from talks import talks_config
 
-# Main configuration - uncomment and customize content imports above
 config = Config(
     author=author_config,
     site=site_config,
     publications=publication_config,
-    theme="tailwind"
-    # news=news_config,      # Uncomment when you create news.py
-    # projects=projects_config,  # Uncomment when you create projects.py  
-    # talks=talks_config,    # Uncomment when you create talks.py
+    theme="tailwind",
+    # news=news_config,
+    # projects=projects_config,
+    # talks=talks_config,
 ) 

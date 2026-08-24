@@ -10,17 +10,16 @@ from zenfolio.templates import news
 news_config = NewsConfig(
     items=[
         news(
-            title="Important News",
+            content="**Important news**: your news item here. Use **bold** for emphasis.",
             date="Month YYYY",
-            content="Your news item here. Use **bold** for emphasis.",
             highlight=True
         ),
         news(
-            title="Earlier News",
-            date="Earlier Month YYYY", 
-            content="Another news item with local file links.",
+            content="Another news item, optionally with a link.",
+            date="Earlier Month YYYY",
+            url="https://example.com/details",
             highlight=False
         ),
-        # Add more news items using news() helper...
+        # Add more news items using the news() helper...
     ]
 )

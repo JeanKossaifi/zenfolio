@@ -2,7 +2,7 @@
 Site configuration models for the academic website generator
 """
 
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Literal, Optional, Union
 
 from zencfg import ConfigBase
 
@@ -108,10 +108,12 @@ class AuthorConfig(IdentityConfig):
         "Research Area 2",
         "Research Area 3",
     ]
-    github: str = "https://github.com/yourusername"
-    scholar: str = "https://scholar.google.com/citations?user=YOUR_ID"
-    linkedin: str = "https://linkedin.com/in/yourusername"
-    twitter: str = "https://twitter.com/yourusername"
+    # Social links: empty by default so placeholder URLs never leak
+    # into rendered pages or JSON-LD sameAs entries.
+    github: str = ""
+    scholar: str = ""
+    linkedin: str = ""
+    twitter: str = ""
     profile_url: Optional[str] = None
     orcid: Optional[str] = None
     photo_path: str = "profile.jpg"
@@ -160,7 +162,7 @@ class PublicationConfig(ConfigBase):
 class MathJaxConfig(ConfigBase):
     """MathJax configuration for LaTeX math rendering."""
 
-    version: str = "3"
+    version: Literal["2", "3"] = "3"
     cdn_url: Optional[str] = None
     inline_math: List[List[str]] = [["$", "$"], ["\\(", "\\)"]]
     display_math: List[List[str]] = [["$$", "$$"], ["\\[", "\\]"]]

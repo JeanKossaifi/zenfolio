@@ -2,15 +2,14 @@
 This module defines the content model for the ZenFolio website generator.
 It handles loading, parsing, and organizing all content from the user's content directory.
 """
-import markdown
 import math
 import re
-from datetime import date, datetime
 from pathlib import Path
-from typing import Dict, List, Any, Optional
+from typing import Any, Dict, List
 
 from .parsers import BibtexParser, parser_registry
 from .models.content_models import BlogPost, Page, Bio
+from .utils import content_date_key
 
 
 class Content:
@@ -63,9 +62,9 @@ class Content:
             if identity is not None:
                 return {
                     'bio': '',  # Empty bio content
-                    'interests': identity.interests if hasattr(identity, 'interests') else [],
-                    'title': identity.title if hasattr(identity, 'title') else '',
-                    'affiliation': identity.affiliation if hasattr(identity, 'affiliation') else '',
+                    'interests': getattr(identity, 'interests', []),
+                    'title': getattr(identity, 'title', ''),
+                    'affiliation': getattr(identity, 'affiliation', ''),
                 }
             
             if self.debug:
@@ -77,8 +76,7 @@ class Content:
                 print("⚠️  Warning: index.md not found, using empty bio data")
             return Bio().to_dict()
         except Exception as e:
-            if self.debug:
-                print(f"⚠️  Warning: Failed to parse index.md: {e}")
+            print(f"⚠️  Warning: Failed to parse index.md, using empty bio data: {e}")
             return Bio().to_dict()
 
     def _safe_parse_publications(self):
@@ -89,16 +87,15 @@ class Content:
             else:
                 bibtex_file_path = self.content_dir / self.config.publications.bib_path
             
-            if not bibtex_file_path or not bibtex_file_path.exists():
+            if not bibtex_file_path.exists():
                 if self.debug:
-                    print(f"⚠️  Warning: BibTeX file not found, using empty publications")
+                    print(f"⚠️  Warning: BibTeX file '{bibtex_file_path}' not found, using empty publications")
                 return []
             
             bibtex_parser = BibtexParser(self.config.publications.highlight_author)
             return bibtex_parser.parse_file(bibtex_file_path)
         except Exception as e:
-            if self.debug:
-                print(f"⚠️  Warning: Failed to parse publications: {e}")
+            print(f"⚠️  Warning: Failed to parse publications: {e}")
             return []
 
     def _safe_parse_blog_posts(self):
@@ -126,22 +123,28 @@ class Content:
                         if 'metadata' in raw_post:
                             flattened_post = raw_post['metadata'].copy()
                             flattened_post['content'] = raw_post.get('content', '')
-                            flattened_post['content_type'] = raw_post.get('content_type', 'markdown')
+                            # Parsers record content_type in metadata (e.g.
+                            # 'notebook'); only default when absent.
+                            flattened_post.setdefault('content_type', 'markdown')
                             all_raw_posts.append(flattened_post)
                         else:
                             all_raw_posts.append(raw_post)
                 except Exception as e:
-                    if self.debug:
-                        print(f"⚠️  Warning: Parser {parser.__class__.__name__} failed: {e}")
+                    print(f"⚠️  Warning: Parser {parser.__class__.__name__} failed on '{blog_dir}': {e}")
                     continue
             
             seen_slugs = set()
             unique_posts = []
             for post in all_raw_posts:
                 slug = post.get('slug')
-                if slug and slug not in seen_slugs:
-                    seen_slugs.add(slug)
-                    unique_posts.append(post)
+                if not slug:
+                    print(f"⚠️  Warning: Skipping blog post without a slug: {post.get('title', '<untitled>')}")
+                    continue
+                if slug in seen_slugs:
+                    print(f"⚠️  Warning: Duplicate blog slug '{slug}', keeping the first post and skipping the rest")
+                    continue
+                seen_slugs.add(slug)
+                unique_posts.append(post)
             
             validated_posts = []
             for raw_post in unique_posts:
@@ -160,28 +163,12 @@ class Content:
                     )
                     validated_posts.append(post_data)
                 except Exception as e:
-                    if self.debug:
-                        print(f"⚠️  Warning: Failed to validate blog post {raw_post.get('slug', 'unknown')}: {e}")
+                    print(f"⚠️  Warning: Skipping blog post '{raw_post.get('slug', 'unknown')}', validation failed: {e}")
                     continue
             
-            def blog_date_key(post):
-                value = post.get("date", "")
-                if isinstance(value, datetime):
-                    return (1, value.date().isoformat())
-                if isinstance(value, date):
-                    return (1, value.isoformat())
-                text = str(value or "").strip()
-                try:
-                    normalized = datetime.fromisoformat(
-                        text.replace("Z", "+00:00")
-                    ).date().isoformat()
-                    return (1, normalized)
-                except ValueError:
-                    return (0, text)
-
             return sorted(
                 validated_posts,
-                key=blog_date_key,
+                key=lambda post: content_date_key(post.get("date", "")),
                 reverse=True,
             )
         except Exception as e:
@@ -201,8 +188,7 @@ class Content:
             
             parser = self.parser_registry.get_parser_for_file(file_path)
             if not parser:
-                if self.debug:
-                    print(f"⚠️  Warning: No parser found for {file_path}")
+                print(f"⚠️  Warning: Skipping '{file_path}', no parser available for this file type")
                 continue
             
             raw_data = parser.parse_file(file_path)
@@ -223,7 +209,6 @@ class Content:
                 page = Page(**raw_page_data)
                 parsed_pages.append(page.to_dict())
             except Exception as e:
-                if self.debug:
-                    print(f"⚠️  Warning: Failed to validate page {file_path}: {e}")
+                print(f"⚠️  Warning: Failed to validate page {file_path}: {e}")
                 continue
         return parsed_pages

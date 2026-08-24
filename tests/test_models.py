@@ -5,6 +5,7 @@ from zenfolio.models import (
     HomepageSection,
     Link,
     NewsConfig,
+    Page,
     PersonItem,
     ProjectItem,
     ResearchAreaItem,
@@ -41,6 +42,13 @@ def test_group_content_models_serialize():
     assert person.template_name == "person_item"
     assert area.template_name == "research_area_item"
     assert section.limit == 3
+
+
+def test_page_eyebrow_is_optional_and_serializes():
+    assert Page().eyebrow == ""
+    assert Page(eyebrow="Research project").to_dict()["eyebrow"] == (
+        "Research project"
+    )
 
 
 def test_config_keeps_legacy_author_and_explicit_identity():

@@ -2,28 +2,31 @@
 {# Note: title and description are handled by base_layout.html.j2 #}
 
 <meta name="author" content="{{ author_name }}">
+{% if site_seo|default(false) %}
+<meta name="robots" content="{{ site_seo.robots_meta }}">
+{% endif %}
 
 {# Open Graph meta tags #}
 <meta property="og:title" content="{% if page_title %}{{ page_title }}{% else %}{{ author_name }}{% endif %}">
 <meta property="og:description" content="{{ meta_description|default(site_description, true) }}">
 <meta property="og:type" content="website">
-{% if canonical_url %}
+{% if canonical_url|default(false) %}
 <meta property="og:url" content="{{ canonical_url }}">
 {% endif %}
-{% if og_image %}
+{% if og_image|default(false) %}
 <meta property="og:image" content="{{ og_image }}">
 {% endif %}
 
 {# Twitter Card meta tags #}
-<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:card" content="{{ site_seo.twitter_card_type if site_seo|default(false) else 'summary_large_image' }}">
 <meta name="twitter:title" content="{% if page_title %}{{ page_title }}{% else %}{{ author_name }}{% endif %}">
 <meta name="twitter:description" content="{{ meta_description|default(site_description, true) }}">
-{% if og_image %}
+{% if og_image|default(false) %}
 <meta name="twitter:image" content="{{ og_image }}">
 {% endif %}
 
 {# Canonical URL #}
-{% if canonical_url %}
+{% if canonical_url|default(false) %}
 <link rel="canonical" href="{{ canonical_url }}">
 {% endif %}
 

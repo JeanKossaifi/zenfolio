@@ -38,8 +38,6 @@ class BuildContext:
         config = load_config_from_file(
             resolved_content, "config.py", "config"
         )
-        if theme_override:
-            config.theme = theme_override
 
         site_type = str(getattr(config, "site_type", "person")).lower()
         if site_type not in {"person", "group"}:
@@ -64,9 +62,11 @@ class BuildContext:
             if static_path.is_absolute()
             else (resolved_content / static_path).resolve()
         )
-        output_path = Path(output_override or config.output_path)
+        # expanduser first: '~/www' is not is_absolute() and would otherwise
+        # become a literal '~' directory inside the content dir.
+        output_path = Path(output_override or config.output_path).expanduser()
         output_dir = (
-            output_path.expanduser().resolve()
+            output_path.resolve()
             if output_path.is_absolute()
             else (resolved_content / output_path).resolve()
         )

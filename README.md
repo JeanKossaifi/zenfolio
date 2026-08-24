@@ -32,9 +32,8 @@ zenfolio init --content-dir my-site
 
 This creates:
 - `config.py` - Site configuration (name, affiliation, social links)
-- `content.py` - Your content (news, projects, talks)
-- `content/index.md` - Your bio and academic service
-- `content/blog/` - Blog posts directory
+- `index.md` - Your bio and about page
+- `news.py`, `projects.py`, `talks.py` - Content files (enable them in `config.py`)
 - `static/` - Static assets (profile photo, etc.)
 - `publications.bib` - Your publications in BibTeX format
 
@@ -65,7 +64,7 @@ NewsItem(
 ```
 
 Just put your local file in 
-`my-site/_static/talks`.
+`my-site/static/talks`.
 
 ## Configuration
 
@@ -117,10 +116,10 @@ site_config = SiteConfig(
         alumni_of="Your University",
         # Optional overrides...
     ),
-    
-    # MathJax for LaTeX rendering
-    mathjax=MathJaxConfig(version="3"),
 )
+
+# MathJax for LaTeX rendering goes on the top-level Config:
+# config = Config(..., mathjax=MathJaxConfig(version="3"))
 
 # Publication settings
 publication_config = PublicationConfig(
@@ -230,10 +229,10 @@ ZenFolio uses smart path detection to make managing files and links effortless. 
 #### Author Configuration
 ```python
 author = AuthorConfig(
-    photo="profile.jpg",                    # 📸 Local file: static/profile.jpg
-    cv="https://example.com/cv.pdf",        # 🌐 External URL: used as-is
+    photo_path="profile.jpg",               # 📸 Local file: static/profile.jpg
+    cv_path="https://example.com/cv.pdf",   # 🌐 External URL: used as-is
     # OR use a local file:
-    # cv="documents/cv.pdf",                # 📄 Local file: static/documents/cv.pdf
+    # cv_path="documents/cv.pdf",           # 📄 Local file: static/documents/cv.pdf
 )
 ```
 
@@ -401,12 +400,13 @@ Flexible LaTeX math rendering:
 
 ```python
 # In config.py
-site_config = SiteConfig(
+config = Config(
+    ...,
     mathjax=MathJaxConfig(
         version="3",  # or "2"
         extensions=["TeX/AMSmath", "TeX/AMSsymbols"],
         # Custom CDN URL supported
-    )
+    ),
 )
 ```
 
@@ -542,7 +542,6 @@ zenfolio/
 │   ├── themes/             # Theme system (Minimal, Tailwind)
 │   ├── templates/          # CLI init templates
 │   └── utils.py            # Utility functions
-├── setup.py
 └── README.md
 ```
 

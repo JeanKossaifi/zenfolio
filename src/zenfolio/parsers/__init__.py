@@ -2,7 +2,7 @@
 Content parsers for the academic website generator
 """
 
-from .base_parser import parser_registry
+from .base_parser import ContentParser, ParserRegistry, parser_registry
 from .markdown_parser import MarkdownParser
 from .jupyter_parser import JupyterParser
 from .bibtex_parser import BibtexParser

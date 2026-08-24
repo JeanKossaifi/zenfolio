@@ -11,15 +11,22 @@ from jinja2 import (
     FileSystemLoader,
     PrefixLoader,
     StrictUndefined,
+    Template,
     select_autoescape,
 )
+from markupsafe import Markup
 from pathlib import Path
 from abc import ABC, abstractmethod
 from typing import Iterable, Optional
 
 import markdown
 
-from ..utils import build_url, is_external_url, normalize_route
+from ..utils import (
+    DEFAULT_MARKDOWN_EXTENSIONS,
+    build_url,
+    is_external_url,
+    normalize_route,
+)
 
 
 class ThemeRenderError(RuntimeError):
@@ -29,15 +36,7 @@ class ThemeRenderError(RuntimeError):
 class BaseTheme(ABC):
     """Base class for all ZenFolio themes with common Jinja2 functionality"""
 
-    MARKDOWN_EXTENSIONS = [
-        "fenced_code",
-        "codehilite",
-        "tables",
-        "admonition",
-        "def_list",
-        "attr_list",
-        "footnotes",
-    ]
+    MARKDOWN_EXTENSIONS = DEFAULT_MARKDOWN_EXTENSIONS
     
     def __init__(
         self,
@@ -67,7 +66,10 @@ class BaseTheme(ABC):
             undefined=StrictUndefined,
             autoescape=select_autoescape(
                 enabled_extensions=("html", "html.j2", "xml"),
-                default_for_string=False,
+                # Inline (from_string) templates must escape too: publication
+                # titles and venues routinely contain &, <, and quotes.
+                # Intentional raw-HTML slots are marked with `| safe`.
+                default_for_string=True,
             ),
         )
         self.debug = debug
@@ -82,9 +84,7 @@ class BaseTheme(ABC):
         self.env.globals["render_component"] = self.render_component
         
         # Register all custom filters
-        self.env.filters['strip_files_prefix'] = self._strip_files_prefix_filter
         self.env.filters['markdown'] = self._markdown_filter
-        self.env.filters['highlight_code'] = self._highlight_code_filter
 
         self._register_templates()
 
@@ -167,64 +167,42 @@ class BaseTheme(ABC):
             loaded.add(component_name)
         return loaded
 
-    def _highlight_code_filter(self, code: str, **kwargs) -> str:
-        """A placeholder for syntax highlighting."""
-        return f'<pre><code>{code}</code></pre>'
-
-    def _markdown_filter(self, text: str) -> str:
+    def _markdown_filter(self, text: str) -> Markup:
         """Render markdown text to HTML."""
-        return markdown.markdown(
-            text, extensions=self.MARKDOWN_EXTENSIONS
+        return Markup(
+            markdown.markdown(text, extensions=self.MARKDOWN_EXTENSIONS)
         )
 
-    def _strip_files_prefix_filter(self, text: str) -> str:
-        """A simple placeholder filter."""
-        # In nbconvert, HTML output can sometimes have "files/" prefixed to image paths.
-        return text.replace("files/", "")
-    
-
-    
-    def _build_relative_url(self, base_url: str, depth: int = 1) -> str:
-        """
-        Build a base URL for nested pages (e.g., blog posts, pages)
-        
-        Args:
-            base_url: Original base URL
-            depth: How many levels deep (1 for "blog/", "pages/")
-        
-        Returns:
-            Adjusted base URL for the nested page
-        """
-        # Handle absolute URLs - they don't need adjustment
-        if base_url.startswith(('http://', 'https://')):
-            return base_url
-        
-        # For relative URLs, go up the appropriate number of levels
-        if not base_url or base_url in ['', './']:
-            return '../' * depth
-        
-        # Handle custom relative paths
-        return str(Path('../' * depth) / base_url).replace('\\', '/')
-    
     @abstractmethod
     def _register_templates(self):
         """Register theme-specific templates - must be implemented by subclasses"""
         pass
     
-    def render_component(self, component_name: str, **kwargs) -> str:
-        """Render a required component or fail the build."""
+    def has_component(self, component_name: str) -> bool:
+        """Return whether a component template is registered."""
+
+        return isinstance(self.env.globals.get(component_name), Template)
+
+    def render_component(self, component_name: str, **kwargs) -> Markup:
+        """Render a required component or fail the build.
+
+        Returns Markup so nested `theme.render_component(...)` calls inside
+        autoescaped templates are not double-escaped.
+        """
 
         template = self.env.globals.get(component_name)
         if template is None:
             available = sorted(
-                key for key in self.env.globals if not key.startswith("_")
+                key
+                for key, value in self.env.globals.items()
+                if isinstance(value, Template)
             )
             raise ThemeRenderError(
                 f"Missing required template '{component_name}'. "
                 f"Available components: {', '.join(available)}"
             )
         try:
-            return template.render(**kwargs)
+            return Markup(template.render(**kwargs))
         except Exception as exc:
             if self.debug:
                 import traceback
@@ -247,8 +225,17 @@ class BaseTheme(ABC):
                     site_description: str = "", base_url: str = "", include_navbar: bool = True, **context) -> str:
         """Render a complete page using the base layout template"""
         self.set_render_context(base_url)
-        
-        template = self.env.from_string(self.BASE_LAYOUT_TEMPLATE)
+
+        if self.BASE_LAYOUT_TEMPLATE is None:
+            raise ThemeRenderError(
+                f"{type(self).__name__} must define BASE_LAYOUT_TEMPLATE "
+                "or override render_page()."
+            )
+        if self._compiled_base_layout is None:
+            self._compiled_base_layout = self.env.from_string(
+                self.BASE_LAYOUT_TEMPLATE
+            )
+        template = self._compiled_base_layout
         
         # Render modular components
         navbar_html = ""
@@ -275,18 +262,6 @@ class BaseTheme(ABC):
             **context
         )
     
-    def render_standalone_page(self, content: str, page_title: str = "", author_name: str = "",
-                              site_description: str = "", base_url: str = "", **context) -> str:
-        """Render a standalone page without navbar/footer"""
-        return self.render_page(
-            content=content,
-            page_title=page_title,
-            author_name=author_name,
-            site_description=site_description,
-            base_url=base_url,
-            include_navbar=False,
-            **context
-        )
-    
-    # Subclasses must define BASE_LAYOUT_TEMPLATE
+    # Subclasses must define BASE_LAYOUT_TEMPLATE or override render_page().
     BASE_LAYOUT_TEMPLATE = None
+    _compiled_base_layout = None

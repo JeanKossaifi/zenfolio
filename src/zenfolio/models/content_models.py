@@ -3,8 +3,7 @@ Content models for academic websites
 """
 
 from zencfg import ConfigBase
-from typing import List, Optional, Union, Any
-from datetime import date
+from typing import Any, List, Optional
 # Paths handled as strings, resolved during rendering
 
 
@@ -48,6 +47,9 @@ class ProjectItem(ConfigBase):
     category: Optional[str] = None
     # Optional collaborators
     collaborators: List[str] = []
+    # Machine-readable metadata consumed by the SoftwareSourceCode schema
+    programming_language: Optional[str] = None  # e.g. "Python"
+    license: Optional[str] = None  # e.g. "MIT" or a license URL
     # Backward-compatible legacy feature flag.
     highlight: bool = False
     # Ordered feature placement shared by the homepage and Projects page.
@@ -194,13 +196,19 @@ class BlogPost(ConfigBase):
     """Blog post with ZenCFG validation and defaults"""
     title: str = "Untitled"
     slug: str = ""
-    date: Any = ""  # ZenCFG converts date objects to strings automatically
+    date: Any = ""  # date/datetime objects or ISO strings; normalized when sorting
+    updated: Any = ""  # last-modified date, used for sitemap lastmod
     excerpt: str = ""
     tags: List[str] = []  # ZenCFG handles mutable defaults
     image: str = ""  # Hero image for blog post and social media preview
     image_alt: str = ""
     image_caption: str = ""
     image_source: str = ""
+    image_width: Optional[int] = None  # og:image dimensions for social previews
+    image_height: Optional[int] = None
+    social_image_width: Optional[int] = None
+    social_image_height: Optional[int] = None
+    social_image_alt: str = ""
     subtitle: str = ""
     category: str = ""
     description: str = ""
@@ -222,12 +230,14 @@ class Page(ConfigBase):
     title: str = ""
     slug: str = ""
     route: str = ""
+    eyebrow: str = ""
     description: str = ""
     social_title: str = ""
     social_description: str = ""
     social_image: str = ""
     content: str = ""
-    
+    content_type: str = "markdown"  # markdown or notebook, set by the parser
+
     template_name: str = "page"
     
 
@@ -236,6 +246,8 @@ class Page(ConfigBase):
 class Bio(ConfigBase):
     """Bio information from index.md"""
     bio: str = ""
+    title: str = ""  # page/frontmatter title, also used by config fallbacks
+    affiliation: str = ""
     tagline: str = ""
     interests: List[str] = []
 

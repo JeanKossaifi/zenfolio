@@ -2,6 +2,7 @@
 Shared utilities for ZenFolio - Common functions used across modules
 """
 
+import re
 from pathlib import Path
 from urllib.parse import unquote, urljoin, urlsplit, urlunsplit
 
@@ -58,7 +59,10 @@ def normalize_route(route: str, directory_default: bool = True) -> str:
     if any(segment in {".", ".."} for segment in segments):
         raise ValueError(f"Route traversal is not allowed: {route}")
 
-    path = "/" + parsed.path.strip("/")
+    # Rebuild from non-empty segments so '/a//b' and '/a/b' normalize to the
+    # same route (they map to the same output file, and the duplicate-route
+    # guard compares normalized strings).
+    path = "/" + "/".join(segment for segment in parsed.path.split("/") if segment)
     if path == "/":
         normalized_path = "/"
     else:
@@ -125,3 +129,44 @@ def is_external_url(path: str) -> bool:
 def get_theme_directory(theme_file: str) -> Path:
     """Get the directory containing a theme file"""
     return Path(theme_file).parent
+
+
+# Default extensions shared by every markdown rendering path so notebook and
+# markdown content render consistently. SiteConfig.markdown_extensions can
+# override this for theme-driven rendering.
+DEFAULT_MARKDOWN_EXTENSIONS = [
+    "fenced_code",
+    "codehilite",
+    "tables",
+    "admonition",
+    "def_list",
+    "attr_list",
+    "footnotes",
+]
+
+
+def content_date_key(value):
+    """Sort key that tolerates mixed date types in frontmatter.
+
+    YAML parses unquoted dates into date/datetime objects while quoted ones
+    stay strings, so naive comparison raises TypeError and silently disables
+    sorting. Normalize everything to (comparable-bucket, iso-string).
+    """
+    from datetime import date, datetime
+
+    if isinstance(value, datetime):
+        return (1, value.date().isoformat())
+    if isinstance(value, date):
+        return (1, value.isoformat())
+    text = str(value or "").strip()
+    if re.fullmatch(r"\d{4}", text):
+        text = f"{text}-01-01"
+    elif re.fullmatch(r"\d{4}-\d{2}", text):
+        text = f"{text}-01"
+    try:
+        normalized = (
+            datetime.fromisoformat(text.replace("Z", "+00:00")).date().isoformat()
+        )
+        return (1, normalized)
+    except ValueError:
+        return (0, str(value or "").strip())

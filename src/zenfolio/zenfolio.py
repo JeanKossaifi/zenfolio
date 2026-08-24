@@ -15,7 +15,6 @@ from .parsers import parser_registry
 from .routing import LEGACY_ROUTES as DEFAULT_LEGACY_ROUTES
 from .routing import RouteRegistry
 from .site_builder import SiteBuilder
-from .theme_loader import load_theme
 from .seo_utils import SEOGenerator
 from zencfg import load_config_from_file
 
@@ -85,21 +84,9 @@ class ZenFolio:
     
 
     
-    def _resolve_path(self, path: str) -> str:
-        return self.content_processor.resolve_path(path)
-    
     def _process_static_placeholders(self, content: str, base_url: str = "") -> str:
         return self.content_processor.process_static_placeholders(
             content, base_url
-        )
-    
-
-    def _load_theme(self, debug=False):
-        return load_theme(
-            self.config,
-            self.content_dir,
-            self.theme_override,
-            debug,
         )
 
     def _validate_output_directory(self):
@@ -122,11 +109,6 @@ class ZenFolio:
             self.generated_routes,
         )
 
-    def _navigation_key(self, item) -> str:
-        return self.route_registry.navigation_key(item)
-
-    def _configured_routes(self) -> Dict[str, str]:
-        return self.route_registry.configured_routes()
 
     def _route_for(self, key: str) -> str:
         return self.route_registry.route_for(key)
@@ -185,7 +167,9 @@ class ZenFolio:
         filename: str,
         content: str,
         page_title: str = "",
-        base_url: str = "",
+        # Accepted for caller compatibility; the page renderer derives the
+        # effective base URL from the route itself.
+        base_url: str = "",  # noqa: ARG002 - see comment above
         seo_generator: Optional['SEOGenerator'] = None,
         page_type: str = "page",
         item_data: Optional[Dict[str, Any]] = None,
@@ -301,21 +285,40 @@ class ZenFolio:
         self.collection_builder.generate_sitemap(seo_generator)
 
 
+def _maybe_print_traceback(debug: bool) -> None:
+    if debug:
+        import traceback
+
+        traceback.print_exc()
+
+
 def get_output_dir(
     content_dir: Path, output_override: Optional[Path] = None
 ) -> Path:
     """Get output directory from configuration"""
     content_dir = Path(content_dir).expanduser().resolve()
+
+    def resolve(path_value) -> Path:
+        path = Path(path_value).expanduser()
+        return (
+            path.resolve()
+            if path.is_absolute()
+            else (content_dir / path).resolve()
+        )
+
     try:
         config = load_config_from_file(content_dir, "config.py", "config")
-        output_path = Path(output_override or config.output_path)
-        return (
-            output_path.expanduser().resolve()
-            if output_path.is_absolute()
-            else (content_dir / output_path).resolve()
+    except FileNotFoundError:
+        return resolve(output_override or "_site")
+    except Exception as error:
+        # A config that exists but fails to load should not silently point
+        # tooling at the default directory.
+        print(
+            "⚠️  Warning: Could not load config.py to resolve the output "
+            f"directory ({error}); using default"
         )
-    except Exception:
-        return (content_dir / (output_override or "_site")).resolve()
+        return resolve(output_override or "_site")
+    return resolve(output_override or config.output_path)
 
 
 def build_site(
@@ -360,25 +363,29 @@ def build_site(
         return True
         
     except ImportError as e:
-        print(f"❌ Missing dependency: {e}")
-        print("💡 Try: pip install -r requirements.txt")
+        # Usually the user's config.py importing a missing module.
+        print(f"❌ Import failed while loading the site: {e}")
+        print("💡 Check the imports in config.py and that zenfolio's dependencies are installed")
+        _maybe_print_traceback(debug)
         return False
     except FileNotFoundError as e:
         print(f"❌ File not found: {e}")
         print("💡 Check that all required files exist")
+        _maybe_print_traceback(debug)
         return False
     except PermissionError as e:
         print(f"❌ Permission denied: {e}")
         print("💡 Check file permissions")
+        _maybe_print_traceback(debug)
         return False
     except ZenFolioBuildError as e:
         print(f"❌ Build failed: {e}")
         print("💡 Check the errors above for details")
+        _maybe_print_traceback(debug)
         return False
     except Exception as e:
         print(f"❌ Unexpected error: {e}")
-        if debug:
-            import traceback
-            traceback.print_exc()
-        print("💡 Run with --debug for more details")
+        _maybe_print_traceback(debug)
+        if not debug:
+            print("💡 Run with --debug for more details")
         return False

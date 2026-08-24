@@ -10,7 +10,7 @@ readme = "README.md"
 requires-python = ">=3.8"
 license = {text = "MIT"}
 authors = [
-    {name = "Your Name", email = "your.email@example.com"}
+    {name = "Jean Kossaifi"}
 ]
 keywords = ["academic", "website", "static-site-generator", "zencfg"]
 classifiers = [
@@ -27,7 +27,7 @@ classifiers = [
 ]
 
 dependencies = [
-    "zencfg>=0.1.0",
+    "zencfg>=0.5.0",
     "markdown>=3.4.0",
     "jinja2>=3.1.0",
     "bibtexparser>=1.4.0",

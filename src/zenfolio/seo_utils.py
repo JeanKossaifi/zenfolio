@@ -2,11 +2,17 @@
 
 import json
 import re
-from html import escape
+from html import escape, unescape
 from typing import Any, Dict, List, Optional
 
 from .models.site_config import AuthorConfig, GroupConfig
 from .utils import build_url, is_external_url
+
+
+
+def dump_schema(schema) -> str:
+    """Serialize JSON-LD, escaping "</" so no value can close the <script> tag."""
+    return json.dumps(schema, indent=2).replace("</", "<\\/")
 
 
 class SEOGenerator:
@@ -129,7 +135,7 @@ class SEOGenerator:
             if self.has_absolute_base_url:
                 profile["@id"] = self.base_url + "/#profile"
                 profile["url"] = self.base_url + "/"
-            return json.dumps(profile, indent=2)
+            return dump_schema(profile)
         else:
             logo = getattr(identity, "logo", None) or getattr(identity, "image", None)
             if logo:
@@ -157,12 +163,7 @@ class SEOGenerator:
                 entity["member"] = members
 
         entity["@context"] = "https://schema.org"
-        return json.dumps(entity, indent=2)
-
-    def generate_person_schema(self) -> str:
-        """Compatibility wrapper for older callers."""
-
-        return self.generate_identity_schema()
+        return dump_schema(entity)
 
     def generate_scholarly_article_schema(
         self, publication: Dict[str, Any]
@@ -204,7 +205,7 @@ class SEOGenerator:
                     else getattr(link, "url", "")
                 )
                 break
-        return json.dumps(schema, indent=2)
+        return dump_schema(schema)
 
     def generate_project_schema(self, project: Dict[str, Any]) -> str:
         if not self.structured_data_enabled:
@@ -245,7 +246,7 @@ class SEOGenerator:
                 schema["citation"] = project["paper"]
         if project.get("image"):
             schema["image"] = self._image_url(project["image"])
-        return json.dumps(schema, indent=2)
+        return dump_schema(schema)
 
     def generate_software_application_schema(
         self, project: Dict[str, Any]
@@ -271,11 +272,7 @@ class SEOGenerator:
                 if hasattr(date_value, "strftime")
                 else str(date_value)
             )
-        modified = (
-            blog_post.get("updated")
-            or blog_post.get("modified")
-            or blog_post.get("date_modified")
-        )
+        modified = blog_post.get("updated")
         if modified:
             schema["dateModified"] = (
                 modified.strftime("%Y-%m-%d")
@@ -317,7 +314,7 @@ class SEOGenerator:
             schema["image"] = self._image_url(image)
         elif publisher_logo:
             schema["image"] = self._image_url(publisher_logo)
-        return json.dumps(schema, indent=2)
+        return dump_schema(schema)
 
     def generate_collection_schema(
         self,
@@ -355,23 +352,20 @@ class SEOGenerator:
             page_url = self._build_url(route.lstrip("/"))
             schema["url"] = page_url
             schema["@id"] = page_url + "#collection"
-        return json.dumps(schema, indent=2)
-
-    def generate_website_schema(self) -> str:
-        if not self.structured_data_enabled:
-            return ""
-        schema = {
-                "@context": "https://schema.org",
-                "@type": "WebSite",
-                "name": self.config.site.title,
-                "description": self.config.site.description,
-                "author": self._identity_reference(),
-            }
-        if self.has_absolute_base_url:
-            schema["url"] = self.base_url + "/"
-        return json.dumps(schema, indent=2)
+        return dump_schema(schema)
 
     def generate_meta_description(
+        self,
+        page_type: str,
+        item: Optional[Dict[str, Any]] = None,
+    ) -> str:
+        # A generous cap: deliberate descriptions ship whole (search engines
+        # ellipsize for display); only runaway text gets cut.
+        return self._truncate(
+            self._meta_description(page_type, item), length=300
+        )
+
+    def _meta_description(
         self,
         page_type: str,
         item: Optional[Dict[str, Any]] = None,
@@ -436,7 +430,10 @@ class SEOGenerator:
 
     @staticmethod
     def _plain_text(value: str) -> str:
-        return re.sub(r"\s+", " ", re.sub(r"<[^>]+>", "", str(value))).strip()
+        # Strip tags, then unescape entities: the result is plain text that
+        # templates (autoescaped) and JSON-LD (json.dumps) escape exactly once.
+        text = re.sub(r"<[^>]+>", "", str(value))
+        return re.sub(r"\s+", " ", unescape(text)).strip()
 
     @staticmethod
     def _truncate(value: str, length: int = 155) -> str:

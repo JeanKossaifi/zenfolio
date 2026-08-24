@@ -17,17 +17,6 @@ from .site_config import (
     PublicationConfig, SEOConfig, ServiceItem, SiteConfig,
 )
 
-# Convenience imports for common use cases
-def create_basic_config(name: str, email: str, affiliation: str = "Your Institution") -> Config:
-    """Create a basic configuration with minimal setup"""
-    return Config(
-        author=AuthorConfig(
-            name=name,
-            email=email,
-            affiliation=affiliation
-        )
-    )
-
 __all__ = [
     # Content models
     'NewsItem', 'ProjectItem', 'TalkItem', 'BlogPost', 'Page', 'Bio', 'Link',
@@ -40,7 +29,4 @@ __all__ = [
     'PublicationConfig', 'SiteConfig', 'ServiceItem', 'HomepageButton',
     'HomepageAction', 'HomepageStep', 'HomepageSection', 'NavItem',
     'MathJaxConfig', 'SEOConfig',
-    
-    # Helper functions
-    'create_basic_config'
 ] 

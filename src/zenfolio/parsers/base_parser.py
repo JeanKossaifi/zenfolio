@@ -141,11 +141,6 @@ class ParserRegistry:
     def get_parsers_for_content_type(self, content_type: str) -> List[ContentParser]:
         """Get all parsers that can produce the given content type."""
         return [p for p in self._parsers if content_type in p.content_types]
-    
-    def get_supported_extensions(self) -> Set[str]:
-        """Get all supported file extensions across all parsers."""
-        return set(self._extension_map.keys())
-
 
 # Global parser registry instance
 parser_registry = ParserRegistry()

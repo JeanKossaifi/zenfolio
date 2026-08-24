@@ -4,7 +4,8 @@ This module contains validation functions for the ZenFolio website generator.
 from pathlib import Path
 import re
 import struct
-from urllib.parse import urlsplit
+from typing import Optional
+from urllib.parse import unquote, urlsplit
 import xml.etree.ElementTree as ET
 
 from .utils import is_external_url
@@ -13,7 +14,14 @@ from .models.site_config import AuthorConfig, GroupConfig
 
 
 def _raster_image_size(path: Path):
-    """Return PNG/JPEG dimensions without adding an imaging dependency."""
+    """Return PNG/JPEG dimensions, or None for unknown/corrupt files."""
+    try:
+        return _read_raster_image_size(path)
+    except (struct.error, OSError, ValueError):
+        return None
+
+
+def _read_raster_image_size(path: Path):
     with path.open("rb") as image_file:
         header = image_file.read(24)
         if header.startswith(b"\x89PNG\r\n\x1a\n") and len(header) >= 24:
@@ -47,7 +55,7 @@ def _raster_image_size(path: Path):
             image_file.seek(max(0, length - 2), 1)
 
 
-def validate_site(content_dir: Path):
+def validate_site(content_dir: Path, output_dir: Optional[Path] = None):
     """Validate configuration and content files"""
     content_dir = Path(content_dir).expanduser().resolve()
     print(f"🔍 Validating academic website in {content_dir}")
@@ -63,14 +71,19 @@ def validate_site(content_dir: Path):
             print(f"   • {error}")
         return False
     
-    required_files = ["config.py", "publications.bib"]
-    for filename in required_files:
-        file_path = content_dir / filename
-        if not file_path.exists():
-            errors.append(f"Required file '{filename}' is missing")
-    
+    if not (content_dir / "config.py").exists():
+        errors.append("Required file 'config.py' is missing")
+
     try:
         from zencfg import load_config_from_file
+    except ImportError:
+        errors.append("Cannot import zencfg - please install with 'pip install zencfg'")
+        print("❌ Validation failed:")
+        for error in errors:
+            print(f"   • {error}")
+        return False
+
+    try:
         config = load_config_from_file(content_dir, "config.py", "config")
         print("✅ Configuration loaded and validated successfully")
 
@@ -126,7 +139,8 @@ def validate_site(content_dir: Path):
             if not isinstance(identity, AuthorConfig):
                 errors.append("Personal sites require an AuthorConfig identity")
             if not (content_dir / "index.md").exists():
-                errors.append("Required file 'index.md' is missing")
+                # The build tolerates a missing bio, so this is not fatal.
+                warnings.append("index.md is missing; the bio section will be empty")
             if not identity.name or identity.name == "Your Name":
                 warnings.append("Author name is not customized")
             if not identity.email or identity.email == "your.email@example.com":
@@ -134,6 +148,15 @@ def validate_site(content_dir: Path):
         
         if not config.site.base_url or config.site.base_url == "https://yourdomain.com":
             warnings.append("Site URL is not customized")
+
+        # The bib path is configurable and the build tolerates its absence,
+        # so validate the configured location as a warning, not an error.
+        bib_path = Path(getattr(config.publications, "bib_path", "publications.bib"))
+        bib_file = bib_path if bib_path.is_absolute() else content_dir / bib_path
+        if not bib_file.exists():
+            warnings.append(
+                f"Publications file '{bib_path}' is missing; the publications page will be empty"
+            )
 
         theme_path = getattr(config, "theme_path", None)
         if theme_path:
@@ -239,7 +262,9 @@ def validate_site(content_dir: Path):
         try:
             from .zenfolio import ZenFolio
 
-            builder = ZenFolio(content_dir=content_dir)
+            builder = ZenFolio(
+                content_dir=content_dir, output_override=output_dir
+            )
             builder._validate_output_directory()
             if site_type == "group":
                 builder.content.load()
@@ -253,8 +278,10 @@ def validate_site(content_dir: Path):
         except Exception as exc:
             errors.append(f"Build path or theme validation failed: {exc}")
     
-    except ImportError:
-        errors.append("Cannot import zencfg - please install with 'pip install zencfg'")
+    except ImportError as e:
+        # zencfg itself was imported above, so this comes from the user's
+        # config.py (e.g. a missing content module it imports).
+        errors.append(f"config.py failed to import a module: {e}")
     except FileNotFoundError:
         errors.append("config.py file not found")
     except (TypeError, ValueError, AttributeError) as e:
@@ -305,8 +332,11 @@ def validate_generated_site(
 
         config = load_config_from_file(content_dir, "config.py", "config")
         site_type = str(getattr(config, "site_type", "person")).lower()
-    except Exception:
-        pass
+    except Exception as error:
+        print(
+            "⚠️  Warning: Could not load config.py "
+            f"({error}); running person-level validation only"
+        )
     strict_group_validation = site_type == "group"
     
     if not output_dir.exists():
@@ -359,8 +389,10 @@ def validate_generated_site(
                 if '{static}' in content:
                     issues_found.append(f"Unprocessed {{static}} placeholder in {html_file.relative_to(output_dir)}")
                 if '{{' in content or '{%' in content:
-                    issues_found.append(
-                        f"Unresolved template expression in {html_file.relative_to(output_dir)}"
+                    # May be a legitimate code sample (e.g. a Jinja tutorial),
+                    # so warn rather than fail the deploy.
+                    warnings_found.append(
+                        f"Possible unresolved template expression in {html_file.relative_to(output_dir)}"
                     )
 
                 title_match = re.search(r"<title>(.*?)</title>", content, re.I | re.S)
@@ -442,7 +474,7 @@ def validate_generated_site(
                         or urlsplit(url).scheme in {"http", "https"}
                     ):
                         continue
-                    path = urlsplit(url).path
+                    path = unquote(urlsplit(url).path)
                     if not path:
                         continue
                     if path.startswith("/"):
@@ -462,7 +494,9 @@ def validate_generated_site(
                             else warnings_found
                         ).append(message)
                 
-                malformed_urls = re.findall(r'href="(?!https?://)[^"]*//[^"]*"', content)
+                # Protocol-relative URLs (href="//cdn...") are valid; only
+                # flag doubled slashes in genuinely internal hrefs.
+                malformed_urls = re.findall(r'href="(?!https?://)(?!//)[^"]*//[^"]*"', content)
                 if malformed_urls:
                     for url in malformed_urls[:2]:
                         warnings_found.append(f"Malformed internal URL {url} in {html_file.relative_to(output_dir)}")

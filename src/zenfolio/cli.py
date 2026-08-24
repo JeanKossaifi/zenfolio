@@ -3,15 +3,8 @@ Command line interface for ZenFolio - academic website generator
 """
 
 import argparse
-import http.server
-import socketserver
-import threading
-import webbrowser
 from pathlib import Path
 import sys
-import shutil
-import subprocess
-import functools
 
 from .zenfolio import build_site
 from .server import serve_site
@@ -19,10 +12,15 @@ from .validators import validate_site, validate_generated_site
 from .init import init_site
 from .deploy import create_github_pages_files
 from .zenfolio import get_output_dir
-from .server import kill_existing_servers
 
 
-# Theme asset building is now handled directly by theme classes
+def port_number(value: str) -> int:
+    port = int(value)
+    if not 1 <= port <= 65535:
+        raise argparse.ArgumentTypeError(
+            f"port must be between 1 and 65535, got {port}"
+        )
+    return port
 
 
 def cli():
@@ -45,13 +43,19 @@ def cli():
         '--output-dir',
         type=Path,
         default=None,
-        help="Override the output directory configured by the site"
+        help="Override the output directory configured by the site (relative paths resolve against --content-dir)"
     )
     parser.add_argument(
         '--port',
-        type=int,
+        type=port_number,
         default=8000,
         help="Port to serve the website on (default: 8000)"
+    )
+    parser.add_argument(
+        '--host',
+        type=str,
+        default="127.0.0.1",
+        help="Host for the dev server (default: 127.0.0.1; use 0.0.0.0 to expose on the network)"
     )
     parser.add_argument(
         '--no-browser',
@@ -87,7 +91,7 @@ def cli():
         init_site(args.content_dir)
     elif args.command == 'validate':
         print("🔍 Validating site configuration and content...")
-        config_valid = validate_site(args.content_dir)
+        config_valid = validate_site(args.content_dir, args.output_dir)
         
         # Also validate generated site if it exists
         output_dir = get_output_dir(args.content_dir, args.output_dir)
@@ -103,11 +107,6 @@ def cli():
             if not config_valid:
                 sys.exit(1)
     elif args.command == 'build':
-        # Kill any existing servers first to prevent cache issues
-        kill_existing_servers()
-        
-        # Theme assets are now built directly during site generation
-        
         # Build the site using centralized error handling
         success = build_site(
             args.content_dir,
@@ -120,21 +119,19 @@ def cli():
         if not success:
             sys.exit(1)
     elif args.command == 'serve':
-        serve_site(
+        ok = serve_site(
             args.content_dir,
             args.port,
             not args.no_browser,
             output_dir=args.output_dir,
+            host=args.host,
         )
+        if not ok:
+            sys.exit(1)
     elif args.command == 'dev':
         # Development mode: build then serve with fresh server
         print("🚀 Development mode: Building and serving...")
-        
-        # Kill any existing servers first
-        kill_existing_servers()
-        
-        # Theme assets are now built directly during site generation
-        
+
         # Build the site using centralized error handling (force dev=True)
         success = build_site(
             args.content_dir,
@@ -149,16 +146,19 @@ def cli():
             sys.exit(1)
         
         print("✅ Build complete, starting server...")
-        serve_site(
+        ok = serve_site(
             args.content_dir,
             args.port,
             not args.no_browser,
             output_dir=args.output_dir,
+            host=args.host,
         )
+        if not ok:
+            sys.exit(1)
     elif args.command == 'deploy':
         # Always build first, then create deployment files
         print("🔨 Building site for deployment...")
-        if not validate_site(args.content_dir):
+        if not validate_site(args.content_dir, args.output_dir):
             print("❌ Source validation failed. Deployment stopped.")
             sys.exit(1)
         

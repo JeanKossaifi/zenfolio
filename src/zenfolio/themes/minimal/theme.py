@@ -1,33 +1,21 @@
-"""
-Zen Minimal Theme for ZenFolio - World-Class Academic Design
-v3.0 - Refined Typography, Enhanced Visual Impact, Professional Polish
+"""Zen Minimal theme: a lightweight academic design with inline templates.
+
+File templates in templates/ take priority; the inline template strings
+below are fallbacks for components without a file equivalent.
 """
 
-from pathlib import Path
+from datetime import datetime
+
 from ..base_theme import BaseTheme
 from ...utils import get_theme_directory
 
 class MinimalTheme(BaseTheme):
-    """World-class zen minimal academic theme with sophisticated aesthetics"""
-    
+    """Minimal academic theme with file-based templates and inline fallbacks."""
 
     def _register_templates(self):
         """Register component templates - file-based with inline fallbacks"""
-        # First, load any file-based templates (these take priority)
-        file_templates = set()
-        if self.template_dir.exists():
-            for template_path in self.template_dir.glob("*.html.j2"):
-                component_name = template_path.stem.replace(".html", "")
-                try:
-                    self.env.globals[component_name] = self.env.get_template(template_path.name)
-                    file_templates.add(component_name)
-                    if self.debug:
-                        print(f"✅ Loaded file template: {component_name}")
-                except Exception as e:
-                    raise RuntimeError(
-                        f"Failed to load template '{component_name}': {e}"
-                    ) from e
-        
+        file_templates = self.register_file_templates()
+
         # Then register inline templates for components not covered by files
         inline_templates = {
             # Core layout components
@@ -37,10 +25,9 @@ class MinimalTheme(BaseTheme):
             'landing_page': self.LANDING_PAGE_TEMPLATE,
             'profile_hero': self.PROFILE_HERO_TEMPLATE,
             'group_hero': self.GROUP_HERO_TEMPLATE,
-            'bio_section': self.BIO_SECTION_TEMPLATE,
             'section': self.SECTION_TEMPLATE,
             'divider': self.DIVIDER_TEMPLATE,
-            
+
             # Item templates
             'publication_item': self.PUBLICATION_ITEM_TEMPLATE,
             'project_item': self.PROJECT_ITEM_TEMPLATE,
@@ -50,38 +37,37 @@ class MinimalTheme(BaseTheme):
             'service_item': self.SERVICE_ITEM_TEMPLATE,
             'person_item': self.PERSON_ITEM_TEMPLATE,
             'research_area_item': self.RESEARCH_AREA_ITEM_TEMPLATE,
-            
+
             # Page templates
             'blog_post_page': self.BLOG_POST_PAGE_TEMPLATE,
             'page': self.PAGE_TEMPLATE,
-            
-            # Enhanced service templates
-            'service_section': self.SERVICE_SECTION_TEMPLATE,
-            'service_section_header': self.SERVICE_SECTION_HEADER_TEMPLATE,
-            'service_group': self.SERVICE_GROUP_TEMPLATE,
         }
-        
+
         # Only register inline templates that don't have file equivalents
         for name, template in inline_templates.items():
             if name not in file_templates:
                 self.env.globals[name] = self.env.from_string(template)
-    
 
-    
     def __init__(self, debug=False):
         self.template_dir = get_theme_directory(__file__) / "templates"
         super().__init__(template_dir=self.template_dir, debug=debug)
-    
+
     def render_page(self, content: str, page_title: str = "", author_name: str = "",
                     site_description: str = "", base_url: str = "", **context) -> str:
         """Override base render_page to handle SEO and built_pages context"""
         # Make base_url available to the url_for and file global functions
         self.set_render_context(base_url)
-        
-        template = self.env.from_string(self.BASE_LAYOUT_TEMPLATE)
+
+        if self._compiled_base_layout is None:
+            self._compiled_base_layout = self.env.from_string(
+                self.BASE_LAYOUT_TEMPLATE
+            )
+        template = self._compiled_base_layout
+        # The layout hardcodes include_navbar=True; drop a caller-supplied
+        # value rather than raising a duplicate-keyword TypeError.
+        context.pop('include_navbar', None)
         # built_pages will be available in context
         navbar_html = self.render_component('navbar', author_name=author_name, base_url=base_url, **context)
-        from datetime import datetime
         footer_html = self.render_component(
             'footer',
             author_name=author_name,
@@ -92,7 +78,7 @@ class MinimalTheme(BaseTheme):
         # Render MathJax configuration if provided
         mathjax_config = context.get('mathjax_config')
         mathjax_html = self.render_component('mathjax', mathjax_config=mathjax_config) if mathjax_config else ""
-        
+
         return template.render(
             content=content, page_title=page_title, author_name=author_name,
             site_description=site_description, base_url=base_url,
@@ -186,12 +172,12 @@ body {
 
     PUBLICATION_ITEM_TEMPLATE = """<article class="card publication-card reveal-on-scroll">
     <h3 class="card-title">{{ item.title }}</h3>
-    <p class="card-meta pub-authors">{{ item.authors | safe }}</p>
+    <p class="card-meta pub-authors">{{ item.highlighted_authors | safe }}</p>
     <p class="card-meta pub-venue">{{ item.venue }}, {{ item.year }}</p>
     <div class="card-links">
     {% if item.links %}
         {% for link in item.links %}
-        <a href="{{ link.url }}" class="pub-link">{{ link.label | safe }}</a>
+        <a href="{{ link.url }}" class="pub-link">{{ link.label }}</a>
         {% endfor %}
     {% endif %}
         <button class="cite-button" onclick="copyBibtex(this)" data-bibtex="{{ item.bibtex | e }}">
@@ -269,7 +255,7 @@ body {
     <time class="card-meta">{{ item.date }}</time>
     <h3 class="card-title"><a href="{{ url_for(item.route) }}">{{ item.title }}</a></h3>
     {% if item.excerpt %}
-    <p class="card-content">{{ item.excerpt }}</p>
+    <p class="card-content">{{ item.excerpt | safe }}</p>
     {% endif %}
     <a href="{{ url_for(item.route) }}" class="read-more">Read more <i class="fas fa-arrow-right"></i></a>
 </article>"""
@@ -315,12 +301,6 @@ body {
 
 
 
-
-    SEARCH_FILTER_BAR_TEMPLATE = """<div class="search-controls">
-    <div class="search-box">
-        <input type="text" id="search-input" placeholder="Search publications..." class="search-input">
-    </div>
-</div>"""
 
     PAGE_LAYOUT_TEMPLATE = """<div class="container">
     <header class="page-header">
@@ -428,32 +408,33 @@ body {
     {% if item.tags %}<p class="card-meta">{{ item.tags | join(' · ') }}</p>{% endif %}
 </article>"""
 
-    BIO_SECTION_TEMPLATE = """<section class="bio-section">
-    <div class="container">
-        <h2>About Me</h2>
-        <div class="bio-content">
-            {{ bio_content | safe }}
-        </div>
-        {% if interests %}
-        <div class="interests-section">
-            <h3>Research Interests</h3>
-            <div class="interests-list">
-                {% for interest in interests %}
-                <span class="interest-tag">{{ interest }}</span>
-                {% endfor %}
-            </div>
-        </div>
-        {% endif %}
-    </div>
-</section>"""
-
-    SECTION_TEMPLATE = """<section id="{{ section_id }}" data-section="{{ section_id }}" class="content-section">
+    SECTION_TEMPLATE = """<section id="{{ section_id }}" data-section="{{ section_id }}" class="content-section{% if background|default(false) %} content-section-alt{% endif %}">
     <div class="container">
         <header class="section-header">
             <h2>{{ title }}</h2>
             {% if subtitle|default('') %}<p class="section-subtitle">{{ subtitle }}</p>{% endif %}
         </header>
-        {% if steps|default([]) %}
+        {% if content|default('') %}
+        <div class="bio-content">{{ content | safe }}</div>
+        {% endif %}
+        {% if layout|default('grid') == 'bio' %}
+        {% if interests|default([]) %}
+        <div class="interests-section">
+            <h3>Research Interests</h3>
+            <div class="interests-list">
+                {% for interest in interests %}<span class="interest-tag">{{ interest }}</span>{% endfor %}
+            </div>
+        </div>
+        {% endif %}
+        {% elif layout|default('grid') == 'service' %}
+        <div class="service-list">
+            {% for item in items.leadership_items|default([]) %}{{ item.rendered_html | safe }}{% endfor %}
+            {% for role, role_items in (items.review_groups|default({})).items() %}
+            <h3 class="service-section-title">{{ role }}</h3>
+            {% for item in role_items %}{{ item.rendered_html | safe }}{% endfor %}
+            {% endfor %}
+        </div>
+        {% elif steps|default([]) %}
         <div class="{% if grid_cols|default(1) == 2 %}grid-2{% elif grid_cols|default(1) >= 3 %}grid-3{% else %}list-container{% endif %}">
             {% for step in steps %}
             <article class="card">
@@ -464,11 +445,11 @@ body {
         </div>
         {% elif layout|default('grid') == 'timeline' %}
         <div class="timeline-container">
-            {% for item in items %}{{ theme.render_component(item.template_type, item=item) }}{% endfor %}
+            {% for item in items|default([]) %}{{ item.rendered_html | safe }}{% endfor %}
         </div>
         {% else %}
-        <div class="{% if grid_cols == 2 %}grid-2{% elif grid_cols >= 3 %}grid-3{% else %}list-container{% endif %}">
-            {% for item in items %}{{ theme.render_component(item.template_type, item=item) }}{% endfor %}
+        <div class="{% if grid_cols|default(1) == 2 %}grid-2{% elif grid_cols|default(1) >= 3 %}grid-3{% else %}list-container{% endif %}">
+            {% for item in items|default([]) %}{{ item.rendered_html | safe }}{% endfor %}
         </div>
         {% endif %}
         {% if actions|default([]) %}
@@ -495,156 +476,5 @@ body {
     </div>
     <span class="service-date">{{ item.date }}</span>
 </div>"""
-
-    SERVICE_SECTION_TEMPLATE = """<section class="content-section service-section">
-    <div class="container">
-        <header class="section-header">
-            <h2>{{ title }}</h2>
-            {% if subtitle is defined and subtitle %}<p class="section-subtitle">{{ subtitle }}</p>{% endif %}
-        </header>
-        
-        {# Check if items is structured (new format) or list (old format) #}
-        {% if items.leadership_items is defined %}
-        
-        {# New structured format - Leadership & Editorial Section #}
-        {% if items.leadership_items %}
-        <h3 class="service-section-title">Leadership & Editorial</h3>
-        {% for item in items.leadership_items %}
-        <div class="service-item leadership-item">
-            <div class="service-content">
-                <div class="service-title">
-                    {% if item.url %}<a href="{{ item.url }}" target="_blank" rel="noopener" class="service-link">{{ item.description }}</a>{% else %}{{ item.description }}{% endif %}{% if item.venue %} · <em class="service-venue">{{ item.venue }}</em>{% endif %}
-                </div>
-                {% if item.subtitle %}<div class="service-subtitle">{{ item.subtitle }}</div>{% endif %}
-            </div>
-            <span class="service-date">{{ item.date }}</span>
-        </div>
-        {% endfor %}
-        {% endif %}
-        
-        {# Peer Review Section #}
-        {% if items.review_groups %}
-        <h3 class="service-section-title">Peer Review</h3>
-        
-        {# Render each role group #}
-        {% for role, role_items in items.review_groups.items() %}
-        <div class="service-group">
-            <div class="service-group-header">
-                <span class="service-role">{{ role }}:</span>
-                <div class="service-tags">
-                    {% for item in role_items %}
-                    <span class="service-tag{% if item.highlight %} service-tag-highlight{% endif %}">
-                        <span class="service-venue">{{ item.venue }}</span>
-                        {% if item.highlight %}<span class="service-highlight">{{ item.highlight|title }}</span>{% endif %}
-                        <span class="service-date">{{ item.date }}</span>
-                    </span>
-                    {% endfor %}
-                </div>
-            </div>
-        </div>
-        {% endfor %}
-        {% endif %}
-        
-        {% else %}
-        
-        {# Fallback to simple list format #}
-        <div class="service-list">
-            {% for item in items %}
-            <div class="service-item">
-                <div class="service-content">
-                    <div class="service-title">
-                        {% if item.url %}<a href="{{ item.url }}" target="_blank" rel="noopener" class="service-link">{{ item.description }}</a>{% else %}{{ item.description }}{% endif %}{% if item.venue %} · <em class="service-venue">{{ item.venue }}</em>{% endif %}
-                    </div>
-                    {% if item.subtitle %}<div class="service-subtitle">{{ item.subtitle }}</div>{% endif %}
-                </div>
-                <span class="service-date">{{ item.date }}</span>
-            </div>
-            {% endfor %}
-        </div>
-        
-        {% endif %}
-    </div>
-</section>"""
-
-    SERVICE_SECTION_HEADER_TEMPLATE = """<h3 class="service-section-title">{{ title }}</h3>"""
-
-    SERVICE_GROUP_TEMPLATE = """<div class="service-group">
-    <div class="service-group-header">
-        <span class="service-role">{{ title }}:</span>
-        <div class="service-tags">
-            {% for venue in venues %}
-            <span class="service-tag{% if venue.highlight %} service-tag-highlight{% endif %}">
-                <span class="service-venue">{{ venue.venue }}</span>
-                {% if venue.highlight %}<span class="service-highlight">{{ venue.highlight|title }}</span>{% endif %}
-                <span class="service-date">{{ venue.date }}</span>
-            </span>
-            {% endfor %}
-        </div>
-    </div>
-</div>"""
-
-    SEO_HEAD_TEMPLATE = """<!-- Enhanced SEO Meta Tags -->
-{% if canonical_url is defined and canonical_url %}<link rel="canonical" href="{{ canonical_url }}">{% endif %}
-<meta property="og:title" content="{% if page_title %}{{ page_title }} · {% endif %}{{ author_name }}">
-<meta property="og:description" content="{% if meta_description is defined and meta_description %}{{ meta_description }}{% else %}{{ site_description }}{% endif %}">
-<meta property="og:type" content="website">
-{% if canonical_url is defined and canonical_url %}<meta property="og:url" content="{{ canonical_url }}">{% endif %}
-{% if og_image is defined and og_image %}<meta property="og:image" content="{{ og_image }}">{% endif %}
-<meta name="twitter:card" content="{{ site_seo.twitter_card_type }}">
-<meta name="twitter:title" content="{% if page_title %}{{ page_title }} · {% endif %}{{ author_name }}">
-<meta name="twitter:description" content="{% if meta_description is defined and meta_description %}{{ meta_description }}{% else %}{{ site_description }}{% endif %}">
-{% if canonical_url is defined and canonical_url %}<meta name="twitter:url" content="{{ canonical_url }}">{% endif %}
-{% if og_image is defined and og_image %}<meta name="twitter:image" content="{{ og_image }}">{% endif %}
-{% if author and author.twitter %}
-<meta name="twitter:creator" content="@{{ author.twitter.split('/')[-1] }}">
-{% endif %}
-{% if structured_data is defined and structured_data %}
-<script type="application/ld+json">
-{{ structured_data | safe }}
-</script>
-{% endif %}"""
-
-    # MathJax template component (parity with Tailwind)
-    MATHJAX_TEMPLATE = """<!-- MathJax for LaTeX math rendering -->
-{% if mathjax_config.version == "2" %}
-    <!-- MathJax v2 Configuration -->
-    <script type="text/x-mathjax-config">
-        MathJax.Hub.Config({
-            tex2jax: {
-                inlineMath: {{ mathjax_config.inline_math | tojson }},
-                displayMath: {{ mathjax_config.display_math | tojson }},
-                processEscapes: {{ mathjax_config.process_escapes | lower }},
-                processEnvironments: {{ mathjax_config.process_environments | lower }},
-                skipTags: {{ mathjax_config.skip_html_tags | tojson }},
-                ignoreClass: "{{ mathjax_config.ignore_html_class }}",
-                processClass: "{{ mathjax_config.process_html_class }}"
-            },
-            TeX: {
-                extensions: {{ mathjax_config.extensions | tojson }}
-            }
-        });
-    </script>
-    <script src="{% if mathjax_config.cdn_url %}{{ mathjax_config.cdn_url }}{% else %}https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/MathJax.js?config=TeX-MML-AM_CHTML{% endif %}"></script>
-{% else %}
-    <!-- MathJax v3 Configuration -->
-    <script>
-        MathJax = {
-            tex: {
-                inlineMath: {{ mathjax_config.inline_math | tojson }},
-                displayMath: {{ mathjax_config.display_math | tojson }},
-                processEscapes: {{ mathjax_config.process_escapes | lower }},
-                processEnvironments: {{ mathjax_config.process_environments | lower }},
-                packages: {{ mathjax_config.extensions | tojson }}
-            },
-            options: {
-                skipHtmlTags: {{ mathjax_config.skip_html_tags | tojson }},
-                ignoreHtmlClass: '{{ mathjax_config.ignore_html_class }}',
-                processHtmlClass: '{{ mathjax_config.process_html_class }}'
-            }
-        };
-    </script>
-    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
-    <script id="MathJax-script" async src="{% if mathjax_config.cdn_url %}{{ mathjax_config.cdn_url }}{% else %}https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js{% endif %}"></script>
-{% endif %}"""
 
     # CSS is now external - see css/theme.css

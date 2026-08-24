@@ -198,34 +198,40 @@ class SiteBuilder:
                 intro=host.config.research_areas.description,
             )
 
-        if (
-            host.content.blog_posts
-            and host.config.site.blog_folder
-            and host._is_requested_page("blog", "updates")
-        ):
-            host._prepare_blog_routes()
-            host._build_list_page(
-                host.config.site.blog_label,
-                host._route_for("blog"),
-                host.content.blog_posts,
-                "blog_post_item",
-                2,
-                host.effective_base_url,
-                seo_generator=seo_generator,
-                page_type=(
-                    "updates" if host.site_type == "group" else "blog"
-                ),
-                intro=host.config.site.blog_description,
-                meta_description=(
-                    host.config.site.blog_meta_description
-                    or host.config.site.blog_description
-                ),
-            )
-            host._build_blog_post_pages(
-                host.content.blog_posts,
-                host.effective_base_url,
-                seo_generator,
-            )
+        # Homepage sections sourced from the blog link to individual posts,
+        # so post pages must exist even when navigation omits the blog.
+        homepage_links_posts = any(
+            getattr(section, "source", None) in {"blog", "updates"}
+            for section in (host.config.homepage_sections or [])
+        )
+        if host.content.blog_posts and host.config.site.blog_folder:
+            blog_in_nav = host._is_requested_page("blog", "updates")
+            if blog_in_nav or homepage_links_posts:
+                host._prepare_blog_routes()
+            if blog_in_nav:
+                host._build_list_page(
+                    host.config.site.blog_label,
+                    host._route_for("blog"),
+                    host.content.blog_posts,
+                    "blog_post_item",
+                    2,
+                    host.effective_base_url,
+                    seo_generator=seo_generator,
+                    page_type=(
+                        "updates" if host.site_type == "group" else "blog"
+                    ),
+                    intro=host.config.site.blog_description,
+                    meta_description=(
+                        host.config.site.blog_meta_description
+                        or host.config.site.blog_description
+                    ),
+                )
+            if blog_in_nav or homepage_links_posts:
+                host._build_blog_post_pages(
+                    host.content.blog_posts,
+                    host.effective_base_url,
+                    seo_generator,
+                )
 
         host._build_pages(host.effective_base_url, seo_generator)
         print("🗺️ Generating sitemap...")

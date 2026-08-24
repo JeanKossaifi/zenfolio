@@ -130,10 +130,16 @@ class LocalTheme(BaseTheme):
                 else ""
             )
             if recorded_hash != current_hash:
-                raise RuntimeError(
-                    f"Compiled theme CSS is stale: {compiled_css}. "
-                    "Run 'npm run build' in the local theme directory."
-                )
+                # theme.css newer than input.css means the CSS was rebuilt;
+                # refresh the record ourselves — nothing else writes it.
+                if compiled_css.stat().st_mtime >= source_css.stat().st_mtime:
+                    hash_path.write_text(current_hash + "\n", encoding="utf-8")
+                else:
+                    raise RuntimeError(
+                        f"Compiled theme CSS is stale: {compiled_css}. "
+                        "Run 'npm run build' in the local theme directory "
+                        f"(zenfolio then refreshes {hash_path.name})."
+                    )
 
     def write_js_file(self, output_dir: Path):
         # CSS writing copies the complete deterministic asset overlay.

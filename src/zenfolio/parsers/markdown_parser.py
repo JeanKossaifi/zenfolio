@@ -1,7 +1,7 @@
 """
 Markdown parser for content files, powered by the python-frontmatter library.
-v3.1 - Added math protection to prevent markdown from breaking LaTeX equations.
-       Implements ContentParser protocol for extensible parsing system.
+Provides LaTeX math protection so markdown does not mangle equations.
+Implements the ContentParser protocol.
 """
 
 from pathlib import Path
@@ -10,6 +10,7 @@ import frontmatter
 import textwrap
 import re
 from .base_parser import ContentParser
+from ..utils import content_date_key
 
 
 # =============================================================================
@@ -31,20 +32,43 @@ def protect_math_blocks(content: str) -> Tuple[str, List[str]]:
         Tuple of (protected_content, extracted_math_blocks)
     """
     math_blocks = []
-    
+
     def save_math(match):
         """Save math block and return placeholder."""
         math_blocks.append(match.group(0))
         # Use HTML comment as placeholder - markdown won't touch it
         return f"<!--MATHBLOCK{len(math_blocks)-1}-->"
-    
+
+    # Shield code fences and inline code spans first: `$$ ... $$` inside a
+    # code block is code, not math, and extracting it would leave an
+    # unrestorable placeholder in the rendered output.
+    code_spans = []
+
+    def save_code(match):
+        code_spans.append(match.group(0))
+        return f"\x00CODESPAN{len(code_spans)-1}\x00"
+
+    content = re.sub(r'^(`{3,}|~{3,}).*?^\1[ \t]*$', save_code, content,
+                     flags=re.DOTALL | re.MULTILINE)
+    content = re.sub(r'`[^`\n]+`', save_code, content)
+
     # Extract math in order: display math first (longer), then inline
     # Use DOTALL to handle multi-line equations
     # In raw strings, r'\(' matches literal backslash-paren in the text
     content = re.sub(r'\\\[.*?\\\]', save_math, content, flags=re.DOTALL)  # Display: \[...\]
-    content = re.sub(r'\$\$.*?\$\$', save_math, content, flags=re.DOTALL)   # Display: $$...$$  
+    content = re.sub(r'\$\$.*?\$\$', save_math, content, flags=re.DOTALL)   # Display: $$...$$
     content = re.sub(r'\\\(.*?\\\)', save_math, content, flags=re.DOTALL)   # Inline: \(...\)
-    
+
+    # Put code back before markdown runs so fences render normally. A code
+    # placeholder can also end up INSIDE a captured math block (e.g. a
+    # backtick span between $$ delimiters), so restore those too.
+    for i, span in enumerate(code_spans):
+        placeholder = f"\x00CODESPAN{i}\x00"
+        content = content.replace(placeholder, span)
+        math_blocks[:] = [
+            block.replace(placeholder, span) for block in math_blocks
+        ]
+
     return content, math_blocks
 
 
@@ -121,7 +145,10 @@ class MarkdownParser(ContentParser):
             return {}
         
         try:
-            post = frontmatter.load(file_path)
+            # utf-8-sig strips a UTF-8 BOM, which would otherwise defeat
+            # frontmatter detection and leak the YAML block into the page.
+            with open(file_path, 'r', encoding='utf-8-sig') as fh:
+                post = frontmatter.load(fh)
             metadata = post.metadata.copy() if post.metadata else {}
             
             # For all files, return standard format
@@ -157,9 +184,8 @@ class MarkdownParser(ContentParser):
                     items.append(parsed_data)
         
         # Sort by date if available, descending
-        try:
-            items.sort(key=lambda x: x['metadata'].get('date', ''), reverse=True)
-        except TypeError:
-            pass # Handle cases where dates might not be comparable
-            
+        items.sort(
+            key=lambda x: content_date_key(x['metadata'].get('date', '')),
+            reverse=True,
+        )
         return items

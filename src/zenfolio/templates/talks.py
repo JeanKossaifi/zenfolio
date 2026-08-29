@@ -7,6 +7,8 @@ from zenfolio.models import TalksConfig, TalkItem
 # Simple strings for paths - ZenFolio handles smart resolution
 
 talks_config = TalksConfig(
+    # Cache missing YouTube thumbnails during `zenfolio build`.
+    cache_video_thumbnails=True,
     items=[
         TalkItem(
             title="Your Talk Title",

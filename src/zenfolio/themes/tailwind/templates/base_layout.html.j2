@@ -11,11 +11,18 @@
     <meta property="og:description" content="{{ social_description or meta_description or site_description }}">
     <meta property="og:type" content="website">
     {% if canonical_url %}<meta property="og:url" content="{{ canonical_url }}">{% endif %}
-    {% if og_image %}<meta property="og:image" content="{{ og_image }}">{% endif %}
+    {% if og_image %}
+    <meta property="og:image" content="{{ og_image }}">
+    {% if og_image_type %}<meta property="og:image:type" content="{{ og_image_type }}">{% endif %}
+    {% if og_image_width %}<meta property="og:image:width" content="{{ og_image_width }}">{% endif %}
+    {% if og_image_height %}<meta property="og:image:height" content="{{ og_image_height }}">{% endif %}
+    {% if og_image_alt %}<meta property="og:image:alt" content="{{ og_image_alt }}">{% endif %}
+    {% endif %}
     <meta name="twitter:card" content="{{ site_seo.twitter_card_type }}">
     <meta name="twitter:title" content="{{ social_title or page_title }}">
     <meta name="twitter:description" content="{{ social_description or meta_description or site_description }}">
     {% if og_image %}<meta name="twitter:image" content="{{ og_image }}">{% endif %}
+    {% if og_image_alt %}<meta name="twitter:image:alt" content="{{ og_image_alt }}">{% endif %}
     {% if canonical_url %}<link rel="canonical" href="{{ canonical_url }}">{% endif %}
     {% if structured_data %}
     <script type="application/ld+json">{{ structured_data | safe }}</script>

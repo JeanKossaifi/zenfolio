@@ -2,6 +2,7 @@
 
 from typing import Any, Protocol
 
+from .media_assets import prepare_talk_thumbnails
 from .models.site_config import AuthorConfig
 from .seo_utils import SEOGenerator
 
@@ -12,6 +13,7 @@ class SiteBuildHost(Protocol):
     site_type: str
     content: Any
     theme: Any
+    content_dir: Any
     output_dir: Any
     output_manager: Any
     generated_routes: set
@@ -48,6 +50,7 @@ class SiteBuilder:
         host.seo_pages.clear()
 
         host.content.load()
+        prepare_talk_thumbnails(host.content_dir, host.config.talks)
         host._configure_navigation()
         host._sync_output_manager()
         host.output_manager.prepare(host.theme)

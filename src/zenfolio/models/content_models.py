@@ -92,6 +92,7 @@ class TalkItem(ConfigBase):
     link: Optional[str] = None      # e.g., "https://conference.com/talk" - event/talk page link
     website: Optional[str] = None   # Backward-compatible event website alias
     archive_url: Optional[str] = None  # Preserved copy of a retired event page
+    thumbnail: Optional[str] = None  # Local image, or a build-cached video thumbnail
     
     template_name: str = "talk_item"
 
@@ -170,6 +171,7 @@ class TalksConfig(ConfigBase):
     title: str = "Talks"
     description: str = ""
     route: Optional[str] = None
+    cache_video_thumbnails: bool = False
 
 
 class PeopleConfig(ConfigBase):

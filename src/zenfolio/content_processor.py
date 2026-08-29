@@ -196,6 +196,7 @@ class ContentProcessor:
             "hero_media",
             "social_image",
             "photo_path",
+            "thumbnail",
         }
         link_fields = {
             "paper",

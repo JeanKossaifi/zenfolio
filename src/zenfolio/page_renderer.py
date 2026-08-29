@@ -56,6 +56,22 @@ class PageRenderer:
         self.seo_pages = seo_pages
         self.generated_routes = generated_routes
 
+    @staticmethod
+    def _route_social_image(route: str) -> str:
+        """Return the conventional generated-card path for a public route."""
+        clean_route = normalize_route(route).split("#", 1)[0].strip("/")
+        if clean_route.endswith(".html"):
+            clean_route = clean_route[:-5]
+        if not clean_route:
+            return "social-card.png"
+        return f"images/social/{clean_route}.png"
+
+    def _generated_social_image(self, route: str) -> Optional[str]:
+        candidate = self._route_social_image(route)
+        if (self.output_dir / "static" / candidate).is_file():
+            return candidate
+        return None
+
     def render_and_write(
         self,
         filename: str,
@@ -126,8 +142,10 @@ class PageRenderer:
                 )
 
             content_image = item_data.get("image")
+            generated_image = self._generated_social_image(route)
             image = (
                 item_data.get("social_image")
+                or generated_image
                 or content_image
                 or self.config.site.social_image
                 or self.config.site.seo.custom_og_image
@@ -144,6 +162,18 @@ class PageRenderer:
                     item_data.get("social_image_height")
                     or item_data.get("image_height")
                 )
+                if image == generated_image:
+                    image_width = self.config.site.social_image_width
+                    image_height = self.config.site.social_image_height
+                    identity_name = getattr(self.identity, "name", "")
+                    seo_context["og_image_alt"] = (
+                        item_data.get("social_image_alt")
+                        or " — ".join(
+                            value
+                            for value in (page_title, identity_name)
+                            if value
+                        )
+                    )
                 if image == self.config.site.social_image:
                     image_width = (
                         image_width or self.config.site.social_image_width

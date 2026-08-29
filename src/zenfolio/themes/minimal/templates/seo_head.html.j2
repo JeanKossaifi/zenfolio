@@ -15,6 +15,10 @@
 {% endif %}
 {% if og_image|default(false) %}
 <meta property="og:image" content="{{ og_image }}">
+{% if og_image_type|default(false) %}<meta property="og:image:type" content="{{ og_image_type }}">{% endif %}
+{% if og_image_width|default(false) %}<meta property="og:image:width" content="{{ og_image_width }}">{% endif %}
+{% if og_image_height|default(false) %}<meta property="og:image:height" content="{{ og_image_height }}">{% endif %}
+{% if og_image_alt|default(false) %}<meta property="og:image:alt" content="{{ og_image_alt }}">{% endif %}
 {% endif %}
 
 {# Twitter Card meta tags #}
@@ -23,6 +27,7 @@
 <meta name="twitter:description" content="{{ meta_description|default(site_description, true) }}">
 {% if og_image|default(false) %}
 <meta name="twitter:image" content="{{ og_image }}">
+{% if og_image_alt|default(false) %}<meta name="twitter:image:alt" content="{{ og_image_alt }}">{% endif %}
 {% endif %}
 
 {# Canonical URL #}

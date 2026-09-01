@@ -16,6 +16,7 @@ class Link(ConfigBase):
 
 class NewsItem(ConfigBase):
     """News entry with optional links as direct attributes"""
+    # Prefer ISO precision: YYYY, YYYY-MM, or YYYY-MM-DD.
     date: str
     content: str
     highlight: bool = False
@@ -79,6 +80,8 @@ class ProjectItem(ConfigBase):
 class TalkItem(ConfigBase):
     """Talk/presentation entry with optional links as direct attributes"""
     title: str
+    # Prefer ISO precision: YYYY, YYYY-MM, or YYYY-MM-DD. Common readable
+    # English forms remain accepted by the renderer and collection sorter.
     date: str = ""
     venue: str = ""
     type: str = ""  # Keynote, Tutorial, Panel, etc.

@@ -7,7 +7,12 @@ from typing import Any, Dict, List, Optional
 import markdown
 
 from .serialization import as_dict
-from .utils import build_url, is_external_url
+from .utils import (
+    build_url,
+    format_content_date,
+    is_external_url,
+    normalize_content_date,
+)
 
 
 class ContentProcessor:
@@ -82,6 +87,36 @@ class ContentProcessor:
             if "content" in item_dict and "content_raw" not in item_dict:
                 item_dict["content_raw"] = item_dict["content"]
             self.resolve_item_paths(item_dict)
+            if item_dict.get("date"):
+                item_dict["date_iso"] = normalize_content_date(
+                    item_dict["date"]
+                )
+                item_dict["date_display"] = format_content_date(
+                    item_dict["date"]
+                )
+                item_dict["date_short"] = format_content_date(
+                    item_dict["date"], abbreviated=True
+                )
+                if (
+                    not item_dict["date_iso"]
+                    and item_type
+                    in {
+                        "blog_post_item",
+                        "news_item",
+                        "talk_item",
+                        "updates_talk_item",
+                    }
+                ):
+                    label = (
+                        item_dict.get("title")
+                        or item_dict.get("content_raw")
+                        or item_type
+                    )
+                    print(
+                        "⚠️  Warning: Could not parse date "
+                        f"{item_dict['date']!r} for {str(label)[:60]!r}. "
+                        "Prefer YYYY, YYYY-MM, or YYYY-MM-DD."
+                    )
 
             content_type = item_dict.get("content_type", item_type)
             skip_content = (

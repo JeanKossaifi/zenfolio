@@ -1,12 +1,11 @@
 """Aggregate, blog, team, and standalone page builders."""
 
-from datetime import datetime
 from pathlib import Path
 import re
 from typing import Any, Dict, List, Optional, Protocol, Tuple
 
 from .serialization import as_dict
-from .utils import join_route, normalize_route
+from .utils import content_date_key, join_route, normalize_route
 
 
 class CollectionHost(Protocol):
@@ -51,20 +50,8 @@ class CollectionBuilder:
         self.host = host
 
     @staticmethod
-    def _dated_item_sort_key(item: Dict[str, Any]) -> datetime:
-        value = str(item.get("date", "")).strip()
-        for date_format in (
-            "%Y-%m-%d",
-            "%d %B %Y",
-            "%B %Y",
-            "%b %Y",
-            "%Y",
-        ):
-            try:
-                return datetime.strptime(value, date_format)
-            except ValueError:
-                continue
-        return datetime.min
+    def _dated_item_sort_key(item: Dict[str, Any]):
+        return content_date_key(item.get("date", ""))
 
     def build_list_page(
         self,

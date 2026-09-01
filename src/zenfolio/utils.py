@@ -145,28 +145,98 @@ DEFAULT_MARKDOWN_EXTENSIONS = [
 ]
 
 
-def content_date_key(value):
-    """Sort key that tolerates mixed date types in frontmatter.
+def normalize_content_date(value) -> str:
+    """Return an unambiguous date as ISO text, preserving its precision.
 
-    YAML parses unquoted dates into date/datetime objects while quoted ones
-    stay strings, so naive comparison raises TypeError and silently disables
-    sorting. Normalize everything to (comparable-bucket, iso-string).
+    Content files commonly mix ISO dates with readable English dates. Accept
+    year, month, and day precision, but deliberately reject ambiguous numeric
+    forms such as ``03/04/2026``.
     """
     from datetime import date, datetime
 
     if isinstance(value, datetime):
-        return (1, value.date().isoformat())
+        return value.date().isoformat()
     if isinstance(value, date):
-        return (1, value.isoformat())
+        return value.isoformat()
+
     text = str(value or "").strip()
+    if not text:
+        return ""
+
     if re.fullmatch(r"\d{4}", text):
-        text = f"{text}-01-01"
-    elif re.fullmatch(r"\d{4}-\d{2}", text):
-        text = f"{text}-01"
+        return text
+    if re.fullmatch(r"\d{4}-\d{2}", text):
+        try:
+            return datetime.strptime(text, "%Y-%m").strftime("%Y-%m")
+        except ValueError:
+            return ""
+
     try:
-        normalized = (
-            datetime.fromisoformat(text.replace("Z", "+00:00")).date().isoformat()
-        )
-        return (1, normalized)
+        return datetime.fromisoformat(
+            text.replace("Z", "+00:00")
+        ).date().isoformat()
     except ValueError:
+        pass
+
+    # Ordinal suffixes are readable and unambiguous ("March 9th, 2026").
+    human_text = re.sub(
+        r"(?<=\d)(?:st|nd|rd|th)(?=,|\s|$)",
+        "",
+        text,
+        flags=re.IGNORECASE,
+    )
+    day_formats = (
+        "%B %d, %Y",
+        "%b %d, %Y",
+        "%B %d %Y",
+        "%b %d %Y",
+        "%d %B %Y",
+        "%d %b %Y",
+    )
+    for date_format in day_formats:
+        try:
+            return datetime.strptime(human_text, date_format).date().isoformat()
+        except ValueError:
+            continue
+
+    for date_format in ("%B %Y", "%b %Y"):
+        try:
+            return datetime.strptime(human_text, date_format).strftime("%Y-%m")
+        except ValueError:
+            continue
+    return ""
+
+
+def format_content_date(value, abbreviated: bool = False) -> str:
+    """Format any supported content date consistently for display."""
+    from datetime import datetime
+
+    normalized = normalize_content_date(value)
+    if not normalized:
+        return str(value or "").strip()
+    if len(normalized) == 4:
+        return normalized
+    if len(normalized) == 7:
+        parsed = datetime.strptime(normalized, "%Y-%m")
+        month = parsed.strftime("%b" if abbreviated else "%B")
+        return f"{month} {parsed.year}"
+
+    parsed = datetime.strptime(normalized, "%Y-%m-%d")
+    month = parsed.strftime("%b" if abbreviated else "%B")
+    return f"{month} {parsed.day}, {parsed.year}"
+
+
+def content_date_key(value):
+    """Return a stable sort key for supported dates of mixed precision.
+
+    Unknown months and days sort at the beginning of their known period.
+    Unrecognized values remain deterministic but sort after valid dates.
+    """
+    normalized = normalize_content_date(value)
+    if not normalized:
         return (0, str(value or "").strip())
+    if len(normalized) == 4:
+        normalized = f"{normalized}-01-01"
+    elif len(normalized) == 7:
+        normalized = f"{normalized}-01"
+    return (1, normalized)

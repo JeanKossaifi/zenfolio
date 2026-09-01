@@ -12,7 +12,8 @@ talks_config = TalksConfig(
     items=[
         TalkItem(
             title="Your Talk Title",
-            date="Month YYYY",
+            # Prefer ISO: YYYY, YYYY-MM, or YYYY-MM-DD.
+            date="2026-05-05",
             venue="Conference/Workshop Name",
             type="Keynote",  # e.g., "Keynote", "Tutorial", "Panel", "Invited Talk"
             description="Brief description of your talk.",
@@ -24,7 +25,7 @@ talks_config = TalksConfig(
         ),
         TalkItem(
             title="Another Talk",
-            date="Earlier Month YYYY",
+            date="2025-11",
             venue="Workshop Name",
             type="Invited Talk",
             description="Description of another presentation.",

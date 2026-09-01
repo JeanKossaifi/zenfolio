@@ -420,12 +420,43 @@ def test_merge_talks_renders_on_stock_theme(tmp_path):
     assert "News one" in html and "My Talk" in html
 
 
+def test_merge_talks_sorts_readable_full_dates(tmp_path):
+    """Month-first talk dates must not fall behind the oldest update."""
+    content = _write_personal_config(
+        tmp_path / "site",
+        extra=(
+            "news=NewsConfig(merge_talks=True, items=["
+            "NewsItem(date='April 2026', content='April news')]),\n"
+            "    talks=TalksConfig(items=["
+            "TalkItem(title='May talk', date='May 5, 2026'), "
+            "TalkItem(title='March talk', date='March 9, 2026')]),"
+        ),
+        theme="tailwind",
+    )
+    site = ZenFolio(content_dir=content)
+    site.build(base_url="")
+    news = site.output_dir / "news" / "index.html"
+    if not news.exists():
+        news = site.output_dir / "news.html"
+    html = news.read_text(encoding="utf-8")
+    assert html.index("May talk") < html.index("April news")
+    assert html.index("April news") < html.index("March talk")
+
+
 def test_content_date_key_handles_partial_dates():
-    from zenfolio.utils import content_date_key
+    from zenfolio.utils import (
+        content_date_key,
+        format_content_date,
+        normalize_content_date,
+    )
 
     assert content_date_key("2024") == (1, "2024-01-01")
     assert content_date_key("2024-03") == (1, "2024-03-01")
-    assert content_date_key("March 5, 2024")[0] == 0  # unparsable stays text
+    assert content_date_key("March 5, 2024") == (1, "2024-03-05")
+    assert content_date_key("5 March 2024") == (1, "2024-03-05")
+    assert normalize_content_date("March 5th, 2024") == "2024-03-05"
+    assert format_content_date("2024-03-05", abbreviated=True) == "Mar 5, 2024"
+    assert content_date_key("03/05/2024")[0] == 0
 
 
 def test_normalize_route_collapses_double_slashes():

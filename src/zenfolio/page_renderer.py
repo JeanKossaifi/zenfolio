@@ -148,7 +148,6 @@ class PageRenderer:
                 or generated_image
                 or content_image
                 or self.config.site.social_image
-                or self.config.site.seo.custom_og_image
                 or getattr(self.identity, "logo", None)
                 or getattr(self.identity, "image", None)
                 or getattr(self.identity, "photo_path", None)

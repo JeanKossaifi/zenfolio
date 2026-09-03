@@ -1,3 +1,4 @@
+{% set affiliation_name = item.affiliation.name if item.affiliation and item.affiliation.name is defined else item.affiliation %}
 <section class="relative pt-40 pb-24 sm:pt-48 sm:pb-32">
     <div class="max-w-7xl mx-auto px-6 lg:px-8">
         <div class="grid grid-cols-1 lg:grid-cols-5 gap-12 lg:gap-16 items-center">
@@ -8,7 +9,7 @@
                             {{ item.name }}
                         </h1>
                         <p class="text-lg text-gray-600 dark:text-gray-400 font-medium">
-                            {{ item.title }}{% if item.affiliation %}, {{ item.affiliation }}{% endif %}
+                            {{ item.title }}{% if affiliation_name %}, {{ affiliation_name }}{% endif %}
                         </p>
                     </div>
                     {% if item.tagline %}

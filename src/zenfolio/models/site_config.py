@@ -95,12 +95,21 @@ class IdentityConfig(ConfigBase):
     email: Optional[str] = None
 
 
+class OrganizationRef(ConfigBase):
+    """One authoritative reference to an organization."""
+
+    name: str = ""
+    url: Optional[str] = None
+
+
 class AuthorConfig(IdentityConfig):
     """Personal-site identity. Existing fields remain source compatible."""
 
     name: str = "Your Name"
     title: str = "Your Title"
-    affiliation: str = "Your Institution"
+    affiliation: Union[str, OrganizationRef] = "Your Institution"
+    employer: Optional[Union[str, OrganizationRef]] = None
+    alumni_of: List[OrganizationRef] = []
     email: Optional[str] = "your.email@example.com"
     tagline: str = "Your research focus and mission statement"
     interests: List[str] = [
@@ -114,7 +123,7 @@ class AuthorConfig(IdentityConfig):
     scholar: str = ""
     linkedin: str = ""
     twitter: str = ""
-    profile_url: Optional[str] = None
+    same_as: List[str] = []
     orcid: Optional[str] = None
     photo_path: str = "profile.jpg"
     photo_width: Optional[int] = None
@@ -182,13 +191,8 @@ class MathJaxConfig(ConfigBase):
 
 
 class SEOConfig(ConfigBase):
-    """SEO and structured-data overrides."""
+    """Advanced crawler and structured-data controls."""
 
-    alumni_of: Optional[str] = None
-    custom_og_image: Optional[str] = None
-    custom_knowledge_areas: Optional[List[str]] = None
-    custom_publisher_name: Optional[str] = None
-    custom_publisher_logo: Optional[str] = None
     twitter_card_type: str = "summary_large_image"
     disable_structured_data: bool = False
     robots_meta: str = "index, follow"
@@ -197,9 +201,13 @@ class SEOConfig(ConfigBase):
 class SiteConfig(ConfigBase):
     """Site-wide metadata and collection labels."""
 
+    # Preferred web-search result title and snippet. Search engines can rewrite
+    # either for a specific query.
     title: str = "Your Name - Your Title"
     description: str = "Personal website of [Your Name]"
+    # Canonical public origin used by search engines to consolidate URLs.
     base_url: str = "https://yourdomain.com"
+    # Social/link previews default to the search title and description.
     social_title: Optional[str] = None
     social_description: Optional[str] = None
     social_image: Optional[str] = None

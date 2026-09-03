@@ -4,6 +4,8 @@ from zenfolio.models import (
     AuthorConfig,
     Config,
     GroupConfig,
+    OrganizationRef,
+    PublicationConfig,
     SEOConfig,
     SiteConfig,
     TeamMember,
@@ -45,9 +47,22 @@ def test_group_identity_emits_organization_schema():
 
 def test_person_identity_emits_profile_page_with_person_schema():
     identity = AuthorConfig(
-        name="Ada",
-        affiliation="Institute",
-        profile_url="https://institute.example.test/ada",
+        name="Ada Lovelace",
+        affiliation=OrganizationRef(
+            name="Institute",
+            url="https://institute.example.test",
+        ),
+        alumni_of=[
+            OrganizationRef(
+                name="University",
+                url="https://university.example.test",
+            )
+        ],
+        same_as=["https://institute.example.test/ada"],
+        orcid="0000-0000-0000-0001",
+        photo_path="ada.jpg",
+        photo_width=800,
+        photo_height=1000,
     )
     config = Config(author=identity)
     generator = SEOGenerator(
@@ -58,12 +73,34 @@ def test_person_identity_emits_profile_page_with_person_schema():
     )
 
     schema = json.loads(generator.generate_identity_schema())
-    assert schema["@type"] == "ProfilePage"
-    assert schema["mainEntity"]["@type"] == "Person"
-    assert schema["mainEntity"]["@id"] == "https://ada.example.test/#person"
+    nodes = {
+        node["@id"]: node
+        for node in schema["@graph"]
+        if node.get("@id")
+    }
+    person = nodes["https://ada.example.test/#person"]
+    profile = nodes["https://ada.example.test/#profile"]
+    website = nodes["https://ada.example.test/#website"]
+
+    assert profile["@type"] == "ProfilePage"
+    assert profile["mainEntity"]["@id"] == person["@id"]
+    assert website["@type"] == "WebSite"
+    assert website["name"] == "Ada Lovelace"
+    assert person["affiliation"]["@id"] == (
+        "https://institute.example.test/#organization"
+    )
+    assert person["identifier"] == {
+        "@type": "PropertyValue",
+        "propertyID": "ORCID",
+        "value": "0000-0000-0000-0001",
+        "url": "https://orcid.org/0000-0000-0000-0001",
+    }
+    assert person["image"]["@id"] == (
+        "https://ada.example.test/#primaryimage"
+    )
     assert (
         "https://institute.example.test/ada"
-        in schema["mainEntity"]["sameAs"]
+        in person["sameAs"]
     )
 
 
@@ -149,6 +186,42 @@ def test_blog_schema_links_author_and_tracks_modification_date():
 
     assert schema["dateModified"] == "2026-08-18"
     assert schema["author"]["@id"] == "https://ada.example.test/#person"
+
+
+def test_publication_schema_links_identity_author_to_person():
+    identity = AuthorConfig(
+        name="Jean Kossaifi",
+    )
+    config = Config(
+        author=identity,
+        publications=PublicationConfig(
+            highlight_author=["Kossaifi", "J. Kossaifi"]
+        ),
+    )
+    generator = SEOGenerator(
+        config,
+        "https://jeankossaifi.com",
+        identity=identity,
+    )
+
+    schema = json.loads(
+        generator.generate_scholarly_article_schema(
+            {
+                "title": "Paper",
+                "authors": ["J. Kossaifi", "Ada Lovelace"],
+                "year": "2026",
+            }
+        )
+    )
+
+    assert schema["author"][0]["@id"] == (
+        "https://jeankossaifi.com/#person"
+    )
+    assert schema["author"][0]["name"] == "Jean Kossaifi"
+    assert schema["author"][1] == {
+        "@type": "Person",
+        "name": "Ada Lovelace",
+    }
 
 
 def test_collection_schema_wraps_items_in_an_item_list():

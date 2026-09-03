@@ -2,6 +2,7 @@
 
 import json
 import re
+import unicodedata
 from html import escape, unescape
 from typing import Any, Dict, List, Optional
 
@@ -73,6 +74,34 @@ class SEOGenerator:
             )
         return reference
 
+    @staticmethod
+    def _normalized_person_name(value: Any) -> str:
+        text = unicodedata.normalize(
+            "NFKD", unescape(str(value or ""))
+        ).casefold()
+        return "".join(character for character in text if character.isalnum())
+
+    def _identity_name_aliases(self) -> set:
+        identity = self.identity
+        candidates = [identity.name]
+        highlighted = getattr(
+            getattr(self.config, "publications", None),
+            "highlight_author",
+            None,
+        )
+        if isinstance(highlighted, str):
+            highlighted = [highlighted]
+        for candidate in highlighted or []:
+            # A surname alone is suitable for visual highlighting but is too
+            # broad to assert that a scholarly author is this Person entity.
+            if len(re.findall(r"[A-Za-z]+", str(candidate))) > 1:
+                candidates.append(candidate)
+        return {
+            self._normalized_person_name(candidate)
+            for candidate in candidates
+            if candidate
+        }
+
     def generate_identity_schema(self, people: Optional[List[Any]] = None) -> str:
         """Generate homepage JSON-LD for the configured identity."""
 
@@ -86,55 +115,167 @@ class SEOGenerator:
         if isinstance(identity, AuthorConfig) and self.site_type != "group":
             if identity.title:
                 entity["jobTitle"] = identity.title
-            if identity.email:
-                entity["email"] = identity.email
-            image = getattr(identity, "image", None) or identity.photo_path
-            if image:
-                entity["image"] = self._image_url(image)
-            if identity.affiliation:
-                organization = {
-                    "@type": "Organization",
-                    "name": identity.affiliation,
+
+            linked_entities: List[Dict[str, Any]] = []
+
+            def organization(
+                value: Any,
+                schema_type: str = "Organization",
+            ) -> Dict[str, Any]:
+                if isinstance(value, str):
+                    name, url = value, None
+                elif isinstance(value, dict):
+                    name = value.get("name", "")
+                    url = value.get("url")
+                else:
+                    name = getattr(value, "name", "")
+                    url = getattr(value, "url", None)
+                node: Dict[str, Any] = {
+                    "@type": schema_type,
+                    "name": name,
                 }
-                entity["affiliation"] = organization
-                entity["worksFor"] = organization
+                if url:
+                    normalized_url = str(url).rstrip("/") + "/"
+                    node["@id"] = normalized_url + "#organization"
+                    node["url"] = normalized_url
+                return node
+
+            def linked_reference(node: Dict[str, Any]) -> Dict[str, Any]:
+                if not self.has_absolute_base_url or not node.get("@id"):
+                    return node
+                if not any(
+                    candidate.get("@id") == node["@id"]
+                    for candidate in linked_entities
+                ):
+                    linked_entities.append(node)
+                return {
+                    "@type": node["@type"],
+                    "@id": node["@id"],
+                }
+
+            image = getattr(identity, "image", None) or identity.photo_path
+            image_node = None
+            if image:
+                image_url = self._image_url(image)
+                image_node = {
+                    "@type": "ImageObject",
+                    "url": image_url,
+                    "contentUrl": image_url,
+                    "caption": f"Portrait of {identity.name}",
+                }
+                if identity.photo_width:
+                    image_node["width"] = identity.photo_width
+                if identity.photo_height:
+                    image_node["height"] = identity.photo_height
+                if self.has_absolute_base_url:
+                    image_node["@id"] = self.base_url + "/#primaryimage"
+                    entity["image"] = {"@id": image_node["@id"]}
+                else:
+                    entity["image"] = image_node
+
+            employer_node = None
+            if identity.employer:
+                employer_node = organization(identity.employer)
+            if identity.affiliation:
+                affiliation_node = organization(identity.affiliation)
+                if (
+                    employer_node
+                    and affiliation_node.get("@id")
+                    != employer_node.get("@id")
+                ):
+                    affiliation_node["parentOrganization"] = linked_reference(
+                        employer_node
+                    )
+                entity["affiliation"] = linked_reference(affiliation_node)
+                entity["worksFor"] = linked_reference(
+                    employer_node or affiliation_node
+                )
+            elif employer_node:
+                entity["worksFor"] = linked_reference(employer_node)
+
             orcid = getattr(identity, "orcid", None)
             if orcid and not str(orcid).startswith(("http://", "https://")):
                 orcid = f"https://orcid.org/{str(orcid).strip()}"
-            same_as = [
-                value
-                for value in (
-                    getattr(identity, "profile_url", None),
-                    orcid,
-                    identity.github,
-                    identity.scholar,
-                    identity.linkedin,
-                    identity.twitter,
+            if orcid:
+                entity["identifier"] = {
+                    "@type": "PropertyValue",
+                    "propertyID": "ORCID",
+                    "value": str(orcid).rstrip("/").rsplit("/", 1)[-1],
+                    "url": orcid,
+                }
+            same_as = list(
+                dict.fromkeys(
+                    str(value)
+                    for value in (
+                        *(getattr(identity, "same_as", []) or []),
+                        orcid,
+                        identity.github,
+                        identity.scholar,
+                        identity.linkedin,
+                        identity.twitter,
+                    )
+                    if value
                 )
-                if value
-            ]
+            )
             if same_as:
                 entity["sameAs"] = same_as
-            knowledge = (
-                self.config.site.seo.custom_knowledge_areas
-                or identity.interests
-            )
+            knowledge = identity.interests
             if knowledge:
                 entity["knowsAbout"] = knowledge
-            if self.config.site.seo.alumni_of:
-                entity["alumniOf"] = {
-                    "@type": "EducationalOrganization",
-                    "name": self.config.site.seo.alumni_of,
-                }
+            alumni_values = list(identity.alumni_of or [])
+            alumni_refs = [
+                linked_reference(
+                    organization(value, "EducationalOrganization")
+                )
+                for value in alumni_values
+            ]
+            if alumni_refs:
+                entity["alumniOf"] = (
+                    alumni_refs[0]
+                    if len(alumni_refs) == 1
+                    else alumni_refs
+                )
+
             profile: Dict[str, Any] = {
                 "@context": "https://schema.org",
                 "@type": "ProfilePage",
                 "name": self.config.site.title,
+                "description": self.config.site.description,
                 "mainEntity": entity,
             }
             if self.has_absolute_base_url:
+                person_reference = {
+                    "@type": "Person",
+                    "@id": entity["@id"],
+                }
+                website = {
+                    "@type": "WebSite",
+                    "@id": self.base_url + "/#website",
+                    "url": self.base_url + "/",
+                    "name": identity.name,
+                    "publisher": person_reference,
+                    "inLanguage": "en",
+                }
                 profile["@id"] = self.base_url + "/#profile"
                 profile["url"] = self.base_url + "/"
+                profile["mainEntity"] = person_reference
+                profile["isPartOf"] = {"@id": website["@id"]}
+                profile["inLanguage"] = "en"
+                if image_node:
+                    profile["primaryImageOfPage"] = {
+                        "@id": image_node["@id"]
+                    }
+                profile.pop("@context")
+                graph = [website, profile, entity]
+                if image_node:
+                    graph.append(image_node)
+                graph.extend(linked_entities)
+                return dump_schema(
+                    {
+                        "@context": "https://schema.org",
+                        "@graph": graph,
+                    }
+                )
             return dump_schema(profile)
         else:
             logo = getattr(identity, "logo", None) or getattr(identity, "image", None)
@@ -179,9 +320,15 @@ class SEOGenerator:
         }
         authors = publication.get("authors") or publication.get("author_list") or []
         if authors:
-            schema["author"] = [
-                {"@type": "Person", "name": name} for name in authors
-            ]
+            identity_aliases = self._identity_name_aliases()
+            schema["author"] = []
+            for name in authors:
+                if self._normalized_person_name(name) in identity_aliases:
+                    schema["author"].append(self._identity_reference())
+                else:
+                    schema["author"].append(
+                        {"@type": "Person", "name": name}
+                    )
         if publication.get("year"):
             schema["datePublished"] = str(publication["year"])
         if publication.get("venue"):
@@ -258,7 +405,6 @@ class SEOGenerator:
         if not self.structured_data_enabled:
             return ""
 
-        seo_config = self.config.site.seo
         schema: Dict[str, Any] = {
             "@context": "https://schema.org",
             "@type": "BlogPosting",
@@ -290,15 +436,12 @@ class SEOGenerator:
                 "@id": page_url,
             }
 
-        publisher_name = seo_config.custom_publisher_name or self.identity.name
         publisher_logo = (
-            seo_config.custom_publisher_logo
-            or getattr(self.identity, "logo", None)
+            getattr(self.identity, "logo", None)
             or getattr(self.identity, "image", None)
             or getattr(self.identity, "photo_path", None)
         )
         schema["publisher"] = self._identity_reference()
-        schema["publisher"]["name"] = publisher_name
         if publisher_logo:
             logo_url = self._image_url(publisher_logo)
             image_object = {

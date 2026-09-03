@@ -60,11 +60,14 @@ class Content:
             
             # If no bio data found, use config data
             if identity is not None:
+                affiliation = getattr(identity, 'affiliation', '')
+                if not isinstance(affiliation, str):
+                    affiliation = getattr(affiliation, 'name', '')
                 return {
                     'bio': '',  # Empty bio content
                     'interests': getattr(identity, 'interests', []),
                     'title': getattr(identity, 'title', ''),
-                    'affiliation': getattr(identity, 'affiliation', ''),
+                    'affiliation': affiliation,
                 }
             
             if self.debug:

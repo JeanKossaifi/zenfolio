@@ -14,7 +14,7 @@ from .content_models import (
 from .site_config import (
     AuthorConfig, Config, GroupConfig, HomepageAction, HomepageButton,
     HomepageSection, HomepageStep, IdentityConfig, MathJaxConfig, NavItem,
-    PublicationConfig, SEOConfig, ServiceItem, SiteConfig,
+    OrganizationRef, PublicationConfig, SEOConfig, ServiceItem, SiteConfig,
 )
 
 __all__ = [
@@ -26,7 +26,7 @@ __all__ = [
     
     # Site models
     'Config', 'IdentityConfig', 'AuthorConfig', 'GroupConfig',
-    'PublicationConfig', 'SiteConfig', 'ServiceItem', 'HomepageButton',
+    'OrganizationRef', 'PublicationConfig', 'SiteConfig', 'ServiceItem', 'HomepageButton',
     'HomepageAction', 'HomepageStep', 'HomepageSection', 'NavItem',
     'MathJaxConfig', 'SEOConfig',
 ] 

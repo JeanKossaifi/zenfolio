@@ -35,6 +35,12 @@ site_config = SiteConfig(
 
     # Optional social override; otherwise title and description are reused.
     # social_image="social-card.png",
+
+    # Optional Google tag measurement ID.
+    # google_analytics_id="G-XXXXXXXXXX",
+
+    # Other analytics/statistics script URLs loaded in every page's <head>.
+    # analytics_scripts=["https://analytics.example/script.js"],
 )
 
 publication_config = PublicationConfig(

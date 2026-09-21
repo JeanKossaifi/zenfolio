@@ -123,6 +123,11 @@ body {
     BASE_LAYOUT_TEMPLATE = """<!DOCTYPE html>
 <html lang="en">
 <head>
+    {{ render_component(
+        'analytics_head',
+        analytics_scripts=analytics_scripts | default([]),
+        google_analytics_id=google_analytics_id | default('')
+    ) }}
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% if page_title %}{{ page_title }} · {% endif %}{{ author_name }}</title>

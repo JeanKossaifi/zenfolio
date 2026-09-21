@@ -1,0 +1,15 @@
+{% for script_url in analytics_scripts | default([]) %}
+<script src="{{ script_url }}"></script>
+{% endfor %}
+{% set measurement_id = google_analytics_id | default('') %}
+{% if measurement_id %}
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id={{ measurement_id | urlencode }}"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', {{ measurement_id | tojson }});
+</script>
+{% endif %}

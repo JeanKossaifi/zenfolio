@@ -215,7 +215,10 @@ class SiteConfig(ConfigBase):
     require_social_image: bool = False
     social_image_width: int = 1200
     social_image_height: int = 630
-    google_analytics: str = ""
+    # Google tag measurement ID, for example "G-XXXXXXXXXX".
+    google_analytics_id: str = ""
+    # External analytics/statistics scripts loaded in every page's <head>.
+    analytics_scripts: List[str] = []
     markdown_extensions: List[str] = [
         "fenced_code",
         "codehilite",

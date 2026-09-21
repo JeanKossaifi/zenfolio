@@ -105,6 +105,12 @@ site_config = SiteConfig(
     title="Your Name | Academic Website",
     description="Your research focus and expertise...",
     base_url="https://yoursite.com",
+
+    # Optional Google tag measurement ID
+    google_analytics_id="G-XXXXXXXXXX",
+
+    # Other analytics/statistics script URLs loaded in every page's <head>
+    analytics_scripts=["https://analytics.example/script.js"],
     
     # Blog configuration
     blog_folder="blog",    # Default: look for posts in "blog/" directory

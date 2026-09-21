@@ -265,6 +265,8 @@ class PageRenderer:
             built_pages=self.built_pages,
             site=self.config.site,
             site_seo=self.config.site.seo,
+            analytics_scripts=self.config.site.analytics_scripts,
+            google_analytics_id=self.config.site.google_analytics_id,
             mathjax_config=(
                 self.config.mathjax
                 if self.theme.content_requires_math(content)

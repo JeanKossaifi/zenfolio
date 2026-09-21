@@ -75,6 +75,50 @@ def test_output_override_is_honored(personal_site_root):
     assert (output / "index.html").is_file()
 
 
+@pytest.mark.parametrize("theme_name", ["minimal", "tailwind"])
+def test_analytics_are_in_every_page_head(tmp_path, theme_name):
+    fixture = Path(__file__).parent / "fixtures" / "group"
+    content = tmp_path / theme_name
+    shutil.copytree(fixture, content)
+    builder = ZenFolio(content, theme_override=theme_name)
+    script_url = "https://analytics.example.test/site.js"
+    measurement_id = "G-TEST123456"
+    builder.config.site.analytics_scripts = [script_url]
+    builder.config.site.google_analytics_id = measurement_id
+
+    assert builder.build(base_url="https://example.test/research/lab/")
+
+    html_files = list(builder.output_dir.rglob("*.html"))
+    assert html_files
+    for html_file in html_files:
+        soup = BeautifulSoup(
+            html_file.read_text(encoding="utf-8"),
+            "html.parser",
+        )
+        scripts = soup.find_all("script", src=script_url)
+        assert len(scripts) == 1, html_file
+        assert scripts[0].find_parent("head") is not None, html_file
+        google_scripts = soup.find_all(
+            "script",
+            src=(
+                "https://www.googletagmanager.com/gtag/js"
+                f"?id={measurement_id}"
+            ),
+        )
+        assert len(google_scripts) == 1, html_file
+        assert google_scripts[0].has_attr("async"), html_file
+        assert google_scripts[0].find_parent("head") is not None, html_file
+        inline_configs = [
+            script
+            for script in soup.find_all("script")
+            if script.string
+            and "gtag('config'" in script.string
+            and measurement_id in script.string
+        ]
+        assert len(inline_configs) == 1, html_file
+        assert inline_configs[0].find_parent("head") is not None, html_file
+
+
 def test_duplicate_public_routes_fail_the_build(tmp_path):
     fixture = Path(__file__).parent / "fixtures" / "group"
     content = tmp_path / "content"

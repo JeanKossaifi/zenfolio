@@ -3,13 +3,17 @@ BibTeX parser for academic publications
 """
 
 import re
+from pathlib import Path
+from typing import Any, Dict, List, Optional, Set, Union
 
 import bibtexparser
-from bibtexparser.bibdatabase import BibDatabase
-from bibtexparser.customization import convert_to_unicode, splitname
-from bibtexparser.latexenc import latex_to_unicode
-from pathlib import Path
-from typing import Dict, List, Any, Optional, Union, Set
+from bibtexparser import BibtexFormat, Library, write_string
+from bibtexparser.middlewares import LatexDecodingMiddleware
+from bibtexparser.middlewares.names import (
+    parse_single_name_into_parts,
+    split_multiple_persons_names,
+)
+from bibtexparser.model import Entry, Field
 
 from .base_parser import ContentParser
 
@@ -24,7 +28,8 @@ class BibtexParser(ContentParser):
             self.all_highlight_terms = [highlight_author] if highlight_author else []
         else:
             self.all_highlight_terms = [term for term in highlight_author if term]
-        self.bib_database = None
+        self.bib_library = None
+        self._latex_decoder = LatexDecodingMiddleware()
 
     @property
     def supported_extensions(self) -> Set[str]:
@@ -43,13 +48,18 @@ class BibtexParser(ContentParser):
             return []
         
         try:
-            with open(file_path, 'r', encoding='utf-8') as f:
-                self.bib_database = bibtexparser.load(f)
+            self.bib_library = bibtexparser.parse_file(str(file_path))
+            if self.bib_library.failed_blocks:
+                raise ValueError(
+                    f"{len(self.bib_library.failed_blocks)} block(s) "
+                    "could not be parsed"
+                )
         except Exception as error:
             raise ValueError(f"Could not parse BibTeX file '{file_path}': {error}") from error
 
         publications = []
-        for entry in self.bib_database.entries:
+        for model_entry in self.bib_library.entries:
+            entry = self._entry_to_dict(model_entry)
             try:
                 pub = self._format_entry(entry)
             except Exception as error:
@@ -61,6 +71,32 @@ class BibtexParser(ContentParser):
 
         publications.sort(key=lambda x: x['year'], reverse=True)
         return publications
+
+    @staticmethod
+    def _entry_to_dict(entry: Entry) -> Dict[str, Any]:
+        return {
+            "ENTRYTYPE": entry.entry_type,
+            "ID": entry.key,
+            **{field.key: field.value for field in entry.fields},
+        }
+
+    def _decode_entry(self, entry: Dict[str, Any]) -> Dict[str, Any]:
+        model_entry = Entry(
+            entry_type=entry.get("ENTRYTYPE", "misc"),
+            key=entry.get("ID", "entry"),
+            fields=[
+                Field(key, value)
+                for key, value in entry.items()
+                if key not in {"ENTRYTYPE", "ID"}
+            ],
+        )
+        library = self._latex_decoder.transform(Library([model_entry]))
+        return self._entry_to_dict(library.entries[0])
+
+    def _decode_latex(self, value: str) -> str:
+        entry = Entry("misc", "decode", [Field("value", value)])
+        library = self._latex_decoder.transform(Library([entry]))
+        return library.entries[0]["value"]
 
     def parse_directory(self, directory_path: Path, content_type: str = None) -> List[Dict[str, Any]]:
         """Parse all .bib files in a directory."""
@@ -82,13 +118,13 @@ class BibtexParser(ContentParser):
 
         # Keep the original entry intact for copied BibTeX, while decoding
         # LaTeX escapes in the human-readable title, authors, and venue.
-        display_entry = convert_to_unicode(dict(entry))
+        display_entry = self._decode_entry(entry)
 
         # Split authors from the RAW field: convert_to_unicode strips the
         # braces that protect corporate names like {Barnes and Noble}.
         # LaTeX escapes are decoded per name after splitting.
         authors = [
-            latex_to_unicode(name)
+            self._decode_latex(name)
             for name in self._parse_authors(entry.get('author', ''))
         ]
         highlighted_authors = self._highlight_authors(authors)
@@ -144,18 +180,22 @@ class BibtexParser(ContentParser):
             'highlight', 'direction', 'homepage_order', 'project', 'dataset'
         }
         
-        # Create a filtered entry with only citation-appropriate fields
-        clean_entry = {
-            key: value for key, value in entry.items() 
-            if key not in website_fields
-        }
-        
-        # Create a temporary database with the clean entry
-        temp_db = BibDatabase()
-        temp_db.entries = [clean_entry]
-        
-        # Use the library's built-in dumps function
-        return bibtexparser.dumps(temp_db).strip()
+        citation_entry = Entry(
+            entry_type=entry.get("ENTRYTYPE", "misc"),
+            key=entry.get("ID", "entry"),
+            fields=[
+                Field(key, value)
+                for key, value in entry.items()
+                if key not in {"ENTRYTYPE", "ID"}
+                and key.lower() not in website_fields
+            ],
+        )
+        bibtex_format = BibtexFormat()
+        bibtex_format.indent = "  "
+        return write_string(
+            Library([citation_entry]),
+            bibtex_format=bibtex_format,
+        ).strip()
     
     def _get_venue(self, entry: dict) -> str:
         """Extract venue from entry"""
@@ -170,7 +210,7 @@ class BibtexParser(ContentParser):
             return entry.get('howpublished', 'Publication')
     
     def _format_author_name(self, author: str) -> str:
-        """Convert 'LastName, FirstName' to 'FirstName LastName' using bibtexparser's splitname"""
+        """Convert a BibTeX name to first-name-first display order."""
         author = author.strip()
         # A fully-braced name is a corporate author ({Barnes and Noble}):
         # display it verbatim, without the protective braces.
@@ -179,21 +219,8 @@ class BibtexParser(ContentParser):
             if inner.count('{') == inner.count('}'):
                 return inner.strip()
         try:
-            # Use bibtexparser's robust name parsing
-            name_parts = splitname(author, strict_mode=False)
-            
-            # Reconstruct as FirstName LastName
-            parts = []
-            if name_parts.get('first'):
-                parts.extend(name_parts['first'])
-            if name_parts.get('von'):
-                parts.extend(name_parts['von'])
-            if name_parts.get('last'):
-                parts.extend(name_parts['last'])
-            if name_parts.get('jr'):
-                parts.extend(name_parts['jr'])
-                
-            return ' '.join(parts) if parts else author
+            name_parts = parse_single_name_into_parts(author, strict=False)
+            return name_parts.merge_first_name_first or author
         except Exception:
             # Fallback to simple splitting if splitname fails
             if ',' in author:
@@ -214,25 +241,8 @@ class BibtexParser(ContentParser):
 
     @staticmethod
     def _split_authors(author_str: str) -> List[str]:
-        """Split on the BibTeX 'and' separator (any case, any whitespace),
-        but never inside braces: {Barnes and Noble} is one author."""
-        authors = []
-        depth = 0
-        current = []
-        tokens = re.split(r'(\s+)', author_str)
-        for token in tokens:
-            if token.lower() == 'and' and depth == 0:
-                if ''.join(current).strip():
-                    authors.append(''.join(current).strip())
-                current = []
-                continue
-            # Clamp at zero so a stray closing brace cannot disable
-            # splitting for the rest of the field.
-            depth = max(0, depth + token.count('{') - token.count('}'))
-            current.append(token)
-        if ''.join(current).strip():
-            authors.append(''.join(current).strip())
-        return authors
+        """Split a BibTeX author field without breaking braced names."""
+        return split_multiple_persons_names(author_str)
 
     def _highlight_authors(self, authors: List[str]) -> str:
         """Highlight author names based on the configured terms."""

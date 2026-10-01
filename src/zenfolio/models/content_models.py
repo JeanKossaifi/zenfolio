@@ -72,6 +72,9 @@ class ProjectItem(ConfigBase):
     image_caption: str = ""
     image_source: str = ""
     attribution: str = ""
+    # Headline outcome and its comparison, e.g. "**19.8%** lower error".
+    result: str = ""
+    result_note: str = ""
     links: List[Link] = []
     
     template_name: str = "project_item"
@@ -240,6 +243,10 @@ class Page(ConfigBase):
     social_title: str = ""
     social_description: str = ""
     social_image: str = ""
+    image: str = ""  # Teaser for update cards and social previews
+    image_alt: str = ""
+    image_caption: str = ""
+    image_source: str = ""
     content: str = ""
     content_type: str = "markdown"  # markdown, notebook, or html
     layout: Literal["prose", "wide", "full"] = "prose"

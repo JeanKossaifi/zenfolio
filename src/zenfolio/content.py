@@ -61,7 +61,10 @@ class Content:
                 date=page["date"],
                 excerpt=page.get("description", ""),
                 description=page.get("description", ""),
-                image=page.get("social_image", ""),
+                image=page.get("image", ""),
+                image_alt=page.get("image_alt", ""),
+                image_caption=page.get("image_caption", ""),
+                image_source=page.get("image_source", ""),
                 content="",
                 content_raw="",
             ).to_dict()

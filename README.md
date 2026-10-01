@@ -213,6 +213,11 @@ projects_config = ProjectsConfig(items=[
         title="My Research Project",
         description="Description of the project...",
         highlight=True,  # Featured on homepage
+        image="projects/teaser.png",  # Same image fields as blog posts and pages
+        image_alt="What the image shows",
+        image_caption="Short caption",
+        result="**19.8%** lower error",  # Headline outcome (Markdown)
+        result_note="Compared with the strongest baseline.",
         github="https://github.com/username/project",
         paper="papers/project.pdf",
         demo="https://demo-site.com"
@@ -490,6 +495,9 @@ show_site_footer: false
 navigation_key: projects
 show_in_updates: true
 date: 2026-09-30
+image: project/teaser.png
+image_alt: What the image shows
+image_caption: Short caption
 stylesheets:
   - project/styles.css
 scripts:
@@ -506,6 +514,9 @@ script paths resolve through the existing `static/` directory.
 `navigation_key` can mark the corresponding shared navigation item as current.
 Set `show_in_updates` with an explicit `date` and `route` to include the page
 in update feeds; the update card links directly to the page.
+`image`, `image_alt`, and `image_caption` set the page's teaser image, using
+the same field names as blog posts and projects. It appears on update cards
+and serves as the social-preview fallback.
 HTML content must be a fragment—do not include `doctype`, `html`, `head`, or
 `body`; use `template_name` when a theme-specific component is more
 appropriate.

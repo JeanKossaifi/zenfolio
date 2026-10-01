@@ -141,6 +141,8 @@ def test_html_page_supports_full_layout_hidden_chrome_and_page_assets(
         "description: Project update summary.\n"
         "show_in_updates: true\n"
         "date: 2026-09-30\n"
+        "image: project/teaser.png\n"
+        "image_alt: Project teaser\n"
         "layout: full\n"
         "show_site_header: false\n"
         "show_site_footer: false\n"
@@ -188,6 +190,13 @@ def test_html_page_supports_full_layout_hidden_chrome_and_page_assets(
     assert "Project" in project_update.get_text(strip=True)
     assert "Project update summary." in updates.get_text(" ", strip=True)
     assert not (builder.output_dir / "updates" / "project").exists()
+    page_update = next(
+        post
+        for post in builder.content.blog_posts
+        if post.get("page_update")
+    )
+    assert page_update["image"] == "project/teaser.png"
+    assert page_update["image_alt"] == "Project teaser"
     sitemap = (builder.output_dir / "sitemap.xml").read_text(encoding="utf-8")
     assert sitemap.count("https://example.test/research/lab/project/") == 1
 

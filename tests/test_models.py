@@ -60,6 +60,9 @@ def test_page_presentation_options_serialize():
         scripts=["project/site.js"],
         show_in_updates=True,
         date="2026-09-30",
+        image="project/teaser.png",
+        image_alt="Project teaser",
+        image_caption="Teaser caption",
         og_type="website",
         theme_color="#090b0c",
         navigation_key="projects",
@@ -73,6 +76,9 @@ def test_page_presentation_options_serialize():
     assert serialized["scripts"] == ["project/site.js"]
     assert serialized["show_in_updates"] is True
     assert serialized["date"] == "2026-09-30"
+    assert serialized["image"] == "project/teaser.png"
+    assert serialized["image_alt"] == "Project teaser"
+    assert serialized["image_caption"] == "Teaser caption"
     assert serialized["og_type"] == "website"
     assert serialized["theme_color"] == "#090b0c"
     assert serialized["navigation_key"] == "projects"
@@ -95,12 +101,16 @@ def test_project_feature_metadata_serializes():
         featured_order=2,
         featured_size="full",
         image_style="media",
+        result="**19.8%** lower error",
+        result_note="Compared with the baseline.",
     )
 
     serialized = project.to_dict()
     assert serialized["featured_order"] == 2
     assert serialized["featured_size"] == "full"
     assert serialized["image_style"] == "media"
+    assert serialized["result"] == "**19.8%** lower error"
+    assert serialized["result_note"] == "Compared with the baseline."
 
 
 def test_updates_metadata_and_talk_website_serialize():

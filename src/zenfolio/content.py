@@ -7,6 +7,7 @@ import re
 from pathlib import Path
 from typing import Any, Dict, List
 
+from .errors import ZenFolioBuildError
 from .parsers import BibtexParser, parser_registry
 from .models.content_models import BlogPost, Page, Bio
 from .utils import content_date_key
@@ -33,6 +34,45 @@ class Content:
         self.publications = self._safe_parse_publications()
         self.blog_posts = self._safe_parse_blog_posts()
         self.pages = self._safe_parse_pages()
+        self.blog_posts = self._merge_page_updates(
+            self.blog_posts, self.pages
+        )
+
+    @staticmethod
+    def _merge_page_updates(
+        blog_posts: List[Dict[str, Any]],
+        pages: List[Dict[str, Any]],
+    ) -> List[Dict[str, Any]]:
+        """Include opted-in pages in update feeds without duplicating them."""
+
+        page_updates: List[Dict[str, Any]] = []
+        for page in pages:
+            if not page.get("show_in_updates"):
+                continue
+            if not page.get("route") or not page.get("date"):
+                raise ZenFolioBuildError(
+                    "Pages with show_in_updates enabled require explicit "
+                    f"route and date fields: {page.get('slug', '<unknown>')}"
+                )
+            update = BlogPost(
+                title=page["title"],
+                slug=page["slug"],
+                route=page["route"],
+                date=page["date"],
+                excerpt=page.get("description", ""),
+                description=page.get("description", ""),
+                image=page.get("social_image", ""),
+                content="",
+                content_raw="",
+            ).to_dict()
+            update["page_update"] = True
+            page_updates.append(update)
+
+        return sorted(
+            [*blog_posts, *page_updates],
+            key=lambda item: content_date_key(item.get("date", "")),
+            reverse=True,
+        )
 
     def _safe_parse_bio_data(self):
         """Safely parse bio data with error handling"""

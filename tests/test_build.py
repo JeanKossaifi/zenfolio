@@ -138,6 +138,9 @@ def test_html_page_supports_full_layout_hidden_chrome_and_page_assets(
         "title: Project\n"
         "slug: project\n"
         "route: /project/\n"
+        "description: Project update summary.\n"
+        "show_in_updates: true\n"
+        "date: 2026-09-30\n"
         "layout: full\n"
         "show_site_header: false\n"
         "show_site_footer: false\n"
@@ -174,6 +177,19 @@ def test_html_page_supports_full_layout_hidden_chrome_and_page_assets(
     assert project.find("meta", {"name": "theme-color"})["content"] == "#090b0c"
     assert "project/styles.css" not in homepage
     assert "project/site.js" not in homepage
+    updates = BeautifulSoup(
+        (builder.output_dir / "updates" / "index.html").read_text(
+            encoding="utf-8"
+        ),
+        "html.parser",
+    )
+    project_update = updates.find("a", href="../project/")
+    assert project_update
+    assert "Project" in project_update.get_text(strip=True)
+    assert "Project update summary." in updates.get_text(" ", strip=True)
+    assert not (builder.output_dir / "updates" / "project").exists()
+    sitemap = (builder.output_dir / "sitemap.xml").read_text(encoding="utf-8")
+    assert sitemap.count("https://example.test/research/lab/project/") == 1
 
 
 def test_html_page_can_keep_header_and_hide_footer(tmp_path):

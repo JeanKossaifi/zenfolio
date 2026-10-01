@@ -241,16 +241,19 @@ class CollectionBuilder:
         seo_generator: Optional[Any] = None,
     ) -> None:
         host = self.host
-        if not blog_posts:
+        detail_posts = [
+            post for post in blog_posts if not post.get("page_update")
+        ]
+        if not detail_posts:
             return
         # Resolve item link paths at blog-post depth; without this they are
         # resolved against whatever page was rendered previously.
         host._set_page_context(
-            blog_posts[0].get("route")
-            or join_route(host._route_for("blog"), blog_posts[0]["slug"])
+            detail_posts[0].get("route")
+            or join_route(host._route_for("blog"), detail_posts[0]["slug"])
         )
         processed_posts = host._process_items(
-            blog_posts, "blog_post_item", seo_generator
+            detail_posts, "blog_post_item", seo_generator
         )
         for index, post in enumerate(processed_posts):
             route = post.get("route") or join_route(

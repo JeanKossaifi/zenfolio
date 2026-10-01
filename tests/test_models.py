@@ -58,6 +58,8 @@ def test_page_presentation_options_serialize():
         show_site_footer=False,
         stylesheets=["project/styles.css"],
         scripts=["project/site.js"],
+        show_in_updates=True,
+        date="2026-09-30",
         og_type="website",
         theme_color="#090b0c",
         navigation_key="projects",
@@ -69,6 +71,8 @@ def test_page_presentation_options_serialize():
     assert serialized["show_site_footer"] is False
     assert serialized["stylesheets"] == ["project/styles.css"]
     assert serialized["scripts"] == ["project/site.js"]
+    assert serialized["show_in_updates"] is True
+    assert serialized["date"] == "2026-09-30"
     assert serialized["og_type"] == "website"
     assert serialized["theme_color"] == "#090b0c"
     assert serialized["navigation_key"] == "projects"

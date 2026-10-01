@@ -247,6 +247,8 @@ class Page(ConfigBase):
     show_site_footer: bool = True
     stylesheets: List[str] = []
     scripts: List[str] = []
+    show_in_updates: bool = False
+    date: Any = ""
     og_type: str = ""
     theme_color: str = ""
     navigation_key: str = ""

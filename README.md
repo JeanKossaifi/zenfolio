@@ -488,6 +488,8 @@ layout: full
 show_site_header: false
 show_site_footer: false
 navigation_key: projects
+show_in_updates: true
+date: 2026-09-30
 stylesheets:
   - project/styles.css
 scripts:
@@ -502,6 +504,8 @@ scripts:
 footer can be controlled independently and default to visible. Stylesheet and
 script paths resolve through the existing `static/` directory.
 `navigation_key` can mark the corresponding shared navigation item as current.
+Set `show_in_updates` with an explicit `date` and `route` to include the page
+in update feeds; the update card links directly to the page.
 HTML content must be a fragment—do not include `doctype`, `html`, `head`, or
 `body`; use `template_name` when a theme-specific component is more
 appropriate.

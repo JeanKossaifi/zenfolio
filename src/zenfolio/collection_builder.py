@@ -1,11 +1,18 @@
 """Aggregate, blog, team, and standalone page builders."""
 
+import hashlib
 from pathlib import Path
 import re
 from typing import Any, Dict, List, Optional, Protocol, Tuple
 
+from .content_processor import ContentProcessor
 from .serialization import as_dict
-from .utils import content_date_key, join_route, normalize_route
+from .utils import (
+    content_date_key,
+    is_external_url,
+    join_route,
+    normalize_route,
+)
 
 
 class CollectionHost(Protocol):
@@ -15,6 +22,7 @@ class CollectionHost(Protocol):
     theme: Any
     site_type: str
     output_dir: Path
+    static_dir: Path
     seo_pages: List[Dict[str, str]]
     debug: bool
 
@@ -301,6 +309,19 @@ class CollectionBuilder:
                 item_data=post,
             )
 
+    def _page_asset_url(self, path: str) -> str:
+        """Resolve a page asset, versioned by content so updates bypass caches."""
+        url = self.host.theme.asset_url(path)
+        if is_external_url(path):
+            return url
+        source = Path(self.host.static_dir) / ContentProcessor.resolve_path(
+            path
+        )
+        if not source.is_file():
+            return url
+        digest = hashlib.sha256(source.read_bytes()).hexdigest()[:12]
+        return f"{url}?v={digest}"
+
     def build_standalone_pages(
         self,
         base_url: str = "",
@@ -322,12 +343,12 @@ class CollectionBuilder:
             item = dict(page_data)
             item["content"] = content_html
             page_stylesheets = [
-                host.theme.asset_url(path)
+                self._page_asset_url(path)
                 for path in page_data.get("stylesheets", [])
                 if path
             ]
             page_scripts = [
-                host.theme.asset_url(path)
+                self._page_asset_url(path)
                 for path in page_data.get("scripts", [])
                 if path
             ]

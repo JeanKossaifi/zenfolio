@@ -170,10 +170,10 @@ def test_html_page_supports_full_layout_hidden_chrome_and_page_assets(
     assert project.select_one("footer") is None
     assert project.select_one("article.page-layout-full.page-project")
     assert project.select_one(
-        'link[rel="stylesheet"][href="../static/project/styles.css"]'
+        'link[rel="stylesheet"][href^="../static/project/styles.css?v="]'
     )
     assert project.select_one(
-        'script[src="../static/project/site.js"][defer]'
+        'script[src^="../static/project/site.js?v="][defer]'
     )
     assert project.find("meta", {"property": "og:type"})["content"] == "website"
     assert project.find("meta", {"name": "theme-color"})["content"] == "#090b0c"

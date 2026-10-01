@@ -93,20 +93,35 @@ class TailwindTheme(BaseTheme):
     ) -> str:
         """Renders a complete page using the base layout template."""
         self.set_render_context(base_url)
+        legacy_include = context.pop("include_navbar", True)
+        context.setdefault("show_site_header", legacy_include)
+        context.setdefault("show_site_footer", legacy_include)
+        context.setdefault("page_stylesheets", [])
+        context.setdefault("page_scripts", [])
+        context.setdefault("theme_color", None)
+        context.setdefault("og_type", "website")
 
-        navbar_html = self.render_component(
-            "navbar",
-            author_name=author_name,
-            base_url=base_url,
-            **context,
+        navbar_html = (
+            self.render_component(
+                "navbar",
+                author_name=author_name,
+                base_url=base_url,
+                **context,
+            )
+            if context["show_site_header"]
+            else ""
         )
-        footer_html = self.render_component(
-            "footer",
-            author=context.get("author"),
-            identity=context.get("identity"),
-            author_name=author_name,
-            current_year=datetime.now().year,
-            navigation=context.get("navigation", []),
+        footer_html = (
+            self.render_component(
+                "footer",
+                author=context.get("author"),
+                identity=context.get("identity"),
+                author_name=author_name,
+                current_year=datetime.now().year,
+                navigation=context.get("navigation", []),
+            )
+            if context["show_site_footer"]
+            else ""
         )
         # base_layout.html.j2 carries its own meta block; the shared
         # seo_head component is only used by the minimal theme.

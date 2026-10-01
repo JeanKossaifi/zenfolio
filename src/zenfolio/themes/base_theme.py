@@ -225,6 +225,8 @@ class BaseTheme(ABC):
                     site_description: str = "", base_url: str = "", include_navbar: bool = True, **context) -> str:
         """Render a complete page using the base layout template"""
         self.set_render_context(base_url)
+        context.setdefault("show_site_header", include_navbar)
+        context.setdefault("show_site_footer", include_navbar)
 
         if self.BASE_LAYOUT_TEMPLATE is None:
             raise ThemeRenderError(
@@ -240,10 +242,11 @@ class BaseTheme(ABC):
         # Render modular components
         navbar_html = ""
         footer_html = ""
-        if include_navbar:
+        if context["show_site_header"]:
             navbar_html = self.render_component('navbar', 
                 author_name=author_name, 
                 **context)
+        if context["show_site_footer"]:
             footer_html = self.render_component('footer', 
                 author_name=author_name, 
                 current_year=datetime.now().year,

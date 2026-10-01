@@ -120,6 +120,16 @@ class PageRenderer:
             "og_image_alt": None,
             "meta_description": self.config.site.description,
             "structured_data": structured_data_list,
+            "og_type": (
+                context.pop("og_type", None)
+                or item_data.get("og_type")
+                or ("website" if route == "/" else "article")
+            ),
+            "theme_color": (
+                context.pop("theme_color", None)
+                or item_data.get("theme_color")
+                or None
+            ),
         }
         if seo_generator:
             if not any(page["route"] == route for page in self.seo_pages):
@@ -232,6 +242,11 @@ class PageRenderer:
                     seo_context["structured_data"] = (
                         seo_generator.generate_blog_posting_schema(item_data)
                     )
+
+        context.setdefault("show_site_header", True)
+        context.setdefault("show_site_footer", True)
+        context.setdefault("page_stylesheets", [])
+        context.setdefault("page_scripts", [])
 
         html = self.theme.render_page(
             content=content,

@@ -9,7 +9,7 @@
 {# Open Graph meta tags #}
 <meta property="og:title" content="{% if page_title %}{{ page_title }}{% else %}{{ author_name }}{% endif %}">
 <meta property="og:description" content="{{ meta_description|default(site_description, true) }}">
-<meta property="og:type" content="website">
+<meta property="og:type" content="{{ og_type|default('website', true) }}">
 {% if canonical_url|default(false) %}
 <meta property="og:url" content="{{ canonical_url }}">
 {% endif %}

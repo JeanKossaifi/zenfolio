@@ -318,6 +318,16 @@ class CollectionBuilder:
             )
             item = dict(page_data)
             item["content"] = content_html
+            page_stylesheets = [
+                host.theme.asset_url(path)
+                for path in page_data.get("stylesheets", [])
+                if path
+            ]
+            page_scripts = [
+                host.theme.asset_url(path)
+                for path in page_data.get("scripts", [])
+                if path
+            ]
 
             research_areas: List[Dict[str, Any]] = []
             related_publications: List[Dict[str, Any]] = []
@@ -342,7 +352,7 @@ class CollectionBuilder:
                 )
 
             page_content = host.theme.render_component(
-                "page",
+                page_data.get("template_name") or "page",
                 item=item,
                 identity=host.identity,
                 research_areas=research_areas,
@@ -354,10 +364,16 @@ class CollectionBuilder:
                 page_content,
                 page_title=page_data["title"],
                 base_url=nested_base_url,
-                current_page=slug,
+                current_page=page_data.get("navigation_key") or slug,
                 seo_generator=seo_generator,
                 page_type="research" if slug == "research" else "page",
                 item_data=item,
+                show_site_header=page_data.get("show_site_header", True),
+                show_site_footer=page_data.get("show_site_footer", True),
+                page_stylesheets=page_stylesheets,
+                page_scripts=page_scripts,
+                og_type=page_data.get("og_type") or None,
+                theme_color=page_data.get("theme_color") or None,
             )
 
     def generate_sitemap(self, seo_generator: Any) -> None:

@@ -63,16 +63,33 @@ class MinimalTheme(BaseTheme):
                 self.BASE_LAYOUT_TEMPLATE
             )
         template = self._compiled_base_layout
-        # The layout hardcodes include_navbar=True; drop a caller-supplied
-        # value rather than raising a duplicate-keyword TypeError.
-        context.pop('include_navbar', None)
+        legacy_include = context.pop("include_navbar", True)
+        context.setdefault("show_site_header", legacy_include)
+        context.setdefault("show_site_footer", legacy_include)
+        context.setdefault("page_stylesheets", [])
+        context.setdefault("page_scripts", [])
+        context.setdefault("theme_color", None)
+        context.setdefault("og_type", "website")
         # built_pages will be available in context
-        navbar_html = self.render_component('navbar', author_name=author_name, base_url=base_url, **context)
-        footer_html = self.render_component(
-            'footer',
-            author_name=author_name,
-            identity=context.get('identity'),
-            current_year=datetime.now().year,
+        navbar_html = (
+            self.render_component(
+                "navbar",
+                author_name=author_name,
+                base_url=base_url,
+                **context,
+            )
+            if context["show_site_header"]
+            else ""
+        )
+        footer_html = (
+            self.render_component(
+                "footer",
+                author_name=author_name,
+                identity=context.get("identity"),
+                current_year=datetime.now().year,
+            )
+            if context["show_site_footer"]
+            else ""
         )
         seo_head_html = self.render_component('seo_head', page_title=page_title, author_name=author_name, site_description=site_description, **context)
         # Render MathJax configuration if provided
@@ -83,7 +100,7 @@ class MinimalTheme(BaseTheme):
             content=content, page_title=page_title, author_name=author_name,
             site_description=site_description, base_url=base_url,
             navbar=navbar_html, footer=footer_html, seo_head=seo_head_html, mathjax_html=mathjax_html,
-            include_navbar=True, **context
+            **context
         )
 
     def write_css_file(self, output_dir):
@@ -132,24 +149,27 @@ body {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% if page_title %}{{ page_title }} · {% endif %}{{ author_name }}</title>
     <meta name="description" content="{% if meta_description %}{{ meta_description }}{% else %}{{ site_description }}{% endif %}">
+    {% if theme_color %}<meta name="theme-color" content="{{ theme_color }}">{% endif %}
     {% if seo_head %}{{ seo_head | safe }}{% endif %}
     {% if mathjax_html %}{{ mathjax_html | safe }}{% endif %}
     <link rel="stylesheet" href="{{ asset('style.css') }}">
+    {% for stylesheet in page_stylesheets %}<link rel="stylesheet" href="{{ stylesheet }}">{% endfor %}
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
-    {% if include_navbar %}{{ navbar | safe }}{% endif %}
+    {% if show_site_header %}{{ navbar | safe }}{% endif %}
     
     <main>
         {{ content | safe }}
     </main>
     
-    {% if include_navbar %}{{ footer | safe }}{% endif %}
+    {% if show_site_footer %}{{ footer | safe }}{% endif %}
     
     <script src="{{ asset('theme.js') }}"></script>
+    {% for script in page_scripts %}<script src="{{ script }}" defer></script>{% endfor %}
 </body>
 </html>"""
 
@@ -279,7 +299,7 @@ body {
 
 
 
-    PAGE_TEMPLATE = """<article class="page-content">
+    PAGE_TEMPLATE = """<article class="page-content page-layout-{{ item.layout }} page-{{ item.slug }}{% if item.show_site_header %} with-site-header{% else %} without-site-header{% endif %}{% if item.show_site_footer %} with-site-footer{% else %} without-site-footer{% endif %}">
         {{ item.content | safe }}
         {% if research_areas %}
         <section>

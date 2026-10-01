@@ -12,9 +12,10 @@
     <meta name="description" content="{{ meta_description or site_description }}">
     <meta name="author" content="{{ author_name }}">
     <meta name="robots" content="{{ robots_meta }}">
+    {% if theme_color %}<meta name="theme-color" content="{{ theme_color }}">{% endif %}
     <meta property="og:title" content="{{ social_title or page_title }}">
     <meta property="og:description" content="{{ social_description or meta_description or site_description }}">
-    <meta property="og:type" content="website">
+    <meta property="og:type" content="{{ og_type }}">
     {% if canonical_url %}<meta property="og:url" content="{{ canonical_url }}">{% endif %}
     {% if og_image %}
     <meta property="og:image" content="{{ og_image }}">
@@ -34,6 +35,7 @@
     {% endif %}
     
     <link rel="stylesheet" href="{{ asset('theme.css') }}">
+    {% for stylesheet in page_stylesheets %}<link rel="stylesheet" href="{{ stylesheet }}">{% endfor %}
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
@@ -42,6 +44,7 @@
     {% if mathjax_html %}{{ mathjax_html | safe }}{% endif %}
     
     <script src="{{ asset('theme.js') }}"></script>
+    {% for script in page_scripts %}<script src="{{ script }}" defer></script>{% endfor %}
 </head>
 <body class="antialiased bg-white dark:bg-slate-900 text-gray-900 dark:text-white">
     <div class="elysian-background noise-texture"></div>

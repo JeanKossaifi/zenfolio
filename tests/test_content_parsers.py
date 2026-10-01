@@ -1,7 +1,48 @@
 import nbformat
+import pytest
 
 from zenfolio.parsers.bibtex_parser import BibtexParser
+from zenfolio.parsers.html_parser import HtmlParser
 from zenfolio.parsers.jupyter_parser import JupyterParser
+from zenfolio.errors import ZenFolioBuildError
+
+
+def test_html_page_parser_preserves_fragment_and_frontmatter(tmp_path):
+    page_path = tmp_path / "project.html"
+    page_path.write_text(
+        "---\n"
+        "title: Project\n"
+        "layout: full\n"
+        "---\n"
+        '<section aria-labelledby="title"><h1 id="title">Project</h1></section>\n',
+        encoding="utf-8",
+    )
+
+    parsed = HtmlParser().parse_file(page_path)
+
+    assert parsed["metadata"]["title"] == "Project"
+    assert parsed["metadata"]["layout"] == "full"
+    assert parsed["content_type"] == "html"
+    assert parsed["content"].startswith("<section")
+
+
+@pytest.mark.parametrize(
+    "document_markup",
+    [
+        "<!doctype html><main>Project</main>",
+        "<html><main>Project</main></html>",
+        "<head><title>Project</title></head>",
+        "<body><main>Project</main></body>",
+    ],
+)
+def test_html_page_parser_rejects_complete_documents(
+    tmp_path, document_markup
+):
+    page_path = tmp_path / "project.html"
+    page_path.write_text(document_markup, encoding="utf-8")
+
+    with pytest.raises(ZenFolioBuildError, match="body fragment"):
+        HtmlParser().parse_file(page_path)
 
 
 def test_bibtex_display_decodes_latex_without_changing_citation(tmp_path):

@@ -1,7 +1,12 @@
 {# Standalone page template - wrapper for individual pages #}
 
+{% if item.layout == 'full' %}
+<article class="page-layout-full page-{{ item.slug }}{% if item.show_site_header %} with-site-header{% else %} without-site-header{% endif %}{% if item.show_site_footer %} with-site-footer{% else %} without-site-footer{% endif %}">
+    {{ item.content | safe }}
+</article>
+{% else %}
 <div class="max-w-7xl mx-auto px-6 lg:px-8">
-    <div class="max-w-4xl mx-auto">
+    <div class="{% if item.layout == 'wide' %}max-w-7xl{% else %}max-w-4xl{% endif %} mx-auto page-{{ item.slug }}">
         
         {# Page header #}
         <header class="text-center my-16 reveal">
@@ -44,3 +49,4 @@
 
     </div>
 </div>
+{% endif %}

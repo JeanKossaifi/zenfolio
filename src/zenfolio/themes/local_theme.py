@@ -155,16 +155,32 @@ class LocalTheme(BaseTheme):
         **context,
     ) -> str:
         self.set_render_context(base_url)
-        navbar_html = self.render_component(
-            "navbar",
-            author_name=author_name,
-            **context,
+        legacy_include = context.pop("include_navbar", True)
+        context.setdefault("show_site_header", legacy_include)
+        context.setdefault("show_site_footer", legacy_include)
+        context.setdefault("page_stylesheets", [])
+        context.setdefault("page_scripts", [])
+        context.setdefault("theme_color", None)
+        context.setdefault("og_type", "website")
+
+        navbar_html = (
+            self.render_component(
+                "navbar",
+                author_name=author_name,
+                **context,
+            )
+            if context["show_site_header"]
+            else ""
         )
-        footer_html = self.render_component(
-            "footer",
-            author_name=author_name,
-            current_year=datetime.now().year,
-            **context,
+        footer_html = (
+            self.render_component(
+                "footer",
+                author_name=author_name,
+                current_year=datetime.now().year,
+                **context,
+            )
+            if context["show_site_footer"]
+            else ""
         )
         mathjax_config = context.get("mathjax_config")
         mathjax_html = (

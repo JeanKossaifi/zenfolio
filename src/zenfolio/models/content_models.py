@@ -3,7 +3,7 @@ Content models for academic websites
 """
 
 from zencfg import ConfigBase
-from typing import Any, List, Optional
+from typing import Any, List, Literal, Optional
 # Paths handled as strings, resolved during rendering
 
 
@@ -231,7 +231,7 @@ class BlogPost(ConfigBase):
 
 
 class Page(ConfigBase):
-    """Standalone page parsed from markdown with frontmatter"""
+    """Standalone page rendered inside the active site's document shell."""
     title: str = ""
     slug: str = ""
     route: str = ""
@@ -241,7 +241,15 @@ class Page(ConfigBase):
     social_description: str = ""
     social_image: str = ""
     content: str = ""
-    content_type: str = "markdown"  # markdown or notebook, set by the parser
+    content_type: str = "markdown"  # markdown, notebook, or html
+    layout: Literal["prose", "wide", "full"] = "prose"
+    show_site_header: bool = True
+    show_site_footer: bool = True
+    stylesheets: List[str] = []
+    scripts: List[str] = []
+    og_type: str = ""
+    theme_color: str = ""
+    navigation_key: str = ""
 
     template_name: str = "page"
     

@@ -51,6 +51,29 @@ def test_page_eyebrow_is_optional_and_serializes():
     )
 
 
+def test_page_presentation_options_serialize():
+    page = Page(
+        layout="full",
+        show_site_header=False,
+        show_site_footer=False,
+        stylesheets=["project/styles.css"],
+        scripts=["project/site.js"],
+        og_type="website",
+        theme_color="#090b0c",
+        navigation_key="projects",
+    )
+
+    serialized = page.to_dict()
+    assert serialized["layout"] == "full"
+    assert serialized["show_site_header"] is False
+    assert serialized["show_site_footer"] is False
+    assert serialized["stylesheets"] == ["project/styles.css"]
+    assert serialized["scripts"] == ["project/site.js"]
+    assert serialized["og_type"] == "website"
+    assert serialized["theme_color"] == "#090b0c"
+    assert serialized["navigation_key"] == "projects"
+
+
 def test_config_keeps_legacy_author_and_explicit_identity():
     legacy = Config(author=AuthorConfig(name="Legacy"))
     group = GroupConfig(name="Group")

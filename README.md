@@ -471,7 +471,40 @@ Features:
 2. **Publications**: Add entries to `publications.bib`
 3. **News/Projects/Talks**: Edit respective `.py` files (`news.py`, `projects.py`, etc.)
 4. **Blog Posts**: Add Markdown files or Jupyter notebooks to `blog/` directory
-5. **Static Assets**: Place images, PDFs, etc. in `static/` directory
+5. **Standalone Pages**: Add Markdown, HTML fragments, or notebooks to `pages/`
+6. **Static Assets**: Place images, PDFs, CSS, and JavaScript in `static/`
+
+### Standalone pages
+
+Markdown is the default for prose-led pages. Use a frontmatter-bearing HTML
+fragment when a page needs precise semantic markup or an art-directed layout;
+the theme still supplies the document, SEO, analytics, and site chrome.
+
+```html
+---
+title: Project
+route: /project/
+layout: full
+show_site_header: false
+show_site_footer: false
+navigation_key: projects
+stylesheets:
+  - project/styles.css
+scripts:
+  - project/site.js
+---
+<article class="project">
+  <h1>Project</h1>
+</article>
+```
+
+`layout` accepts `prose` (the default), `wide`, or `full`. The site header and
+footer can be controlled independently and default to visible. Stylesheet and
+script paths resolve through the existing `static/` directory.
+`navigation_key` can mark the corresponding shared navigation item as current.
+HTML content must be a fragment—do not include `doctype`, `html`, `head`, or
+`body`; use `template_name` when a theme-specific component is more
+appropriate.
 
 ### Configuration Structure
 

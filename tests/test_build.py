@@ -119,6 +119,94 @@ def test_analytics_are_in_every_page_head(tmp_path, theme_name):
         assert inline_configs[0].find_parent("head") is not None, html_file
 
 
+def test_html_page_supports_full_layout_hidden_chrome_and_page_assets(
+    tmp_path,
+):
+    fixture = Path(__file__).parent / "fixtures" / "group"
+    content = tmp_path / "content"
+    shutil.copytree(fixture, content)
+    (content / "static" / "project").mkdir()
+    (content / "static" / "project" / "styles.css").write_text(
+        ".project { color: black; }\n", encoding="utf-8"
+    )
+    (content / "static" / "project" / "site.js").write_text(
+        "document.documentElement.dataset.project = 'ready';\n",
+        encoding="utf-8",
+    )
+    (content / "pages" / "project.html").write_text(
+        "---\n"
+        "title: Project\n"
+        "slug: project\n"
+        "route: /project/\n"
+        "layout: full\n"
+        "show_site_header: false\n"
+        "show_site_footer: false\n"
+        "stylesheets:\n"
+        "  - project/styles.css\n"
+        "scripts:\n"
+        "  - project/site.js\n"
+        "og_type: website\n"
+        "theme_color: '#090b0c'\n"
+        "---\n"
+        '<section class="project"><h1>Custom project</h1></section>\n',
+        encoding="utf-8",
+    )
+
+    builder = ZenFolio(content)
+    assert builder.build(base_url="https://example.test/research/lab/")
+
+    project_html = (
+        builder.output_dir / "project" / "index.html"
+    ).read_text(encoding="utf-8")
+    project = BeautifulSoup(project_html, "html.parser")
+    homepage = (builder.output_dir / "index.html").read_text(encoding="utf-8")
+
+    assert project.select_one("nav") is None
+    assert project.select_one("footer") is None
+    assert project.select_one("article.page-layout-full.page-project")
+    assert project.select_one(
+        'link[rel="stylesheet"][href="../static/project/styles.css"]'
+    )
+    assert project.select_one(
+        'script[src="../static/project/site.js"][defer]'
+    )
+    assert project.find("meta", {"property": "og:type"})["content"] == "website"
+    assert project.find("meta", {"name": "theme-color"})["content"] == "#090b0c"
+    assert "project/styles.css" not in homepage
+    assert "project/site.js" not in homepage
+
+
+def test_html_page_can_keep_header_and_hide_footer(tmp_path):
+    fixture = Path(__file__).parent / "fixtures" / "group"
+    content = tmp_path / "content"
+    shutil.copytree(fixture, content)
+    (content / "pages" / "project.html").write_text(
+        "---\n"
+        "title: Project\n"
+        "route: /project/\n"
+        "navigation_key: research\n"
+        "show_site_footer: false\n"
+        "---\n"
+        "<p>Project</p>\n",
+        encoding="utf-8",
+    )
+
+    builder = ZenFolio(content)
+    assert builder.build(base_url="https://example.test/research/lab/")
+
+    project = BeautifulSoup(
+        (builder.output_dir / "project" / "index.html").read_text(
+            encoding="utf-8"
+        ),
+        "html.parser",
+    )
+    assert project.select_one("nav")
+    research_link = project.find("a", string="Research")
+    assert research_link["href"] == "../research/"
+    assert "text-teal-600" in research_link.get("class", [])
+    assert project.select_one("footer") is None
+
+
 def test_duplicate_public_routes_fail_the_build(tmp_path):
     fixture = Path(__file__).parent / "fixtures" / "group"
     content = tmp_path / "content"

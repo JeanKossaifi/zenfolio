@@ -1,42 +1,36 @@
 from zenfolio.models import (
-    Config,
+    ZenFolioConfig,
     GroupConfig,
-    HomepageAction,
-    HomepageSection,
-    NavItem,
-    PeopleConfig,
-    PublicationConfig,
-    ResearchAreaItem,
+    HomepageActionConfig,
+    HomepageSectionConfig,
+    NavigationLinkConfig,
+    TeamConfig,
+    PublicationsConfig,
+    ResearchAreaConfig,
     ResearchAreasConfig,
     SiteConfig,
-    TeamCategory,
-    TeamMember,
+    PersonConfig,
 )
 
 
-people = PeopleConfig(
+team = TeamConfig(
     title="Team",
     description="Researchers working across learning and physical systems.",
     route="/team/",
-    categories=[
-        TeamCategory(key="lead", title="Group lead"),
-        TeamCategory(key="core", title="Core team"),
-    ],
-    items=[
-        TeamMember(
+    members=[
+        PersonConfig(
             name="Riley Lead",
             role="Group lead",
-            category="lead",
             profile="https://example.test/riley",
         ),
-        TeamMember(name="Casey Researcher", category="core"),
+        PersonConfig(name="Casey Researcher"),
     ],
 )
 
 areas = ResearchAreasConfig(
     route="/research/",
-    items=[
-        ResearchAreaItem(
+    areas=[
+        ResearchAreaConfig(
             title="Physical learning",
             description="Learning models for physical systems.",
             slug="physical-learning",
@@ -46,7 +40,7 @@ areas = ResearchAreasConfig(
     ],
 )
 
-config = Config(
+config = ZenFolioConfig(
     site_type="group",
     identity=GroupConfig(
         name="Applied Systems Lab",
@@ -67,44 +61,44 @@ config = Config(
         blog_label="Updates",
         blog_route="/updates/",
     ),
-    publications=PublicationConfig(
+    publications=PublicationsConfig(
         bib_path="publications.bib",
         title="Publications",
         route="/publications/",
     ),
-    people=people,
+    team=team,
     research_areas=areas,
     projects=None,
     news=None,
     talks=None,
     navigation=[
-        NavItem(key="research", label="Research", route="/research/"),
-        NavItem(key="publications", label="Publications", route="/publications/"),
-        NavItem(key="team", label="Team", route="/team/"),
-        NavItem(key="updates", label="Updates", route="/updates/"),
+        NavigationLinkConfig(key="research", label="Research", route="/research/"),
+        NavigationLinkConfig(key="publications", label="Publications", route="/publications/"),
+        NavigationLinkConfig(key="team", label="Team", route="/team/"),
+        NavigationLinkConfig(key="updates", label="Updates", route="/updates/"),
     ],
     homepage_sections=[
-        HomepageSection(
+        HomepageSectionConfig(
             id="hero",
             type="hero",
             actions=[
-                HomepageAction(
+                HomepageActionConfig(
                     label="Explore research",
                     route="/research/",
                 )
             ],
         ),
-        HomepageSection(
+        HomepageSectionConfig(
             id="research",
             type="card_grid",
             source="research_areas",
             title="Research",
             columns=1,
         ),
-        HomepageSection(
+        HomepageSectionConfig(
             id="team",
             type="card_grid",
-            source="people",
+            source="team",
             title="Team",
             columns=2,
         ),

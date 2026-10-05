@@ -5,12 +5,12 @@ from typing import Any, Dict, List, Optional, Protocol, Sequence
 
 from .models.site_config import AuthorConfig
 from .serialization import as_dict
+from .team import team_groups, team_records
 from .utils import join_route
 
 
 SECTION_COMPONENTS = {
     "process": "process_section",
-    "why_aie": "why_aie_section",
     "statement": "statement_section",
     "methods": "methods_section",
     "research_directions": "research_directions_section",
@@ -51,7 +51,7 @@ class HomepageHost(Protocol):
 
 
 class HomepageComposer:
-    """Build configured group homepages while preserving the facade API."""
+    """Build configured or default homepages from site content."""
 
     def __init__(self, host: HomepageHost):
         self.host = host
@@ -90,45 +90,19 @@ class HomepageComposer:
     def group_people(
         self, people: Sequence[Dict[str, Any]]
     ) -> List[Dict[str, Any]]:
-        host = self.host
-        configured = (
-            getattr(host.config.people, "categories", [])
-            if host.config.people
-            else []
-        ) or []
-        category_titles = {
-            category.key: category.title for category in configured
-        }
-        order = [category.key for category in configured]
-        for person in people:
-            category = person.get("category", "core")
-            if category not in order:
-                order.append(category)
-        default_titles = {
-            "lead": "Group lead",
-            "group_lead": "Group lead",
-            "core": "Core research team",
-            "intern": "Interns",
-            "interns": "Interns",
-        }
         return [
             {
-                "key": key,
-                "title": category_titles.get(
-                    key,
-                    default_titles.get(
-                        key, key.replace("_", " ").title()
-                    ),
-                ),
-                "items": [
+                "key": group["key"],
+                "title": group["title"],
+                "people": [
                     person
                     for person in people
-                    if person.get("category", "core") == key
+                    if person["membership"] == group["key"]
                 ],
             }
-            for key in order
+            for group in team_groups(self.host.config)
             if any(
-                person.get("category", "core") == key
+                person["membership"] == group["key"]
                 for person in people
             )
         ]
@@ -148,7 +122,10 @@ class HomepageComposer:
         )
         section["grid_cols"] = section.get("columns", 1)
         section["content"] = (
-            host._process_content_field(section["body"], "markdown", "body")
+            host._process_static_placeholders(
+                host._process_content_field(section["body"], "markdown", "body"),
+                host.effective_base_url,
+            )
             if section.get("body")
             else ""
         )
@@ -156,10 +133,10 @@ class HomepageComposer:
         items: Sequence[Any] = []
         item_type = None
         if source == "research_areas":
-            items = getattr(host.config.research_areas, "items", []) or []
+            items = getattr(host.config.research_areas, "areas", []) or []
             item_type = "research_area_item"
         elif source == "projects":
-            items = getattr(host.config.projects, "items", []) or []
+            items = getattr(host.config.projects, "projects", []) or []
             item_type = "project_item"
         elif source == "publications":
             items = sorted(
@@ -170,18 +147,19 @@ class HomepageComposer:
                 ),
             )
             item_type = "publication_item"
-        elif source in {"people", "team"}:
-            items = getattr(host.config.people, "items", []) or []
+        elif source == "team":
+            # History stays on the full team page; previews show current people.
+            items = team_records(host.config, current_only=True)
             item_type = "person_item"
         elif source in {"updates", "blog"}:
             self.prepare_blog_routes()
             items = host.content.blog_posts
             item_type = "blog_post_item"
         elif source == "news":
-            items = getattr(host.config.news, "items", []) or []
+            items = getattr(host.config.news, "news", []) or []
             item_type = "news_item"
         elif source == "talks":
-            items = getattr(host.config.talks, "items", []) or []
+            items = getattr(host.config.talks, "talks", []) or []
             item_type = "talk_item"
         elif source == "about":
             about_content = host.content.bio.get("bio", "")
@@ -260,7 +238,7 @@ class HomepageComposer:
             section["items"] = host._process_items(
                 list(items), item_type, seo_generator
             )
-            if source in {"people", "team"}:
+            if source == "team":
                 section["grouped_items"] = self.group_people(
                     section["items"]
                 )
@@ -349,7 +327,6 @@ class HomepageComposer:
             "/",
             content,
             page_title=host.config.site.title,
-            base_url=base_url,
             seo_generator=seo_generator,
             page_type="homepage",
             item_data={
@@ -366,7 +343,7 @@ class HomepageComposer:
             },
         )
 
-    def build_legacy(
+    def build_default(
         self,
         publications: List[Dict[str, Any]],
         bio_data: Dict[str, Any],
@@ -385,15 +362,12 @@ class HomepageComposer:
                 ),
                 "actions": [
                     {
-                        "text": button.text,
-                        "url": button.url,
-                        # Pass the raw keyword; templates map style names
-                        # (primary/secondary/accent) to their own classes.
-                        "style": button.style,
-                        "external": button.url.startswith("http"),
+                        "label": action.label,
+                        "route": action.route,
+                        "style": action.style,
                     }
-                    for button in (
-                        getattr(host.identity, "homepage_buttons", []) or []
+                    for action in (
+                        getattr(host.identity, "homepage_actions", []) or []
                     )
                 ],
                 "social_links": [
@@ -450,7 +424,7 @@ class HomepageComposer:
 
         indexed_projects = list(
             enumerate(
-                getattr(host.config.projects, "items", []) or []
+                getattr(host.config.projects, "projects", []) or []
             )
         )
         projects = [
@@ -471,7 +445,7 @@ class HomepageComposer:
                 ),
             )
         ]
-        news = getattr(host.config.news, "items", []) or []
+        news = getattr(host.config.news, "news", []) or []
         news_count = host.config.site.homepage_news_count
         sections = [
             {
@@ -601,7 +575,6 @@ class HomepageComposer:
             "/",
             content,
             page_title=host.config.site.title,
-            base_url=base_url,
             seo_generator=seo_generator,
             page_type="homepage",
         )
@@ -618,6 +591,6 @@ class HomepageComposer:
                 publications, base_url, seo_generator
             )
         else:
-            self.build_legacy(
+            self.build_default(
                 publications, bio_data, base_url, seo_generator
             )

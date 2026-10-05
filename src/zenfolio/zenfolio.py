@@ -1,4 +1,4 @@
-"""Backward-compatible facade for the ZenFolio build pipeline."""
+"""Public entry point for the ZenFolio build pipeline."""
 
 from pathlib import Path
 from typing import Dict, List, Any, Optional, Sequence
@@ -12,7 +12,6 @@ from .homepage_composer import HomepageComposer
 from .output_manager import OutputManager
 from .page_renderer import PageRenderer
 from .parsers import parser_registry
-from .routing import LEGACY_ROUTES as DEFAULT_LEGACY_ROUTES
 from .routing import RouteRegistry
 from .site_builder import SiteBuilder
 from .seo_utils import SEOGenerator
@@ -21,7 +20,6 @@ from zencfg import load_config_from_file
 class ZenFolio:
     """Stable public API backed by focused build components."""
 
-    LEGACY_ROUTES = DEFAULT_LEGACY_ROUTES
     
     def __init__(
         self,
@@ -94,7 +92,7 @@ class ZenFolio:
         self.output_manager.validate()
 
     def _sync_output_manager(self):
-        """Keep mutable legacy facade paths reflected in the manager."""
+        """Keep configured build paths reflected in the output manager."""
         self.output_manager.content_dir = self.content_dir
         self.output_manager.static_dir = self.static_dir
         self.output_manager.output_dir = self.output_dir
@@ -167,9 +165,6 @@ class ZenFolio:
         filename: str,
         content: str,
         page_title: str = "",
-        # Accepted for caller compatibility; the page renderer derives the
-        # effective base URL from the route itself.
-        base_url: str = "",  # noqa: ARG002 - see comment above
         seo_generator: Optional['SEOGenerator'] = None,
         page_type: str = "page",
         item_data: Optional[Dict[str, Any]] = None,

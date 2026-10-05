@@ -8,14 +8,14 @@ from zencfg import ConfigBase
 
 from .content_models import (
     NewsConfig,
-    PeopleConfig,
     ProjectsConfig,
     ResearchAreasConfig,
     TalksConfig,
+    TeamConfig,
 )
 
 
-class ServiceItem(ConfigBase):
+class ServiceEntryConfig(ConfigBase):
     """Academic service entry for personal sites."""
 
     description: str = ""
@@ -27,15 +27,7 @@ class ServiceItem(ConfigBase):
     highlight: Optional[str] = None
 
 
-class HomepageButton(ConfigBase):
-    """Legacy personal-homepage action."""
-
-    text: str = ""
-    url: str = ""
-    style: str = "primary"
-
-
-class HomepageAction(ConfigBase):
+class HomepageActionConfig(ConfigBase):
     """Action rendered in a configured homepage section."""
 
     label: str = ""
@@ -43,7 +35,7 @@ class HomepageAction(ConfigBase):
     style: str = "primary"
 
 
-class HomepageStep(ConfigBase):
+class HomepageStepConfig(ConfigBase):
     """A connected process step or compact method pillar."""
 
     title: str = ""
@@ -53,7 +45,7 @@ class HomepageStep(ConfigBase):
     source: str = ""
 
 
-class HomepageSection(ConfigBase):
+class HomepageSectionConfig(ConfigBase):
     """Typed, ordered homepage section configuration."""
 
     id: str = ""
@@ -68,15 +60,15 @@ class HomepageSection(ConfigBase):
     featured_only: bool = False
     columns: int = 1
     background: bool = False
-    steps: List[HomepageStep] = []
-    actions: List[HomepageAction] = []
+    steps: List[HomepageStepConfig] = []
+    actions: List[HomepageActionConfig] = []
     view_all_label: Optional[str] = None
     view_all_route: Optional[str] = None
     template_name: Optional[str] = None
     show_research_interests: bool = False
 
 
-class NavItem(ConfigBase):
+class NavigationLinkConfig(ConfigBase):
     """An ordered navigation destination."""
 
     label: str = ""
@@ -95,7 +87,7 @@ class IdentityConfig(ConfigBase):
     email: Optional[str] = None
 
 
-class OrganizationRef(ConfigBase):
+class OrganizationConfig(ConfigBase):
     """One authoritative reference to an organization."""
 
     name: str = ""
@@ -103,13 +95,13 @@ class OrganizationRef(ConfigBase):
 
 
 class AuthorConfig(IdentityConfig):
-    """Personal-site identity. Existing fields remain source compatible."""
+    """Personal-site identity and profile details."""
 
     name: str = "Your Name"
     title: str = "Your Title"
-    affiliation: Union[str, OrganizationRef] = "Your Institution"
-    employer: Optional[Union[str, OrganizationRef]] = None
-    alumni_of: List[OrganizationRef] = []
+    affiliation: Union[str, OrganizationConfig] = "Your Institution"
+    employer: Optional[Union[str, OrganizationConfig]] = None
+    alumni_of: List[OrganizationConfig] = []
     email: Optional[str] = "your.email@example.com"
     tagline: str = "Your research focus and mission statement"
     interests: List[str] = [
@@ -129,8 +121,8 @@ class AuthorConfig(IdentityConfig):
     photo_width: Optional[int] = None
     photo_height: Optional[int] = None
     cv_path: Optional[str] = None
-    homepage_buttons: List[HomepageButton] = []
-    service: List[ServiceItem] = []
+    homepage_actions: List[HomepageActionConfig] = []
+    service: List[ServiceEntryConfig] = []
 
 
 class GroupConfig(IdentityConfig):
@@ -156,7 +148,7 @@ class GroupConfig(IdentityConfig):
     research_areas: List[str] = []
 
 
-class PublicationConfig(ConfigBase):
+class PublicationsConfig(ConfigBase):
     """Publication source and list-page settings."""
 
     bib_path: str = "publications.bib"
@@ -238,24 +230,23 @@ class SiteConfig(ConfigBase):
     homepage_news_count: Optional[int] = 3
 
 
-class Config(ConfigBase):
+class ZenFolioConfig(ConfigBase):
     """Main ZenFolio configuration."""
 
     site_type: str = "person"
-    identity: Optional[IdentityConfig] = None
-    author: AuthorConfig = AuthorConfig()
+    identity: Union[AuthorConfig, GroupConfig] = AuthorConfig()
     site: SiteConfig = SiteConfig()
-    publications: PublicationConfig = PublicationConfig()
+    publications: PublicationsConfig = PublicationsConfig()
     mathjax: MathJaxConfig = MathJaxConfig()
 
     news: Optional[NewsConfig] = NewsConfig()
     projects: Optional[ProjectsConfig] = ProjectsConfig()
     talks: Optional[TalksConfig] = TalksConfig()
-    people: Optional[PeopleConfig] = None
+    team: Optional[TeamConfig] = None
     research_areas: Optional[ResearchAreasConfig] = None
 
-    navigation: Optional[List[NavItem]] = None
-    homepage_sections: Optional[List[HomepageSection]] = None
+    navigation: Optional[List[NavigationLinkConfig]] = None
+    homepage_sections: Optional[List[HomepageSectionConfig]] = None
     scholar_stats: Optional[Dict[str, Any]] = None
 
     theme: str = "minimal"

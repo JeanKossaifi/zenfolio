@@ -7,6 +7,7 @@ from typing import Any, Dict, List, Optional, Protocol, Tuple
 
 from .content_processor import ContentProcessor
 from .serialization import as_dict
+from .team import team_records
 from .utils import (
     content_date_key,
     is_external_url,
@@ -195,7 +196,6 @@ class CollectionBuilder:
             route,
             content,
             page_title=title,
-            base_url=base_url,
             seo_generator=seo_generator,
             page_type=page_type,
             structured_data_list=combined_schema,
@@ -204,17 +204,18 @@ class CollectionBuilder:
 
     def build_team_page(self, seo_generator: Optional[Any] = None) -> None:
         host = self.host
+        team = host.config.team
         route = host._route_for("team")
         host._set_page_context(route)
         processed_people = host._process_items(
-            host.config.people.items, "person_item", seo_generator
+            team_records(host.config), "person_item", seo_generator
         )
         groups = host._group_people(processed_people)
         page_data = {
-            "title": host.config.people.title,
+            "title": team.title,
             "identity": host.identity,
             "intro": host._process_content_field(
-                host.config.people.description, "markdown", "intro"
+                team.description, "markdown", "intro"
             ),
             "columns": 3,
             "grid_cols": 3,
@@ -231,13 +232,13 @@ class CollectionBuilder:
         host._render_and_write_page(
             route,
             content,
-            page_title=host.config.people.title,
+            page_title=team.title,
             seo_generator=seo_generator,
             page_type="team",
             item_data={
                 "description": (
-                    host.config.people.meta_description
-                    or host.config.people.description
+                    team.meta_description
+                    or team.description
                 )
             },
         )
@@ -300,7 +301,6 @@ class CollectionBuilder:
                 route,
                 content_html,
                 page_title=post["title"],
-                base_url=nested_base_url,
                 current_page=(
                     "updates" if host.site_type == "group" else "blog"
                 ),
@@ -358,7 +358,7 @@ class CollectionBuilder:
             related_projects: List[Dict[str, Any]] = []
             if slug == "research":
                 research_areas = host._process_items(
-                    getattr(host.config.research_areas, "items", []) or [],
+                    getattr(host.config.research_areas, "areas", []) or [],
                     "research_area_item",
                     seo_generator,
                 )
@@ -370,7 +370,7 @@ class CollectionBuilder:
                     seo_generator,
                 )
                 related_projects = host._process_items(
-                    getattr(host.config.projects, "items", []) or [],
+                    getattr(host.config.projects, "projects", []) or [],
                     "project_item",
                     seo_generator,
                 )
@@ -381,13 +381,13 @@ class CollectionBuilder:
                 identity=host.identity,
                 research_areas=research_areas,
                 related_publications=related_publications,
+                publications_route=host._route_for("publications"),
                 related_projects=related_projects,
             )
             host._render_and_write_page(
                 route,
                 page_content,
                 page_title=page_data["title"],
-                base_url=nested_base_url,
                 current_page=page_data.get("navigation_key") or slug,
                 seo_generator=seo_generator,
                 page_type="research" if slug == "research" else "page",

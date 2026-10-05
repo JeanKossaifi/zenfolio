@@ -8,9 +8,10 @@ from typing import Optional
 from urllib.parse import unquote, urlsplit
 import xml.etree.ElementTree as ET
 
-from .utils import is_external_url
+from .utils import is_external_url, resolve_directory_path
 from .zenfolio import get_output_dir
 from .models.site_config import AuthorConfig, GroupConfig
+from .team import team_people
 
 
 def _raster_image_size(path: Path):
@@ -63,6 +64,8 @@ def validate_site(content_dir: Path, output_dir: Optional[Path] = None):
     errors = []
     warnings = []
     site_type = "person"
+    static_dir = content_dir / "static"
+    profile_path = "profile.jpg"
     
     if not content_dir.exists():
         errors.append(f"Content directory '{content_dir}' does not exist")
@@ -85,10 +88,12 @@ def validate_site(content_dir: Path, output_dir: Optional[Path] = None):
 
     try:
         config = load_config_from_file(content_dir, "config.py", "config")
+        static_dir = resolve_directory_path(config.static_path, content_dir)
         print("✅ Configuration loaded and validated successfully")
 
         site_type = str(getattr(config, "site_type", "person")).lower()
-        identity = getattr(config, "identity", None) or config.author
+        identity = config.identity
+        profile_path = getattr(identity, "photo_path", "profile.jpg")
         if site_type not in {"person", "group"}:
             errors.append("site_type must be 'person' or 'group'")
         elif site_type == "group":
@@ -115,11 +120,7 @@ def validate_site(content_dir: Path, output_dir: Optional[Path] = None):
                         hero_media_path = str(identity.hero_media).lstrip("/")
                         if hero_media_path.startswith("static/"):
                             hero_media_path = hero_media_path[len("static/"):]
-                        hero_path = (
-                            content_dir
-                            / "static"
-                            / hero_media_path
-                        )
+                        hero_path = static_dir / hero_media_path
                         if not hero_path.is_file():
                             errors.append(
                                 f"Group hero media is missing: {hero_path}"
@@ -183,7 +184,7 @@ def validate_site(content_dir: Path, output_dir: Optional[Path] = None):
         featured_orders = {}
         allowed_featured_sizes = {"standard", "wide", "full"}
         allowed_image_styles = {"logo", "media"}
-        for project in getattr(getattr(config, "projects", None), "items", []) or []:
+        for project in getattr(getattr(config, "projects", None), "projects", []) or []:
             title = getattr(project, "title", "Untitled project")
             order = getattr(project, "featured_order", 0)
             size = getattr(project, "featured_size", "wide")
@@ -214,9 +215,9 @@ def validate_site(content_dir: Path, output_dir: Optional[Path] = None):
 
         if site_type == "group":
             media_items = []
-            for collection_name in ("research_areas", "projects"):
+            for collection_name, field in (("research_areas", "areas"), ("projects", "projects")):
                 collection = getattr(config, collection_name, None)
-                for item in getattr(collection, "items", []) or []:
+                for item in getattr(collection, field, []) or []:
                     media_items.append((collection_name, item))
             for collection_name, item in media_items:
                 image = getattr(item, "image", None)
@@ -229,10 +230,10 @@ def validate_site(content_dir: Path, output_dir: Optional[Path] = None):
                     image_path = str(image).lstrip("/")
                     if image_path.startswith("static/"):
                         image_path = image_path[len("static/"):]
-                    local_image = content_dir / "static" / image_path
+                    local_image = static_dir / image_path
                     if not local_image.is_file():
                         errors.append(f"{label} image is missing: {local_image}")
-            for person in getattr(getattr(config, "people", None), "items", []) or []:
+            for person in team_people(config):
                 if not person.photo:
                     continue
                 if not person.photo_alt:
@@ -241,7 +242,7 @@ def validate_site(content_dir: Path, output_dir: Optional[Path] = None):
                     photo_path = str(person.photo).lstrip("/")
                     if photo_path.startswith("static/"):
                         photo_path = photo_path[len("static/"):]
-                    local_photo = content_dir / "static" / photo_path
+                    local_photo = static_dir / photo_path
                     if not local_photo.is_file():
                         errors.append(
                             f"{person.name} photo is missing: {local_photo}"
@@ -266,8 +267,8 @@ def validate_site(content_dir: Path, output_dir: Optional[Path] = None):
                 content_dir=content_dir, output_override=output_dir
             )
             builder._validate_output_directory()
+            builder.content.load()
             if site_type == "group":
-                builder.content.load()
                 for post in builder.content.blog_posts:
                     image = post.get("image")
                     if not image:
@@ -276,7 +277,7 @@ def validate_site(content_dir: Path, output_dir: Optional[Path] = None):
                     if not post.get("image_alt", ""):
                         errors.append(f"{label} image requires alt text")
         except Exception as exc:
-            errors.append(f"Build path or theme validation failed: {exc}")
+            errors.append(f"Build, content, or theme validation failed: {exc}")
     
     except ImportError as e:
         # zencfg itself was imported above, so this comes from the user's
@@ -290,14 +291,15 @@ def validate_site(content_dir: Path, output_dir: Optional[Path] = None):
     except Exception as e:
         errors.append(f"Unexpected error loading configuration: {e}")
     
-    static_dir = content_dir / "static"
     if not static_dir.exists():
-        warnings.append("Static directory is missing")
+        warnings.append(f"Static directory is missing: {static_dir}")
     else:
-        if site_type == "person":
-            profile_img = static_dir / "profile.jpg"
+        if site_type == "person" and profile_path and not is_external_url(profile_path):
+            from .content_processor import ContentProcessor
+
+            profile_img = static_dir / ContentProcessor.resolve_path(profile_path)
             if not profile_img.exists():
-                warnings.append("Profile image (static/profile.jpg) is missing")
+                warnings.append(f"Profile image is missing: {profile_img}")
     
     if errors:
         print("❌ Validation failed:")
@@ -360,7 +362,7 @@ def validate_generated_site(
             image_path = str(social_image).lstrip("/")
             if image_path.startswith("static/"):
                 image_path = image_path[len("static/"):]
-            social_path = content_dir / "static" / image_path
+            social_path = resolve_directory_path(config.static_path, content_dir) / image_path
             if not social_path.is_file():
                 issues_found.append(
                     f"Production social image is missing: {social_path}"

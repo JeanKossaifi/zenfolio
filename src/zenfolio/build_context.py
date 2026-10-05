@@ -9,6 +9,7 @@ from zencfg import load_config_from_file
 from .errors import ZenFolioBuildError
 from .models.site_config import AuthorConfig, GroupConfig
 from .theme_loader import load_theme
+from .utils import resolve_directory_path
 
 
 @dataclass
@@ -43,9 +44,7 @@ class BuildContext:
         if site_type not in {"person", "group"}:
             raise ZenFolioBuildError("site_type must be 'person' or 'group'")
 
-        identity = getattr(config, "identity", None) or getattr(
-            config, "author", None
-        )
+        identity = config.identity
         if site_type == "group" and not isinstance(identity, GroupConfig):
             raise ZenFolioBuildError(
                 "Group sites require identity=GroupConfig(...)"
@@ -54,21 +53,10 @@ class BuildContext:
             raise ZenFolioBuildError(
                 "Personal sites require an AuthorConfig identity"
             )
-        config.identity = identity
 
-        static_path = Path(config.static_path).expanduser()
-        static_dir = (
-            static_path.resolve()
-            if static_path.is_absolute()
-            else (resolved_content / static_path).resolve()
-        )
-        # expanduser first: '~/www' is not is_absolute() and would otherwise
-        # become a literal '~' directory inside the content dir.
-        output_path = Path(output_override or config.output_path).expanduser()
-        output_dir = (
-            output_path.resolve()
-            if output_path.is_absolute()
-            else (resolved_content / output_path).resolve()
+        static_dir = resolve_directory_path(config.static_path, resolved_content)
+        output_dir = resolve_directory_path(
+            output_override or config.output_path, resolved_content
         )
         theme = load_theme(
             config,

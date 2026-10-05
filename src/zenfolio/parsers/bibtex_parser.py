@@ -48,7 +48,12 @@ class BibtexParser(ContentParser):
             return []
         
         try:
-            self.bib_library = bibtexparser.parse_file(str(file_path))
+            source = file_path.read_text(encoding="utf-8-sig")
+            # Whole-line comments may contain disabled entries. Passing them
+            # through can make the parser discover their @article/@misc header
+            # while reading the commented field names as unrelated keys.
+            source = re.sub(r"(?m)^[ \t]*%[^\n]*", "", source)
+            self.bib_library = bibtexparser.parse_string(source)
             if self.bib_library.failed_blocks:
                 raise ValueError(
                     f"{len(self.bib_library.failed_blocks)} block(s) "
@@ -58,16 +63,22 @@ class BibtexParser(ContentParser):
             raise ValueError(f"Could not parse BibTeX file '{file_path}': {error}") from error
 
         publications = []
+        errors = []
         for model_entry in self.bib_library.entries:
             entry = self._entry_to_dict(model_entry)
             try:
                 pub = self._format_entry(entry)
             except Exception as error:
                 entry_id = entry.get('ID', '<no id>')
-                print(f"⚠️  Warning: Skipping BibTeX entry '{entry_id}' in {file_path.name}: {error}")
+                errors.append(f"Entry '{entry_id}': {error}")
                 continue
             if pub:
                 publications.append(pub)
+            else:
+                errors.append(f"Entry '{entry.get('ID', '<no id>')}' requires title and year")
+
+        if errors:
+            raise ValueError(f"Invalid BibTeX in {file_path}: " + "; ".join(errors))
 
         publications.sort(key=lambda x: x['year'], reverse=True)
         return publications

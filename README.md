@@ -1,627 +1,410 @@
-# ZenFolio 🧘‍♂️📚
+# ZenFolio
 
-A minimal, powerful academic website generator built with [ZenCFG](https://github.com/JeanKossaifi/zencfg).
+ZenFolio builds personal and research-group websites from Python settings,
+Markdown, Jupyter notebooks, and BibTeX publications. It uses
+[ZenCFG](https://github.com/JeanKossaifi/zencfg) to check configuration values.
 
-## ✨ Features
+## Start a site
 
-- **🎨 Beautiful Themes**: Modern, responsive designs with Tailwind CSS and Minimal themes
-- **📓 Jupyter Notebook Support**: Native rendering of `.ipynb` files with enhanced styling
-- **🧠 Smart Path Handling**: No complex APIs - just use strings! Auto-detects URLs vs local files
-- **🚀 Production-Ready Deployment**: Auto base URL detection, GitHub Pages integration, SEO optimization
-- **🔧 Advanced SEO**: Comprehensive meta tags, Open Graph, Twitter Cards, JSON-LD structured data
-- **📐 MathJax Integration**: Configurable LaTeX math rendering (v2/v3 support)
-- **📝 Rich Markdown Support**: Customizable extensions (code blocks, tables, admonitions, etc.)
-- **📊 Academic-Focused**: Publications (BibTeX), projects, news, talks, academic service
-- **⚡ Type-Safe Configuration**: Built on ZenCFG for robust, validated configuration
-- **🔗 Flexible Content Management**: Write in Markdown, manage data in Python
-- **🏗️ Robust Build System**: Development/production modes, validation, error handling
-
-## Quick Start
-
-### Installation
+This version requires Python 3.11+, ZenCFG 1.0+, and Pydantic 2. From the
+ZenFolio directory, install a local ZenCFG checkout first. Replace
+`/path/to/zencfg` with its location:
 
 ```bash
-pip install zenfolio
-```
-
-### Initialize a New Site
-
-```bash
+python -m pip install -e /path/to/zencfg
+python -m pip install -e .
 zenfolio init --content-dir my-site
-```
-
-This creates:
-- `config.py` - Site configuration (name, affiliation, social links)
-- `index.md` - Your bio and about page
-- `news.py`, `projects.py`, `talks.py` - Content files (enable them in `config.py`)
-- `static/` - Static assets (profile photo, etc.)
-- `publications.bib` - Your publications in BibTeX format
-
-### Build Your Site
-
-```bash
-# Development build (relative URLs)
-zenfolio build --content-dir my-site --dev
-
-# Production build (portable links + absolute SEO metadata)
-zenfolio deploy --content-dir my-site
-
-# Development server
 zenfolio dev --content-dir my-site
 ```
 
-### 🎯 It's That Simple!
+Edit `my-site/config.py` and `my-site/index.md`. The preview rebuilds when you
+save. Refresh the browser after each successful build.
 
-ZenFolio's smart path system means you can focus on content, not configuration:
+These are the main files in a site. The `init` command creates the starter
+files; add folders such as `blog/` and `pages/` when you need them.
 
-```python
-# Just use strings - no complex path objects!
-NewsItem(
-    paper="https://arxiv.org/abs/2024.12345",  # External URL ✅
-    slides="talks/my_slides.pdf",              # Local file ✅
-    code="https://github.com/user/repo"        # GitHub URL ✅
-)
-```
+| File or folder | What to put there |
+| --- | --- |
+| `config.py` | Site settings and references to content |
+| `index.md` | Homepage introduction or biography |
+| `publications.bib` | Publications in BibTeX format |
+| `news.py`, `projects.py`, `talks.py` | News, projects, and talks |
+| `blog/` | Blog posts in Markdown or Jupyter notebooks |
+| `pages/` | Other pages in Markdown, HTML, or Jupyter notebooks |
+| `static/` | Images, PDFs, and other files to copy to the site |
+| `_site/` | Generated website; edit the source files above instead |
 
-Just put your local file in 
-`my-site/static/talks`.
+## Configure the site
 
-## Configuration
-
-### Site Configuration (`config.py`)
-
-```python
-from zenfolio.models import (
-    Config, AuthorConfig, SiteConfig, SEOConfig, MathJaxConfig,
-    PublicationConfig, HomepageButton
-)
-
-# Personal information
-author_config = AuthorConfig(
-    name="Your Name",
-    title="Your Title", 
-    affiliation="Your Institution",
-    email="your.email@example.com",
-    photo_path="profile.jpg",
-    
-    # Social links
-    github="https://github.com/yourusername",
-    scholar="https://scholar.google.com/citations?user=...",
-    linkedin="https://linkedin.com/in/yourusername",
-    twitter="https://twitter.com/yourusername",
-    
-    # Homepage buttons
-    homepage_buttons=[
-        HomepageButton(text="View Projects", url="projects.html", style="primary"),
-        HomepageButton(text="View Publications", url="publications.html", style="secondary"),
-    ],
-    
-    # Research interests (displayed as tags)
-    interests=["AI", "Machine Learning", "Research Area"]
-)
-
-# Site settings
-site_config = SiteConfig(
-    title="Your Name | Academic Website",
-    description="Your research focus and expertise...",
-    base_url="https://yoursite.com",
-
-    # Optional Google tag measurement ID
-    google_analytics_id="G-XXXXXXXXXX",
-
-    # Other analytics/statistics script URLs loaded in every page's <head>
-    analytics_scripts=["https://analytics.example/script.js"],
-    
-    # Blog configuration
-    blog_folder="blog",    # Default: look for posts in "blog/" directory
-    # blog_folder="posts", # Custom: use "posts/" directory instead  
-    # blog_folder=None,    # Disable: completely disable blog functionality
-    
-    # SEO configuration
-    seo=SEOConfig(
-        alumni_of="Your University",
-        # Optional overrides...
-    ),
-)
-
-# MathJax for LaTeX rendering goes on the top-level Config:
-# config = Config(..., mathjax=MathJaxConfig(version="3"))
-
-# Publication settings
-publication_config = PublicationConfig(
-    bib_path="publications.bib",
-    highlight_author=["Your Name", "Y. Name"]  # Variations of your name
-)
-
-# Main configuration
-config = Config(
-    author=author_config,
-    site=site_config,
-    publications=publication_config
-)
-```
-
-### Research-group sites
-
-Group sites keep a separate identity model and can configure clean routes,
-navigation, team categories, and homepage sections:
+The main file is `config.py`. It must define a variable named `config`
+containing a `ZenFolioConfig`. Here is a personal-site example:
 
 ```python
 from zenfolio.models import (
-    Config, GroupConfig, HomepageSection, NavItem, PeopleConfig, SiteConfig
+    AuthorConfig,
+    PublicationsConfig,
+    SiteConfig,
+    ZenFolioConfig,
 )
 
-config = Config(
-    site_type="group",
-    identity=GroupConfig(
-        name="Example Research Group",
-        parent_name="Example Research",
-        tagline="Foundational research for physical systems",
+config = ZenFolioConfig(
+    identity=AuthorConfig(
+        name="Riley Chen",
+        title="Researcher",
+        affiliation="Example University",
+        email="riley@example.com",
+        photo_path="profile.jpg",
+        tagline="Learning methods for physical systems.",
+        interests=["Scientific machine learning"],
     ),
     site=SiteConfig(
-        title="Example Research Group",
-        description="Research-group description.",
-        blog_folder="updates",
-        blog_label="Updates",
-        blog_route="/updates/",
+        title="Riley Chen",
+        description="Research on learning methods for physical systems.",
+        base_url="https://riley.example.com",
     ),
-    people=PeopleConfig(route="/team/"),
-    navigation=[
-        NavItem(key="research", label="Research", route="/research/"),
-        NavItem(key="publications", label="Publications", route="/publications/"),
-        NavItem(key="team", label="Team", route="/team/"),
-        NavItem(key="updates", label="Updates", route="/updates/"),
-    ],
-    homepage_sections=[
-        HomepageSection(id="hero", type="hero"),
-        HomepageSection(
-            id="team",
-            type="team_preview",
-            source="people",
-            limit=6,
+    publications=PublicationsConfig(
+        bib_path="publications.bib",
+        highlight_author=["Riley Chen", "R. Chen"],
+    ),
+    theme="tailwind",
+)
+```
+
+Put the photo at `static/profile.jpg` and write the biography in `index.md`.
+Set `base_url` to the published address, including any subfolder, such as
+`https://example.com/research/`.
+
+### Names
+
+All configuration classes end in `Config`. A singular name describes one
+entry; a plural or collective name holds a list of entries and its settings.
+
+| Holds the list | List field | One entry |
+| --- | --- | --- |
+| `TeamConfig` | `members`, `interns`, `past_interns` | `PersonConfig` |
+| `ProjectsConfig` | `projects` | `ProjectConfig` |
+| `TalksConfig` | `talks` | `TalkConfig` |
+| `ResearchAreasConfig` | `areas` | `ResearchAreaConfig` |
+| `NewsConfig` | `news` | `NewsEntryConfig` |
+
+Use `AuthorConfig` for the owner of a personal site, `GroupConfig` for a
+research group's details, and `PersonConfig` for a person on a team.
+Classes use names such as `PersonConfig`; fields and variables use names
+such as `internship_years` and `team_config`.
+
+The full field definitions are in
+[site_config.py](src/zenfolio/models/site_config.py) and
+[content_models.py](src/zenfolio/models/content_models.py).
+
+## Add news, projects, and talks
+
+Keep each collection in its own Python file. In `config.py`, import the
+variable from that file and pass it to `ZenFolioConfig`. For example, import
+`news_config` from `news`, then set `news=news_config`. The starter
+`config.py` includes these lines, commented out.
+
+### News: `news.py`
+
+```python
+from zenfolio.models import NewsConfig, NewsEntryConfig
+
+news_config = NewsConfig(
+    news=[
+        NewsEntryConfig(
+            date="2026-05-05",
+            content="Our seminar slides are available.",
+            slides="talks/seminar.pdf",
         ),
     ],
 )
 ```
 
-Directory-style routes generate `route/index.html`; navigation, canonical URLs,
-active state, and sitemap entries all use the configured public route.
+### Projects: `projects.py`
 
-### Content Management
-
-**News (`news.py`):**
 ```python
-from zenfolio.models import NewsConfig, NewsItem
+from zenfolio.models import ProjectConfig, ProjectsConfig
 
-news_config = NewsConfig(items=[
-    NewsItem(
-        date="2024-01-15",
-        content="Paper accepted at top conference!",
-        highlight=True,  # Featured on homepage
-        paper="https://arxiv.org/abs/...",
-        slides="talks/presentation.pdf"
-    )
-])
-```
-
-**Projects (`projects.py`):**
-```python
-from zenfolio.models import ProjectsConfig, ProjectItem
-
-projects_config = ProjectsConfig(items=[
-    ProjectItem(
-        title="My Research Project",
-        description="Description of the project...",
-        highlight=True,  # Featured on homepage
-        image="projects/teaser.png",  # Same image fields as blog posts and pages
-        image_alt="What the image shows",
-        image_caption="Short caption",
-        result="**19.8%** lower error",  # Headline outcome (Markdown)
-        result_note="Compared with the strongest baseline.",
-        github="https://github.com/username/project",
-        paper="papers/project.pdf",
-        demo="https://demo-site.com"
-    )
-])
-```
-
-## Path Handling
-
-ZenFolio uses smart path detection to make managing files and links effortless. Simply use strings for all paths - no complex APIs to learn!
-
-### How It Works
-
-- **External URLs**: Detected automatically (starts with `http://`, `https://`, etc.)
-- **Local Files**: Automatically resolved relative to your `static/` directory
-- **Smart Context**: Images and links are handled appropriately for templates
-
-### Examples
-
-#### Author Configuration
-```python
-author = AuthorConfig(
-    photo_path="profile.jpg",               # 📸 Local file: static/profile.jpg
-    cv_path="https://example.com/cv.pdf",   # 🌐 External URL: used as-is
-    # OR use a local file:
-    # cv_path="documents/cv.pdf",           # 📄 Local file: static/documents/cv.pdf
+projects_config = ProjectsConfig(
+    projects=[
+        ProjectConfig(
+            title="Open Solver",
+            description="A Python solver for fluid simulations.",
+            image="projects/solver.png",
+            image_alt="A simulated flow around a cylinder",
+            github="https://github.com/example/open-solver",
+            paper="papers/solver.pdf",
+        ),
+    ],
 )
 ```
 
-#### Content Items
-```python
-news_items = [
-    NewsItem(
-        content="New paper published!",
-        paper="https://arxiv.org/abs/2024.12345",  # 🌐 External URL
-        slides="talks/conference_slides.pdf",      # 📄 Local file in static/talks/
-        code="https://github.com/user/project",    # 🌐 GitHub URL
-    )
-]
+Pass `projects=projects_config` in the main configuration.
 
-projects = [
-    ProjectItem(
-        title="Amazing Project",
-        image="projects/screenshot.png",           # 📸 Local image in static/projects/
-        github="https://github.com/user/repo",    # 🌐 GitHub URL
-        paper="papers/project_paper.pdf",         # 📄 Local PDF in static/papers/
-        demo="https://demo-site.com",             # 🌐 Live demo URL
-    )
-]
-```
-
-### File Organization
-
-Organize your `static/` directory however makes sense for your content:
-
-```
-static/
-├── profile.jpg              # Author photo
-├── documents/
-│   └── cv.pdf               # CV and documents
-├── papers/
-│   ├── paper1.pdf           # Research papers
-│   └── supplementary.zip    # Additional materials
-├── talks/
-│   ├── slides-2024.pdf      # Presentation slides
-│   └── handouts.pdf         # Talk materials
-└── projects/
-    ├── screenshot.png       # Project images
-    └── demo.html           # Local demos
-```
-
-### Deployment Flexibility
-
-The same paths work for both:
-- **Local Development**: Relative URLs (`./static/file.pdf`)
-- **Production**: Relative internal URLs plus absolute canonical, social,
-  structured-data, and sitemap URLs
-
-### Supported Link Types
-
-All content items support these optional link fields:
-- `paper` - Research papers (PDF or external URL)
-- `code` - Source code (GitHub, local files)
-- `slides` - Presentation slides 
-- `video` - Videos (YouTube, Vimeo, local files)
-- `demo` - Live demos or interactive content
-- `website` - Project websites
-- `documentation` - Documentation links
-- `materials` - Supplementary materials
-
-## Smart Configuration
-
-### 🎯 **Auto Base URL Detection**
-
-ZenFolio automatically uses the right URLs for your deployment:
+### Talks: `talks.py`
 
 ```python
-# In config.py
-site_config = SiteConfig(
-    base_url="https://yoursite.com",  # Canonical SEO and sitemap base
+from zenfolio.models import TalkConfig, TalksConfig
+
+talks_config = TalksConfig(
+    talks=[
+        TalkConfig(
+            title="Learning for physical systems",
+            date="2026-05-05",
+            venue="Research seminar",
+            slides="talks/seminar.pdf",
+            video="https://example.com/seminar",
+        ),
+    ],
 )
 ```
 
-**Build Commands:**
-```bash
-zenfolio build                    # 🚀 Production: uses site.base_url for SEO metadata
-zenfolio build --dev              # 🔧 Development: uses relative URLs (./static/...)
-zenfolio deploy                   # 🚀 Production: build + create .nojekyll + validate
-zenfolio dev                      # 🔧 Development: build + serve with relative URLs
-zenfolio serve                    # 📡 Serve existing build
-zenfolio validate                 # ✅ Validate config and generated site
-```
+Pass `talks=talks_config` in the main configuration. Use dates such as
+`"2026"`, `"2026-05"`, or `"2026-05-05"`, according to what you know.
 
-### ⚙️ **Configurable Markdown Extensions**
+For publications, edit `publications.bib`. Set
+`PublicationsConfig.highlight_author` to the name or list of name spellings
+you want emphasized in author lists.
 
-Customize markdown processing in your config:
+## Maintain a team
+
+A group site uses `GroupConfig` for its identity and `TeamConfig` for its
+people. This example includes a team page and a homepage team section:
 
 ```python
-# In config.py
-site_config = SiteConfig(
-    # Customize which markdown extensions to use
-    markdown_extensions=['fenced_code', 'codehilite', 'tables', 'admonition'],
-    # Add more extensions like 'footnotes', 'toc', 'sane_lists', etc.
+from zenfolio.models import (
+    GroupConfig,
+    HomepageSectionConfig,
+    PersonConfig,
+    SiteConfig,
+    TeamConfig,
+    ZenFolioConfig,
 )
-```
 
-**Available Extensions:** Any [Python-Markdown extension](https://python-markdown.github.io/extensions/) including:
-- `fenced_code` - GitHub-style code blocks
-- `codehilite` - Syntax highlighting  
-- `tables` - GitHub-style tables
-- `admonition` - Note/warning boxes
-- `footnotes` - Footnote support
-- `toc` - Table of contents
-- `sane_lists` - Better list handling
-
-## 📊 Content Structure
-
-- **🏠 Home Page**: Profile hero, bio, research interests, featured projects, recent publications, news
-- **📄 Publications**: All publications grouped by year with search/filtering
-- **🚀 Projects**: Research projects with links to code, demos, papers  
-- **📰 News**: Updates, announcements, achievements with timeline layout
-- **🎤 Talks**: Presentations, invited talks, keynotes
-- **📝 Blog**: Personal blog posts, research notes, and Jupyter notebooks
-
-## 🔧 Advanced Features
-
-### 📓 Jupyter Notebook Support
-
-ZenFolio natively renders Jupyter notebooks as blog posts:
-
-```python
-# In your blog directory
-my_research.ipynb  # Automatically becomes a blog post!
-```
-
-Features:
-- **Enhanced styling** with input/output cell differentiation
-- **Frontmatter support** in first markdown cell
-- **Image and video rendering** from notebook outputs
-- **LaTeX math rendering** via MathJax
-- **Clean HTML output** with anchor link removal
-
-### 🔧 SEO & Meta Configuration
-
-Advanced SEO with smart defaults:
-
-```python
-# In config.py
-site_config = SiteConfig(
-    seo=SEOConfig(
-        # Essential (can't be auto-detected)
-        alumni_of="Your University",
-        
-        # Optional overrides
-        custom_knowledge_areas=["AI", "Machine Learning"],
-        custom_publisher_name="Your Research Lab",
-        custom_og_image="custom-social-image.jpg",
-    )
-)
-```
-
-Automatic generation of:
-- **Open Graph** and **Twitter Card** meta tags
-- **JSON-LD structured data** for Google Scholar
-- **Canonical URLs** for SEO
-- **Sitemap.xml** and **robots.txt**
-
-### 📐 MathJax Configuration
-
-Flexible LaTeX math rendering:
-
-```python
-# In config.py
-config = Config(
-    ...,
-    mathjax=MathJaxConfig(
-        version="3",  # or "2"
-        extensions=["TeX/AMSmath", "TeX/AMSsymbols"],
-        # Custom CDN URL supported
+config = ZenFolioConfig(
+    site_type="group",
+    identity=GroupConfig(name="Example Research Group"),
+    site=SiteConfig(
+        title="Example Research Group",
+        description="Research on learning methods for physical systems.",
+        base_url="https://group.example.com",
     ),
+    team=TeamConfig(
+        route="/team/",
+        members=[
+            PersonConfig(name="Riley Chen", role="Group lead"),
+        ],
+        interns=[
+            PersonConfig(name="Casey Morgan", internship_years=[2026]),
+        ],
+        past_interns=[
+            PersonConfig(name="Alex Kim", internship_years=[2024, 2025]),
+        ],
+    ),
+    homepage_sections=[
+        HomepageSectionConfig(id="hero", type="hero"),
+        HomepageSectionConfig(
+            id="team",
+            type="team_preview",
+            source="team",
+            title="Team",
+            view_all_label="Meet the team",
+            view_all_route="/team/",
+        ),
+    ],
+    theme="tailwind",
 )
 ```
 
-### 🎨 Theme System
+Keep each person in one list:
 
-**Tailwind Theme** (Default):
-- Modern, responsive design
-- Dark/light mode support
-- Enhanced animations and interactions
-- Beautiful typography and spacing
+- `members`: regular team members.
+- `interns`: current interns.
+- `past_interns`: former interns who are no longer on the team.
 
-**Minimal Theme**:
-- Clean, academic focus
-- Lightweight and fast
-- Easy to customize
+When an internship ends, move the whole `PersonConfig` to `past_interns`.
+If the person returns, move it back to `interns`; if they join as a regular
+member, move it to `members`. Keep their known `internship_years` in the
+record through each move. Leave years empty when they are unknown.
 
-**Site-local themes**:
+The team page shows all three lists and the internship years. The homepage
+shows current members and interns. Empty lists are hidden. Set a homepage
+section's `limit` only if you want to show fewer people.
 
-Keep private branding beside the content site while reusing ZenFolio:
+## Write pages and posts
 
-```python
-config = Config(
-    theme="research",
-    theme_path="themes/research",
-    # Optional template and asset fallback:
-    # theme_parent="tailwind",
-)
+Put blog posts in `blog/` and other pages in `pages/`. Both accept Markdown
+and Jupyter notebooks; `pages/` also accepts HTML.
+
+Start a Markdown post with settings between `---` lines, followed by the
+text. For example, save this as `blog/simulation-notes.md`:
+
+```markdown
+---
+title: Simulation notes
+date: "2026-05-05"
+description: Notes on setting up a flow simulation.
+image: images/flow.png
+image_alt: Flow around a cylinder
+---
+
+Here are the steps used to set up the simulation.
 ```
 
-The local theme must provide `templates/` and a prebuilt `css/theme.css`.
-Template lookup is child-first, then the optional parent. Run the theme's
-single `npm run build` command before building the site.
+For a notebook, put the same settings in the first Markdown cell. ZenFolio
+renders the notebook's saved code and outputs.
 
-### 🚀 Deployment & GitHub Actions
-
-Built-in GitHub Actions workflow:
-
-```yaml
-# Automatically deploys to GitHub Pages
-- name: Build Website
-  run: python -m zenfolio deploy --content-dir . --theme tailwind --debug
-```
-
-Features:
-- **Automatic deployment** to GitHub Pages
-- **Build validation** with comprehensive checks
-- **Static placeholder verification**
-- **Custom domain support** (CNAME)
-- **Artifact uploads** for debugging
-
-## 🛠️ Customization
-
-### Adding Content
-
-1. **Bio**: Edit `index.md` in your content directory
-2. **Publications**: Add entries to `publications.bib`
-3. **News/Projects/Talks**: Edit respective `.py` files (`news.py`, `projects.py`, etc.)
-4. **Blog Posts**: Add Markdown files or Jupyter notebooks to `blog/` directory
-5. **Standalone Pages**: Add Markdown, HTML fragments, or notebooks to `pages/`
-6. **Static Assets**: Place images, PDFs, CSS, and JavaScript in `static/`
-
-### Standalone pages
-
-Markdown is the default for prose-led pages. Use a frontmatter-bearing HTML
-fragment when a page needs precise semantic markup or an art-directed layout;
-the theme still supplies the document, SEO, analytics, and site chrome.
+For a page with a custom layout, write an HTML fragment such as
+`pages/solver.html`:
 
 ```html
 ---
-title: Project
-route: /project/
-layout: full
-show_site_header: false
-show_site_footer: false
-navigation_key: projects
-show_in_updates: true
-date: 2026-09-30
-image: project/teaser.png
-image_alt: What the image shows
-image_caption: Short caption
+title: Open Solver
+route: /solver/
+layout: wide
 stylesheets:
-  - project/styles.css
-scripts:
-  - project/site.js
+  - solver/styles.css
 ---
-<article class="project">
-  <h1>Project</h1>
+<article class="solver">
+  <h1>Open Solver</h1>
+  <p>A Python solver for fluid simulations.</p>
 </article>
 ```
 
-`layout` accepts `prose` (the default), `wide`, or `full`. The site header and
-footer can be controlled independently and default to visible. Stylesheet and
-script paths resolve through the existing `static/` directory.
-`navigation_key` can mark the corresponding shared navigation item as current.
-Set `show_in_updates` with an explicit `date` and `route` to include the page
-in update feeds; the update card links directly to the page.
-`image`, `image_alt`, and `image_caption` set the page's teaser image, using
-the same field names as blog posts and projects. It appears on update cards
-and serves as the social-preview fallback.
-HTML content must be a fragment—do not include `doctype`, `html`, `head`, or
-`body`; use `template_name` when a theme-specific component is more
-appropriate.
+The theme supplies the surrounding document, header, and footer. Leave out
+`doctype`, `html`, `head`, and `body` tags.
 
-### Configuration Structure
+Page settings include:
 
-```
-my-site/
-├── config.py           # Main site configuration
-├── index.md           # Homepage bio content
-├── publications.bib   # Academic publications
-├── news.py           # News items and announcements
-├── projects.py       # Research projects
-├── service.py        # Academic service items
-├── talks.py          # Presentations and talks
-├── blog/             # Blog posts and notebooks
-│   ├── post1.md
-│   ├── research.ipynb
-│   └── ...
-└── static/           # Static assets
-    ├── profile.jpg
-    ├── images/
-    ├── pdfs/
-    └── ...
-```
+| Setting | What it does |
+| --- | --- |
+| `route` | Sets the page address. `/solver/` creates `solver/index.html`. |
+| `layout` | Sets the content width: `prose` (default), `wide`, or `full`. |
+| `show_site_header`, `show_site_footer` | Set either to `false` to hide it. |
+| `stylesheets`, `scripts` | Loads extra CSS or JavaScript files from `static/`. |
+| `navigation_key` | Marks the matching navigation link as the current page. |
+| `show_in_updates` | Adds a page to updates; also provide a `date` and `route`. |
+| `image`, `image_alt`, `image_caption` | Sets the preview image, its text description, and caption. |
 
-### Blog Features
+## Link to files and pages
 
-**Markdown Posts:**
-```markdown
----
-title: "My Research Post"
-date: "2024-01-15"
-description: "A brief description"
-image: "images/hero.jpg"  # Optional hero image
----
+Put local images, PDFs, and downloads in `static/`. In configuration fields,
+write paths relative to that folder: `papers/solver.pdf` refers to
+`static/papers/solver.pdf`. Use a full URL for an external link and a path
+such as `/team/` for a page on the site.
 
-# Your content here...
+Projects, people, and research areas also accept custom labels through
+`links`. For example:
+
+```python
+from zenfolio.models import LinkConfig, PersonConfig
+
+person_config = PersonConfig(
+    name="Riley Chen",
+    photo="people/riley.jpg",
+    links=[
+        LinkConfig(label="Research", url="/research/"),
+        LinkConfig(label="Profile", url="https://example.com/riley"),
+    ],
+)
 ```
 
-**Jupyter Notebooks:**
-- Add frontmatter in first markdown cell
-- Automatic rendering of code, outputs, and visualizations
-- Support for images, videos, and interactive content
-- LaTeX math rendering
+ZenFolio adjusts local links for the page they appear on. Keep the same
+source paths when previewing locally or publishing under a subfolder.
 
-## 🔧 Development
+## Choose or edit a theme
 
-### Installation from Source
+ZenFolio includes `minimal` and `tailwind`. The starter site selects
+`tailwind`; a `ZenFolioConfig` with no theme setting uses `minimal`.
+
+To keep a custom theme beside your site, set its name and folder:
+
+```python
+from zenfolio.models import ZenFolioConfig
+
+config = ZenFolioConfig(
+    theme="research",
+    theme_path="themes/research",
+    theme_parent="tailwind",
+)
+```
+
+The folder must contain `templates/` and a built `css/theme.css`.
+`theme_parent` is optional: it supplies templates and files that your theme
+does not replace.
+
+If the theme uses npm, install its dependencies once:
 
 ```bash
-git clone https://github.com/JeanKossaifi/zenfolio
-cd zenfolio
-pip install -e .
+npm --prefix themes/research install
 ```
 
-### Project Structure
-
-```
-zenfolio/
-├── src/zenfolio/
-│   ├── __init__.py
-│   ├── zenfolio.py         # Backward-compatible public facade
-│   ├── build_context.py    # Configuration, identity, and path setup
-│   ├── site_builder.py     # Top-level build orchestration
-│   ├── routing.py          # Public routes and navigation
-│   ├── output_manager.py   # Safe output lifecycle
-│   ├── content_processor.py # Markdown, components, and link resolution
-│   ├── homepage_composer.py # Configurable homepage composition
-│   ├── collection_builder.py # Aggregate and standalone pages
-│   ├── page_renderer.py    # SEO context and HTML output
-│   ├── cli.py              # Command line interface
-│   ├── deploy.py           # Deployment utilities
-│   ├── validators.py       # Site validation
-│   ├── models/             # Configuration models
-│   ├── parsers/            # Content parsers (Markdown, BibTeX, Jupyter)
-│   ├── themes/             # Theme system (Minimal, Tailwind)
-│   ├── templates/          # CLI init templates
-│   └── utils.py            # Utility functions
-└── README.md
-```
-
-### Development Commands
+During `zenfolio dev`, ZenFolio runs the theme's `build:css` script, or its
+`build` script if `build:css` is absent. Before a regular `build` or
+`deploy`, run the theme's build command yourself:
 
 ```bash
-# Install in development mode
-pip install -e .
-
-# Run tests
-pytest
-
-# Build CSS assets (for Tailwind theme)
-cd src/zenfolio/themes/tailwind
-npm install
-npm run build
-
-# Development workflow
-zenfolio dev --content-dir example-site
+npm --prefix themes/research run build
 ```
 
-## Contributing
+The included themes already have built CSS files.
 
-Contributions welcome! Please feel free to submit a Pull Request.
+## Preview, check, and publish
 
-## Acknowledgments
+Run these commands from the site folder, or add `--content-dir my-site`.
 
-- Built with [ZenCFG](https://github.com/JeanKossaifi/zencfg) for type-safe configuration
-- Inspired by academic website generators like Jekyll Academic and Hugo Academic 
+| Command | What it does |
+| --- | --- |
+| `zenfolio dev` | Builds, serves, and rebuilds when source files change. Refresh the browser after a rebuild. |
+| `zenfolio build --dev` | Builds once for local viewing. |
+| `zenfolio serve` | Serves an existing build. |
+| `zenfolio build` | Builds using `site.base_url` for search and sharing information. |
+| `zenfolio validate` | Checks configuration and content, plus the generated site if it exists. |
+| `zenfolio deploy` | Builds, validates, and adds `.nojekyll` for GitHub Pages. |
+
+Output goes to `_site/` by default. Set `output_path` in `ZenFolioConfig`
+or pass `--output-dir` to change it. Restart `dev` after changing the output
+folder. Use `--port 8765` to choose a preview port.
+
+If a file cannot be parsed or a page cannot be rendered, the build reports
+the error and keeps the last successful output. In `dev`, fix the file and
+save to try again. If the first build fails and no previous output exists,
+fix the error and restart `dev`.
+
+The `deploy` command prepares files locally. To publish the site, upload
+the contents of `_site/` using your hosting service or GitHub Actions
+workflow. For a custom domain on GitHub Pages, include a `CNAME` file with
+that domain in the uploaded output.
+
+## Other settings
+
+- Set `SiteConfig.social_image` and `social_image_alt` for the image shown
+  when someone shares the site. Page-specific settings can override it.
+- Set `SiteConfig.blog_folder` to change where posts live, or to `None` to
+  disable the blog.
+- Set `SiteConfig.markdown_extensions` to choose which Markdown features
+  to enable. The defaults include code blocks, tables, and footnotes.
+- Set `ZenFolioConfig.mathjax` with a `MathJaxConfig` to adjust math
+  rendering. The default uses MathJax 3.
+- Set `SiteConfig.google_analytics_id` for Google Analytics, or
+  `analytics_scripts` for other tracking scripts.
+- Set `SiteConfig.seo` with an `SEOConfig` to control search-engine
+  instructions and machine-readable page descriptions.
+
+See the [site settings](src/zenfolio/models/site_config.py) for all fields
+and their defaults.
+
+## Work on ZenFolio
+
+From the library directory, install the test dependencies and run the tests:
+
+```bash
+python -m pip install -e '.[test]'
+python -m pytest
+```
+
+When editing the included Tailwind theme, rebuild its CSS before previewing:
+
+```bash
+npm --prefix src/zenfolio/themes/tailwind install
+npm --prefix src/zenfolio/themes/tailwind run build
+```

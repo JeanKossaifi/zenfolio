@@ -40,13 +40,13 @@ def test_group_build_uses_clean_routes_and_group_metadata(built_group_site):
     ] == "research/"
 
 
-def test_team_categories_remain_separate(built_group_site):
+def test_team_uses_membership_headings(built_group_site):
     soup = BeautifulSoup(
         (built_group_site / "team" / "index.html").read_text(encoding="utf-8"),
         "html.parser",
     )
     headings = [heading.get_text(strip=True) for heading in soup.select("h2")]
-    assert headings == ["Group lead", "Core team"]
+    assert headings == ["Members"]
 
 
 def test_sitemap_uses_clean_public_routes(built_group_site):

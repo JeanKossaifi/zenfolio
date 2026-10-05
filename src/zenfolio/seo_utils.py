@@ -7,6 +7,7 @@ from html import escape, unescape
 from typing import Any, Dict, List, Optional
 
 from .models.site_config import AuthorConfig, GroupConfig
+from .team import team_people
 from .utils import build_url, is_external_url
 
 
@@ -28,7 +29,7 @@ class SEOGenerator:
     ):
         self.config = config
         self.base_url = (base_url or "").rstrip("/")
-        self.identity = identity or getattr(config, "identity", None) or config.author
+        self.identity = identity or config.identity
         self.site_type = site_type or getattr(config, "site_type", "person")
 
     @property
@@ -82,6 +83,10 @@ class SEOGenerator:
         return "".join(character for character in text if character.isalnum())
 
     def _identity_name_aliases(self) -> set:
+        # Highlighting group members is presentation, not an assertion that
+        # those people are the site's Organization identity.
+        if self._identity_type() != "Person":
+            return set()
         identity = self.identity
         candidates = [identity.name]
         highlighted = getattr(
@@ -292,7 +297,11 @@ class SEOGenerator:
             if research_areas:
                 entity["knowsAbout"] = research_areas
             members = []
-            for person in people or []:
+            current_people = (
+                team_people(self.config, current_only=True)
+                if people is None else people
+            )
+            for person in current_people:
                 profile = person.to_dict() if hasattr(person, "to_dict") else person
                 member = {"@type": "Person", "name": profile.get("name", "")}
                 if profile.get("profile"):
@@ -394,12 +403,6 @@ class SEOGenerator:
         if project.get("image"):
             schema["image"] = self._image_url(project["image"])
         return dump_schema(schema)
-
-    def generate_software_application_schema(
-        self, project: Dict[str, Any]
-    ) -> str:
-        """Backward-compatible wrapper for project structured data."""
-        return self.generate_project_schema(project)
 
     def generate_blog_posting_schema(self, blog_post: Dict[str, Any]) -> str:
         if not self.structured_data_enabled:

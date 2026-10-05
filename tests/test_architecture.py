@@ -39,12 +39,13 @@ def test_homepage_publication_selection_preserves_priority_order():
     ]
 
 
-def test_route_registry_keeps_team_and_updates_aliases(group_site_root):
+def test_route_registry_uses_team_and_configured_updates_route(group_site_root):
     builder = ZenFolio(group_site_root)
 
     routes = builder.route_registry.configured_routes()
 
-    assert routes["team"] == routes["people"] == "/team/"
+    assert routes["team"] == "/team/"
+    assert "people" not in routes
     assert routes["updates"] == routes["blog"] == "/updates/"
 
 

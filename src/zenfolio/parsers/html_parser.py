@@ -4,10 +4,9 @@ from pathlib import Path
 import re
 from typing import Any, Dict, List, Set
 
-import frontmatter
-
 from ..errors import ZenFolioBuildError
 from .base_parser import ContentParser
+from .frontmatter_utils import parse_frontmatter
 
 
 _DOCUMENT_MARKUP = re.compile(
@@ -36,7 +35,7 @@ class HtmlParser(ContentParser):
 
         try:
             with open(file_path, "r", encoding="utf-8-sig") as handle:
-                parsed = frontmatter.load(handle)
+                parsed = parse_frontmatter(handle.read())
         except Exception as error:
             raise ZenFolioBuildError(
                 f"Could not parse HTML page fragment '{file_path}': {error}"

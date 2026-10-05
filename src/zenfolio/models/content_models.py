@@ -2,19 +2,22 @@
 Content models for academic websites
 """
 
+from typing import Annotated, Any, List, Literal, Optional
+
+from pydantic import Field, field_validator
 from zencfg import ConfigBase
-from typing import Any, List, Literal, Optional
+
 # Paths handled as strings, resolved during rendering
 
 
-class Link(ConfigBase):
+class LinkConfig(ConfigBase):
     """A labeled internal route or external URL."""
 
     label: str = ""
     url: str = ""
 
 
-class NewsItem(ConfigBase):
+class NewsEntryConfig(ConfigBase):
     """News entry with optional links as direct attributes"""
     # Prefer ISO precision: YYYY, YYYY-MM, or YYYY-MM-DD.
     date: str
@@ -36,8 +39,8 @@ class NewsItem(ConfigBase):
     template_name: str = "news_item"
 
 
-class ProjectItem(ConfigBase):
-    """Project entry with optional links as direct attributes"""
+class ProjectConfig(ConfigBase):
+    """Project entry with optional links as direct attributes."""
     title: str
     description: str
     # Schema.org type for machine-readable project metadata.
@@ -51,7 +54,7 @@ class ProjectItem(ConfigBase):
     # Machine-readable metadata consumed by the SoftwareSourceCode schema
     programming_language: Optional[str] = None  # e.g. "Python"
     license: Optional[str] = None  # e.g. "MIT" or a license URL
-    # Backward-compatible legacy feature flag.
+    # Mark a project for highlighted presentation.
     highlight: bool = False
     # Ordered feature placement shared by the homepage and Projects page.
     # Zero means regular project; positive values determine feature order.
@@ -75,13 +78,13 @@ class ProjectItem(ConfigBase):
     # Headline outcome and its comparison, e.g. "**19.8%** lower error".
     result: str = ""
     result_note: str = ""
-    links: List[Link] = []
+    links: List[LinkConfig] = []
     
     template_name: str = "project_item"
 
 
-class TalkItem(ConfigBase):
-    """Talk/presentation entry with optional links as direct attributes"""
+class TalkConfig(ConfigBase):
+    """Talk or presentation with optional links as direct attributes."""
     title: str
     # Prefer ISO precision: YYYY, YYYY-MM, or YYYY-MM-DD. Common readable
     # English forms remain accepted by the renderer and collection sorter.
@@ -96,45 +99,49 @@ class TalkItem(ConfigBase):
     materials: Optional[str] = None # e.g., "talks/handouts.pdf"
     demo: Optional[str] = None      # e.g., "https://demo-site.com"
     link: Optional[str] = None      # e.g., "https://conference.com/talk" - event/talk page link
-    website: Optional[str] = None   # Backward-compatible event website alias
+    website: Optional[str] = None   # Event website
     archive_url: Optional[str] = None  # Preserved copy of a retired event page
     thumbnail: Optional[str] = None  # Local image, or a build-cached video thumbnail
     
     template_name: str = "talk_item"
 
 
-class TeamCategory(ConfigBase):
-    """Ordered heading used to keep team groups distinct."""
+class PersonConfig(ConfigBase):
+    """A person's profile, independent of their current place on the team.
 
-    key: str = ""
-    title: str = ""
-    description: str = ""
+    Move the complete record between ``TeamConfig`` lists when their role
+    changes. Keep known internship years here so that history moves with them.
+    """
 
-
-class TeamMember(ConfigBase):
-    """A member of a research group."""
-
-    name: str = ""
+    name: str
     role: str = ""
-    category: str = "core"
-    years: str = ""
+    internship_years: List[Annotated[int, Field(strict=True, gt=0)]] = []
     affiliation: str = ""
     bio: str = ""
     research_interests: List[str] = []
     photo: Optional[str] = None
     photo_alt: str = ""
     profile: Optional[str] = None
-    links: List[Link] = []
+    links: List[LinkConfig] = []
     highlight: bool = False
     template_name: str = "person_item"
     content_type: str = "markdown"
 
+    @field_validator("name")
+    @classmethod
+    def _validate_name(cls, value: str) -> str:
+        if not value.strip():
+            raise ValueError("PersonConfig.name must not be blank")
+        return value
 
-class PersonItem(TeamMember):
-    """Backward-compatible name for the generic person-card model."""
+    def validate_profile(self) -> None:
+        """Recheck history after in-place edits to the internship years list."""
+        self._validate_name(self.name)
+        if any(type(year) is not int or year <= 0 for year in self.internship_years):
+            raise ValueError("PersonConfig.internship_years must contain positive integers")
 
 
-class ResearchAreaItem(ConfigBase):
+class ResearchAreaConfig(ConfigBase):
     """A structured research direction."""
 
     title: str = ""
@@ -146,16 +153,15 @@ class ResearchAreaItem(ConfigBase):
     image_source: str = ""
     highlight: bool = False
     tags: List[str] = []
-    links: List[Link] = []
+    links: List[LinkConfig] = []
     template_name: str = "research_area_item"
     content_type: str = "markdown"
-
 
 
 # Content Config Classes
 class NewsConfig(ConfigBase):
     """News content configuration"""
-    items: List[NewsItem] = []
+    news: List[NewsEntryConfig] = []
     title: str = "News"
     # One-line tagline shown beside the page title, like the other sections.
     description: str = ""
@@ -165,7 +171,7 @@ class NewsConfig(ConfigBase):
 
 class ProjectsConfig(ConfigBase):
     """Projects content configuration"""
-    items: List[ProjectItem] = []
+    projects: List[ProjectConfig] = []
     title: str = "Projects"
     description: str = ""
     route: Optional[str] = None
@@ -173,18 +179,23 @@ class ProjectsConfig(ConfigBase):
 
 class TalksConfig(ConfigBase):
     """Talks content configuration"""
-    items: List[TalkItem] = []
+    talks: List[TalkConfig] = []
     title: str = "Talks"
     description: str = ""
     route: Optional[str] = None
     cache_video_thumbnails: bool = False
 
 
-class PeopleConfig(ConfigBase):
-    """Team-page configuration."""
+class TeamConfig(ConfigBase):
+    """Team-page settings and explicit lists in their display order.
 
-    items: List[TeamMember] = []
-    categories: List[TeamCategory] = []
+    Define each person in their current list and retain internship history
+    on the person's record. Past interns have no current team appointment.
+    """
+
+    members: List[PersonConfig] = []
+    interns: List[PersonConfig] = []
+    past_interns: List[PersonConfig] = []
     title: str = "Team"
     description: str = ""
     meta_description: str = ""
@@ -194,13 +205,13 @@ class PeopleConfig(ConfigBase):
 class ResearchAreasConfig(ConfigBase):
     """Research-direction card configuration."""
 
-    items: List[ResearchAreaItem] = []
+    areas: List[ResearchAreaConfig] = []
     title: str = "Research"
     description: str = ""
     route: Optional[str] = None
 
 
-class BlogPost(ConfigBase):
+class BlogPostConfig(ConfigBase):
     """Blog post with ZenCFG validation and defaults"""
     title: str = "Untitled"
     slug: str = ""
@@ -223,7 +234,7 @@ class BlogPost(ConfigBase):
     social_title: str = ""
     social_description: str = ""
     social_image: str = ""
-    actions: List[Link] = []
+    actions: List[LinkConfig] = []
     route: str = ""
     content: str = ""
     content_raw: str = ""
@@ -232,8 +243,7 @@ class BlogPost(ConfigBase):
     
 
 
-
-class Page(ConfigBase):
+class PageConfig(ConfigBase):
     """Standalone page rendered inside the active site's document shell."""
     title: str = ""
     slug: str = ""
@@ -264,15 +274,10 @@ class Page(ConfigBase):
     
 
 
-
-class Bio(ConfigBase):
-    """Bio information from index.md"""
+class BioConfig(ConfigBase):
+    """Bio information from index.md."""
     bio: str = ""
     title: str = ""  # page/frontmatter title, also used by config fallbacks
     affiliation: str = ""
     tagline: str = ""
     interests: List[str] = []
-
-
-
- 

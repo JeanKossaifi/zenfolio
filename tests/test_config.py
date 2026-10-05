@@ -2,8 +2,8 @@ from types import SimpleNamespace
 
 from zenfolio.models import (
     NewsConfig,
-    NewsItem,
-    TalkItem,
+    NewsEntryConfig,
+    TalkConfig,
     TalksConfig,
 )
 from zenfolio.routing import RouteRegistry
@@ -11,12 +11,11 @@ from zenfolio.themes import TailwindTheme
 from zenfolio.zenfolio import ZenFolio
 
 
-def test_legacy_author_becomes_effective_identity(personal_site_root):
+def test_personal_config_uses_its_explicit_identity(personal_site_root):
     builder = ZenFolio(personal_site_root)
 
     assert builder.site_type == "person"
-    assert builder.identity is builder.config.author
-    assert builder.config.identity is builder.config.author
+    assert builder.identity is builder.config.identity
 
 
 def test_group_config_loads_ordered_navigation(group_site_root):
@@ -41,8 +40,8 @@ def test_group_config_loads_ordered_navigation(group_site_root):
 
 def test_builtin_theme_override_ignores_configured_local_path(tmp_path):
     (tmp_path / "config.py").write_text(
-        "from zenfolio.models import Config\n"
-        "config = Config(theme='private', theme_path='missing-theme')\n",
+        "from zenfolio.models import ZenFolioConfig\n"
+        "config = ZenFolioConfig(theme='private', theme_path='missing-theme')\n",
         encoding="utf-8",
     )
 
@@ -56,14 +55,14 @@ def test_merged_updates_replaces_talks_and_news_navigation():
         navigation=None,
         publications=SimpleNamespace(route=None),
         projects=None,
-        talks=TalksConfig(items=[TalkItem(title="Keynote")]),
+        talks=TalksConfig(talks=[TalkConfig(title="Keynote")]),
         news=NewsConfig(
             title="Updates",
             merge_talks=True,
-            items=[NewsItem(date="2026", content="Announcement")],
+            news=[NewsEntryConfig(date="2026", content="Announcement")],
         ),
         research_areas=None,
-        people=None,
+        team=None,
         site=SimpleNamespace(
             blog_folder="",
             blog_label="Blog",

@@ -29,7 +29,7 @@
             <section data-group="{{ group.get('group_name', group.get('key', '')) }}">
                 <h2 class="text-3xl font-bold heading text-gray-700 dark:text-gray-300 mb-6">{{ group.get('title', group.get('group_name', '')) }}</h2>
                 <div class="grid grid-cols-1 {% if layout == 'team' %}md:grid-cols-2 lg:grid-cols-3{% endif %} gap-8">
-                    {% for item in group['items'] %}
+                    {% for item in (group['people'] if layout == 'team' else group['items']) %}
                         {{ item.rendered_html | safe }}
                     {% endfor %}
                 </div>

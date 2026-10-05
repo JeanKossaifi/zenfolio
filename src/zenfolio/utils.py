@@ -113,10 +113,8 @@ def join_route(collection_route: str, slug: str) -> str:
 
 def resolve_directory_path(path_str: str, base_dir: Path) -> Path:
     """Resolve a directory path string relative to base directory"""
-    if Path(path_str).is_absolute():
-        return Path(path_str)
-    else:
-        return base_dir / path_str
+    path = Path(path_str).expanduser()
+    return (path if path.is_absolute() else base_dir / path).resolve()
 
 
 def is_external_url(path: str) -> bool:

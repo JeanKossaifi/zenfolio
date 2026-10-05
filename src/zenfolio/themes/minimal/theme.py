@@ -63,9 +63,8 @@ class MinimalTheme(BaseTheme):
                 self.BASE_LAYOUT_TEMPLATE
             )
         template = self._compiled_base_layout
-        legacy_include = context.pop("include_navbar", True)
-        context.setdefault("show_site_header", legacy_include)
-        context.setdefault("show_site_footer", legacy_include)
+        context.setdefault("show_site_header", True)
+        context.setdefault("show_site_footer", True)
         context.setdefault("page_stylesheets", [])
         context.setdefault("page_scripts", [])
         context.setdefault("theme_color", None)
@@ -343,7 +342,7 @@ body {
         <section class="group-section">
             <h2 class="year-heading">{{ group.get('title', group.get('group_name', '')) }}</h2>
             <div class="{% if layout == 'team' %}grid-3{% else %}list-container{% endif %}">
-                {% for item in group['items'] %}
+                {% for item in (group['people'] if layout == 'team' else group['items']) %}
                     {{ theme.render_component(item.template_type, item=item) }}
                 {% endfor %}
             </div>
@@ -378,9 +377,7 @@ body {
                 <div class="hero-actions">
                     {% if item.actions|default([]) %}
                     {% for action in item.actions %}
-                    {% set action_url = action.route if action.route is defined else action.url %}
-                    {% set action_label = action.label if action.label is defined else action.text %}
-                    <a href="{{ url_for(action_url) }}" class="{% if action.style == 'primary' %}primary-button{% else %}secondary-button{% endif %}">{{ action_label }}</a>
+                    <a href="{{ url_for(action.route) }}" class="{% if action.style == 'primary' %}primary-button{% else %}secondary-button{% endif %}">{{ action.label }}</a>
                     {% endfor %}
                     {% else %}
                     <a href="{{ url_for(item.publications_route|default('/publications.html')) }}" class="primary-button">View Publications</a>
@@ -422,6 +419,8 @@ body {
     {% if item.photo %}<img src="{{ asset(item.photo) }}" alt="{{ item.photo_alt or item.name }}">{% endif %}
     <h3>{{ item.name }}</h3>
     {% if item.role %}<p class="card-meta">{{ item.role }}</p>{% endif %}
+    {% if item.affiliation %}<p class="card-meta">{{ item.affiliation }}</p>{% endif %}
+    {% if item.get('internship_years') %}<p class="card-meta">Internships: {{ item.internship_years | join(', ') }}</p>{% endif %}
     {% if item.bio %}<div class="card-content">{{ item.bio | safe }}</div>{% endif %}
     {% if item.profile %}<a href="{{ item.profile }}">Profile →</a>{% endif %}
 </article>"""

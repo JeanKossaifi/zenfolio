@@ -7,7 +7,7 @@ from pathlib import Path
 import sys
 
 from .zenfolio import build_site
-from .server import serve_site
+from .server import develop_site, serve_site
 from .validators import validate_site, validate_generated_site
 from .init import init_site
 from .deploy import create_github_pages_files
@@ -31,7 +31,7 @@ def cli():
     parser.add_argument(
         'command',
         choices=['build', 'init', 'serve', 'dev', 'validate', 'deploy'],
-        help="Command to run: 'init' creates a new site, 'build' generates HTML, 'serve' starts local server, 'dev' builds and serves, 'validate' checks config and content, 'deploy' prepares GitHub Pages deployment"
+        help="Command to run: 'init' creates a new site, 'build' generates HTML, 'serve' starts local server, 'dev' builds, serves, and watches source changes (refresh the browser after rebuilds), 'validate' checks config and content, 'deploy' prepares GitHub Pages deployment"
     )
     parser.add_argument(
         '--content-dir',
@@ -129,29 +129,14 @@ def cli():
         if not ok:
             sys.exit(1)
     elif args.command == 'dev':
-        # Development mode: build then serve with fresh server
-        print("🚀 Development mode: Building and serving...")
-
-        # Build the site using centralized error handling (force dev=True)
-        success = build_site(
-            args.content_dir,
-            args.theme,
-            args.debug,
-            args.base_url,
-            dev=True,
-            output_dir=args.output_dir,
-        )
-        if not success:
-            print("❌ Build failed. Cannot start development server.")
-            sys.exit(1)
-        
-        print("✅ Build complete, starting server...")
-        ok = serve_site(
+        ok = develop_site(
             args.content_dir,
             args.port,
             not args.no_browser,
             output_dir=args.output_dir,
             host=args.host,
+            theme_override=args.theme,
+            debug=args.debug,
         )
         if not ok:
             sys.exit(1)

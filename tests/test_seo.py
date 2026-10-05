@@ -2,13 +2,13 @@ import json
 
 from zenfolio.models import (
     AuthorConfig,
-    Config,
+    ZenFolioConfig,
     GroupConfig,
-    OrganizationRef,
-    PublicationConfig,
+    OrganizationConfig,
+    PublicationsConfig,
     SEOConfig,
     SiteConfig,
-    TeamMember,
+    PersonConfig,
 )
 from zenfolio.seo_utils import SEOGenerator
 
@@ -19,7 +19,7 @@ def test_group_identity_emits_organization_schema():
         parent_name="Example Research",
         parent_url="https://example.test",
     )
-    config = Config(
+    config = ZenFolioConfig(
         site_type="group",
         identity=identity,
         site=SiteConfig(
@@ -37,7 +37,7 @@ def test_group_identity_emits_organization_schema():
 
     schema = json.loads(
         generator.generate_identity_schema(
-            [TeamMember(name="Member", profile="https://example.test/member")]
+            [PersonConfig(name="Member", profile="https://example.test/member")]
         )
     )
     assert schema["@type"] == "Organization"
@@ -48,12 +48,12 @@ def test_group_identity_emits_organization_schema():
 def test_person_identity_emits_profile_page_with_person_schema():
     identity = AuthorConfig(
         name="Ada Lovelace",
-        affiliation=OrganizationRef(
+        affiliation=OrganizationConfig(
             name="Institute",
             url="https://institute.example.test",
         ),
         alumni_of=[
-            OrganizationRef(
+            OrganizationConfig(
                 name="University",
                 url="https://university.example.test",
             )
@@ -64,7 +64,7 @@ def test_person_identity_emits_profile_page_with_person_schema():
         photo_width=800,
         photo_height=1000,
     )
-    config = Config(author=identity)
+    config = ZenFolioConfig(identity=identity)
     generator = SEOGenerator(
         config,
         "https://ada.example.test",
@@ -106,7 +106,7 @@ def test_person_identity_emits_profile_page_with_person_schema():
 
 def test_disable_structured_data_applies_to_all_item_schemas():
     identity = GroupConfig(name="Example Lab")
-    config = Config(
+    config = ZenFolioConfig(
         site_type="group",
         identity=identity,
         site=SiteConfig(seo=SEOConfig(disable_structured_data=True)),
@@ -115,12 +115,12 @@ def test_disable_structured_data_applies_to_all_item_schemas():
 
     assert generator.generate_identity_schema() == ""
     assert generator.generate_scholarly_article_schema({"title": "Paper"}) == ""
-    assert generator.generate_software_application_schema({"title": "Code"}) == ""
+    assert generator.generate_project_schema({"title": "Code"}) == ""
     assert generator.generate_blog_posting_schema({"title": "Post"}) == ""
 
 
 def test_sitemap_uses_public_routes_and_effective_base_url():
-    config = Config()
+    config = ZenFolioConfig()
     generator = SEOGenerator(config, "https://example.test/base/")
     xml = generator.generate_sitemap_xml(
         [{"route": "/research/", "priority": "0.8", "changefreq": "monthly"}]
@@ -132,7 +132,7 @@ def test_sitemap_uses_public_routes_and_effective_base_url():
 
 
 def test_sitemap_only_emits_lastmod_when_supplied():
-    config = Config()
+    config = ZenFolioConfig()
     generator = SEOGenerator(config, "https://example.test")
     xml = generator.generate_sitemap_xml(
         [
@@ -146,7 +146,7 @@ def test_sitemap_only_emits_lastmod_when_supplied():
 
 
 def test_project_schema_uses_configured_semantic_type():
-    config = Config()
+    config = ZenFolioConfig()
     generator = SEOGenerator(config, "https://example.test")
 
     schema = json.loads(
@@ -166,7 +166,7 @@ def test_project_schema_uses_configured_semantic_type():
 
 def test_blog_schema_links_author_and_tracks_modification_date():
     identity = AuthorConfig(name="Ada")
-    config = Config(author=identity)
+    config = ZenFolioConfig(identity=identity)
     generator = SEOGenerator(
         config,
         "https://ada.example.test",
@@ -192,9 +192,9 @@ def test_publication_schema_links_identity_author_to_person():
     identity = AuthorConfig(
         name="Jean Kossaifi",
     )
-    config = Config(
-        author=identity,
-        publications=PublicationConfig(
+    config = ZenFolioConfig(
+        identity=identity,
+        publications=PublicationsConfig(
             highlight_author=["Kossaifi", "J. Kossaifi"]
         ),
     )
@@ -225,7 +225,7 @@ def test_publication_schema_links_identity_author_to_person():
 
 
 def test_collection_schema_wraps_items_in_an_item_list():
-    config = Config()
+    config = ZenFolioConfig()
     generator = SEOGenerator(config, "https://example.test")
     item = json.dumps(
         {
@@ -253,7 +253,7 @@ def test_external_structured_data_images_are_not_rewritten():
         name="Example Lab",
         logo="https://cdn.example.test/logo.png",
     )
-    config = Config(site_type="group", identity=identity)
+    config = ZenFolioConfig(site_type="group", identity=identity)
     generator = SEOGenerator(
         config,
         "https://example.test/lab/",
@@ -263,3 +263,19 @@ def test_external_structured_data_images_are_not_rewritten():
 
     schema = json.loads(generator.generate_identity_schema())
     assert schema["logo"] == "https://cdn.example.test/logo.png"
+
+
+def test_group_publication_highlighting_keeps_individual_authors():
+    names = ["Jean Kossaifi", "Nikola Kovachki", "Ada Lovelace"]
+    config = ZenFolioConfig(
+        site_type="group",
+        identity=GroupConfig(name="Example Lab"),
+        publications=PublicationsConfig(highlight_author=names[:2]),
+    )
+    generator = SEOGenerator(config, "https://example.test/lab/")
+    schema = json.loads(generator.generate_scholarly_article_schema({
+        "title": "Paper", "authors": names,
+    }))
+    assert schema["author"] == [
+        {"@type": "Person", "name": name} for name in names
+    ]

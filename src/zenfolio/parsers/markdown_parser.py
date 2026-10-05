@@ -6,11 +6,12 @@ Implements the ContentParser protocol.
 
 from pathlib import Path
 from typing import Dict, List, Any, Set, Tuple
-import frontmatter
 import textwrap
 import re
 from .base_parser import ContentParser
+from .frontmatter_utils import parse_frontmatter
 from ..utils import content_date_key
+from ..errors import ZenFolioBuildError
 
 
 # =============================================================================
@@ -148,7 +149,7 @@ class MarkdownParser(ContentParser):
             # utf-8-sig strips a UTF-8 BOM, which would otherwise defeat
             # frontmatter detection and leak the YAML block into the page.
             with open(file_path, 'r', encoding='utf-8-sig') as fh:
-                post = frontmatter.load(fh)
+                post = parse_frontmatter(fh.read())
             metadata = post.metadata.copy() if post.metadata else {}
             
             # For all files, return standard format
@@ -157,8 +158,7 @@ class MarkdownParser(ContentParser):
                 "content": post.content
             }
         except Exception as e:
-            print(f"⚠️  Error parsing file {file_path}: {e}")
-            return {}
+            raise ZenFolioBuildError(f"Could not parse {file_path}: {e}") from e
 
     def parse_directory(self, directory_path: Path, content_type: str = None) -> List[Dict[str, Any]]:
         """

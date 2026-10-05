@@ -2,6 +2,7 @@
 
 from typing import Any, Dict, List, Set, Tuple, TypedDict
 
+from .team import team_people
 from .utils import is_external_url, normalize_route, route_depth
 
 
@@ -13,7 +14,7 @@ class NavigationEntry(TypedDict):
     external: bool
 
 
-LEGACY_ROUTES = {
+DEFAULT_ROUTES = {
     "home": "/",
     "publications": "/publications.html",
     "projects": "/projects.html",
@@ -22,7 +23,6 @@ LEGACY_ROUTES = {
     "blog": "/blog.html",
     "updates": "/blog.html",
     "team": "/team.html",
-    "people": "/team.html",
     "research": "/research.html",
 }
 
@@ -34,7 +34,6 @@ COLLECTION_KEYS = {
     "blog",
     "updates",
     "team",
-    "people",
 }
 
 
@@ -76,10 +75,6 @@ class RouteRegistry:
             routes.setdefault("blog", routes["updates"])
         if "blog" in routes:
             routes.setdefault("updates", routes["blog"])
-        if "team" in routes:
-            routes.setdefault("people", routes["team"])
-        if "people" in routes:
-            routes.setdefault("team", routes["people"])
         return routes
 
     def route_for(self, key: str) -> str:
@@ -94,8 +89,8 @@ class RouteRegistry:
             route = getattr(self.config.projects, "route", None)
         elif key == "talks" and self.config.talks:
             route = getattr(self.config.talks, "route", None)
-        elif key in {"team", "people"} and self.config.people:
-            route = getattr(self.config.people, "route", None)
+        elif key == "team":
+            route = getattr(self.config.team, "route", None)
         elif key == "research" and self.config.research_areas:
             route = getattr(self.config.research_areas, "route", None)
         elif key in {"blog", "updates"}:
@@ -104,7 +99,7 @@ class RouteRegistry:
         return (
             normalize_route(route)
             if route
-            else LEGACY_ROUTES.get(key, f"/pages/{key}.html")
+            else DEFAULT_ROUTES.get(key, f"/pages/{key}.html")
         )
 
     def standalone_page_route(self, page_data: Dict[str, Any]) -> str:
@@ -153,11 +148,11 @@ class RouteRegistry:
                 news_config and getattr(news_config, "merge_talks", False)
             )
             optional_collections = [
-                ("projects", "Projects", self.config.projects),
+                ("projects", "Projects", self.config.projects, "projects"),
             ]
             if not merge_talks:
                 optional_collections.append(
-                    ("talks", "Talks", self.config.talks)
+                    ("talks", "Talks", self.config.talks, "talks")
                 )
             optional_collections.extend(
                 [
@@ -165,13 +160,19 @@ class RouteRegistry:
                         "news",
                         getattr(news_config, "title", "News"),
                         news_config,
+                        "news",
                     ),
-                    ("research", "Research", self.config.research_areas),
-                    ("team", "Team", self.config.people),
+                    ("research", "Research", self.config.research_areas, "areas"),
+                    ("team", "Team", self.config.team, None),
                 ]
             )
-            for key, label, collection in optional_collections:
-                if collection and getattr(collection, "items", None):
+            for key, label, collection, entries_field in optional_collections:
+                entries = (
+                    team_people(self.config)
+                    if key == "team"
+                    else getattr(collection, entries_field, None)
+                )
+                if collection and entries:
                     navigation.append(
                         {
                             "key": key,
@@ -207,8 +208,6 @@ class RouteRegistry:
         aliases: Set[str] = set(keys)
         if aliases & {"blog", "updates"}:
             aliases.update({"blog", "updates"})
-        if aliases & {"team", "people"}:
-            aliases.update({"team", "people"})
         visible_keys = {
             item["key"] for item in self.navigation if item["visible"]
         }

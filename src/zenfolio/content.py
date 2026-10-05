@@ -9,7 +9,7 @@ from typing import Any, Dict, List
 
 from .errors import ZenFolioBuildError
 from .parsers import BibtexParser, parser_registry
-from .models.content_models import BlogPost, Page, Bio
+from .models.content_models import BlogPostConfig, PageConfig, BioConfig
 from .utils import content_date_key
 
 
@@ -26,14 +26,22 @@ class Content:
         self.publications: List[Dict[str, Any]] = []
         self.blog_posts: List[Dict[str, Any]] = []
         self.pages: List[Dict[str, Any]] = []
+        self.errors: List[str] = []
 
     def load(self):
         """Load all content from the content directory."""
         print("📝 Parsing content...")
+        self.errors = []
         self.bio = self._safe_parse_bio_data()
         self.publications = self._safe_parse_publications()
         self.blog_posts = self._safe_parse_blog_posts()
         self.pages = self._safe_parse_pages()
+        if self.errors:
+            raise ZenFolioBuildError(
+                "Content validation failed:\n" + "\n".join(
+                    f"  • {error}" for error in self.errors
+                )
+            )
         self.blog_posts = self._merge_page_updates(
             self.blog_posts, self.pages
         )
@@ -54,7 +62,7 @@ class Content:
                     "Pages with show_in_updates enabled require explicit "
                     f"route and date fields: {page.get('slug', '<unknown>')}"
                 )
-            update = BlogPost(
+            update = BlogPostConfig(
                 title=page["title"],
                 slug=page["slug"],
                 route=page["route"],
@@ -80,10 +88,7 @@ class Content:
     def _safe_parse_bio_data(self):
         """Safely parse bio data with error handling"""
         try:
-            identity = (
-                getattr(self.config, "identity", None)
-                or getattr(self.config, "author", None)
-            )
+            identity = self.config.identity
             index_path = self.content_dir / "index.md"
             parser = self.parser_registry.get_parser_for_file(index_path)
             
@@ -98,7 +103,7 @@ class Content:
                     else:
                         bio_data.setdefault('interests', [])
                     
-                    bio = Bio(**bio_data)
+                    bio = BioConfig(**bio_data)
                     return bio.to_dict()
             
             # If no bio data found, use config data
@@ -115,15 +120,15 @@ class Content:
             
             if self.debug:
                 print("⚠️  Warning: No suitable parser found for index.md, using empty bio data")
-            return Bio().to_dict()
+            return BioConfig().to_dict()
             
         except FileNotFoundError:
             if self.debug:
                 print("⚠️  Warning: index.md not found, using empty bio data")
-            return Bio().to_dict()
+            return BioConfig().to_dict()
         except Exception as e:
-            print(f"⚠️  Warning: Failed to parse index.md, using empty bio data: {e}")
-            return Bio().to_dict()
+            self.errors.append(f"index.md: {e}")
+            return BioConfig().to_dict()
 
     def _safe_parse_publications(self):
         """Safely parse publications with error handling"""
@@ -141,7 +146,7 @@ class Content:
             bibtex_parser = BibtexParser(self.config.publications.highlight_author)
             return bibtex_parser.parse_file(bibtex_file_path)
         except Exception as e:
-            print(f"⚠️  Warning: Failed to parse publications: {e}")
+            self.errors.append(f"{self.config.publications.bib_path}: {e}")
             return []
 
     def _safe_parse_blog_posts(self):
@@ -176,7 +181,7 @@ class Content:
                         else:
                             all_raw_posts.append(raw_post)
                 except Exception as e:
-                    print(f"⚠️  Warning: Parser {parser.__class__.__name__} failed on '{blog_dir}': {e}")
+                    self.errors.append(f"{blog_dir}: {e}")
                     continue
             
             seen_slugs = set()
@@ -184,10 +189,10 @@ class Content:
             for post in all_raw_posts:
                 slug = post.get('slug')
                 if not slug:
-                    print(f"⚠️  Warning: Skipping blog post without a slug: {post.get('title', '<untitled>')}")
+                    self.errors.append(f"Blog post without a slug: {post.get('title', '<untitled>')}")
                     continue
                 if slug in seen_slugs:
-                    print(f"⚠️  Warning: Duplicate blog slug '{slug}', keeping the first post and skipping the rest")
+                    self.errors.append(f"Duplicate blog slug '{slug}' in {blog_dir}")
                     continue
                 seen_slugs.add(slug)
                 unique_posts.append(post)
@@ -195,7 +200,7 @@ class Content:
             validated_posts = []
             for raw_post in unique_posts:
                 try:
-                    blog_post = BlogPost(**raw_post, content_raw=raw_post.get('content', ''))
+                    blog_post = BlogPostConfig(**raw_post, content_raw=raw_post.get('content', ''))
                     post_data = blog_post.to_dict()
                     plain_text = re.sub(
                         r"<[^>]+>",
@@ -209,7 +214,7 @@ class Content:
                     )
                     validated_posts.append(post_data)
                 except Exception as e:
-                    print(f"⚠️  Warning: Skipping blog post '{raw_post.get('slug', 'unknown')}', validation failed: {e}")
+                    self.errors.append(f"Blog post '{raw_post.get('slug', 'unknown')}' in {blog_dir}: {e}")
                     continue
             
             return sorted(
@@ -218,7 +223,7 @@ class Content:
                 reverse=True,
             )
         except Exception as e:
-            print(f"⚠️  Warning: Failed to parse blog posts: {e}")
+            self.errors.append(f"Blog content: {e}")
             return []
 
     def _safe_parse_pages(self):
@@ -237,24 +242,22 @@ class Content:
                 print(f"⚠️  Warning: Skipping '{file_path}', no parser available for this file type")
                 continue
             
-            raw_data = parser.parse_file(file_path)
-            if not raw_data:
-                continue
-            
-            if 'metadata' in raw_data:
-                raw_page_data = raw_data['metadata'].copy()
-                raw_page_data['content'] = raw_data.get('content', '')
-            else:
-                raw_page_data = raw_data
-            
-            raw_page_data.setdefault('title', raw_page_data.get('slug', file_path.stem).replace('-', ' ').title())
-            raw_page_data.setdefault('slug', file_path.stem)
-            raw_page_data.setdefault('content_type', raw_data.get('content_type', 'markdown'))
-            
             try:
-                page = Page(**raw_page_data)
+                raw_data = parser.parse_file(file_path)
+                if not raw_data:
+                    raise ValueError("Parser returned no page content")
+                if 'metadata' in raw_data:
+                    raw_page_data = raw_data['metadata'].copy()
+                    raw_page_data['content'] = raw_data.get('content', '')
+                else:
+                    raw_page_data = raw_data
+
+                raw_page_data.setdefault('title', raw_page_data.get('slug', file_path.stem).replace('-', ' ').title())
+                raw_page_data.setdefault('slug', file_path.stem)
+                raw_page_data.setdefault('content_type', raw_data.get('content_type', 'markdown'))
+                page = PageConfig(**raw_page_data)
                 parsed_pages.append(page.to_dict())
             except Exception as e:
-                print(f"⚠️  Warning: Failed to validate page {file_path}: {e}")
+                self.errors.append(f"{file_path}: {e}")
                 continue
         return parsed_pages

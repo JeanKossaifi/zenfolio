@@ -222,11 +222,11 @@ class BaseTheme(ABC):
         pass
     
     def render_page(self, content: str, page_title: str = "", author_name: str = "",
-                    site_description: str = "", base_url: str = "", include_navbar: bool = True, **context) -> str:
+                    site_description: str = "", base_url: str = "", **context) -> str:
         """Render a complete page using the base layout template"""
         self.set_render_context(base_url)
-        context.setdefault("show_site_header", include_navbar)
-        context.setdefault("show_site_footer", include_navbar)
+        context.setdefault("show_site_header", True)
+        context.setdefault("show_site_footer", True)
 
         if self.BASE_LAYOUT_TEMPLATE is None:
             raise ThemeRenderError(
@@ -258,7 +258,6 @@ class BaseTheme(ABC):
             author_name=author_name,
             site_description=site_description,
             base_url=base_url,
-            include_navbar=include_navbar,
             navbar=navbar_html,
             footer=footer_html,
             current_year=datetime.now().year,

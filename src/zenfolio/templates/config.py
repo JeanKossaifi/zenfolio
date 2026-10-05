@@ -2,18 +2,18 @@
 """ZenFolio site configuration."""
 
 from zenfolio.models import (
-    AuthorConfig, Config, OrganizationRef, PublicationConfig, SiteConfig,
+    AuthorConfig, ZenFolioConfig, OrganizationConfig, PublicationsConfig, SiteConfig,
 )
 
-author_config = AuthorConfig(
+identity = AuthorConfig(
     name="Your Name",
     title="Your Title",
-    affiliation=OrganizationRef(
+    affiliation=OrganizationConfig(
         name="Your Institution",
         url="https://institution.example/",
     ),
     email="your.email@example.com",
-    tagline="Your research tagline or mission statement",
+    tagline="A short description of your research",
     interests=[
         "Research Area 1",
         "Research Area 2",
@@ -28,37 +28,37 @@ author_config = AuthorConfig(
 )
 
 site_config = SiteConfig(
-    # Search preview; search engines may rewrite it for a query.
+    # Title and description for search results.
     title="Your Name - Academic Website",
     description="Personal academic website",
     base_url="https://yourdomain.com",
 
-    # Optional social override; otherwise title and description are reused.
+    # Optional image shown when someone shares a link to your site.
     # social_image="social-card.png",
 
     # Optional Google tag measurement ID.
     # google_analytics_id="G-XXXXXXXXXX",
 
-    # Other analytics/statistics script URLs loaded in every page's <head>.
+    # Other analytics scripts to include on every page.
     # analytics_scripts=["https://analytics.example/script.js"],
 )
 
-publication_config = PublicationConfig(
+publications_config = PublicationsConfig(
     bib_path="publications.bib",
     highlight_author="Your Name"
 )
 
-# Uncomment an import and its matching Config field to enable a section.
+# Uncomment an import and its matching ZenFolioConfig field to enable a section.
 # from news import news_config
 # from projects import projects_config
 # from talks import talks_config
 
-config = Config(
-    author=author_config,
+config = ZenFolioConfig(
+    identity=identity,
     site=site_config,
-    publications=publication_config,
+    publications=publications_config,
     theme="tailwind",
     # news=news_config,
     # projects=projects_config,
     # talks=talks_config,
-) 
+)

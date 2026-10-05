@@ -1,25 +1,21 @@
 #!/usr/bin/env python3
-"""
-News content for your academic website
-"""
+"""News for your website."""
 
-from zenfolio.models import NewsConfig
-from zenfolio.templates import news
-# Simple strings for paths - ZenFolio handles smart resolution
+from zenfolio.models import NewsConfig, NewsEntryConfig
 
 news_config = NewsConfig(
-    items=[
-        news(
+    news=[
+        NewsEntryConfig(
             content="**Important news**: your news item here. Use **bold** for emphasis.",
-            date="Month YYYY",
+            date="2026-05",
             highlight=True
         ),
-        news(
+        NewsEntryConfig(
             content="Another news item, optionally with a link.",
-            date="Earlier Month YYYY",
-            url="https://example.com/details",
+            date="2026-04",
+            website="https://example.com/details",
             highlight=False
         ),
-        # Add more news items using the news() helper...
+        # Add more news here.
     ]
 )

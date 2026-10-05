@@ -4,6 +4,33 @@ import pytest
 from zenfolio.parsers.bibtex_parser import BibtexParser
 from zenfolio.parsers.html_parser import HtmlParser
 from zenfolio.parsers.jupyter_parser import JupyterParser
+
+
+def test_bibtex_ignores_whole_line_comments_without_losing_literal_percent(tmp_path):
+    bib = tmp_path / "publications.bib"
+    bib.write_text(
+        "% @article{hidden,\n"
+        "% title={Hidden},\n"
+        "% year={2026}\n"
+        "% }\n"
+        "@article{visible, title={100\\% improvement}, year={2026}}\n",
+        encoding="utf-8",
+    )
+    publications = BibtexParser().parse_file(bib)
+    assert len(publications) == 1
+    assert publications[0]["title"] == "100% improvement"
+
+
+def test_notebook_rejects_non_mapping_frontmatter(tmp_path):
+    import nbformat
+
+    notebook = nbformat.v4.new_notebook(cells=[
+        nbformat.v4.new_markdown_cell("---\n[not, a, mapping]\n---\nBody"),
+    ])
+    source = tmp_path / "broken.ipynb"
+    nbformat.write(notebook, source)
+    with pytest.raises(ValueError, match="frontmatter must be a mapping"):
+        JupyterParser().parse_file(source)
 from zenfolio.errors import ZenFolioBuildError
 
 

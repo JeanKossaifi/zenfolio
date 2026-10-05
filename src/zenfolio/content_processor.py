@@ -6,6 +6,7 @@ from typing import Any, Dict, List, Optional
 
 import markdown
 
+from .errors import ZenFolioBuildError
 from .serialization import as_dict
 from .utils import (
     build_url,
@@ -205,10 +206,10 @@ class ContentProcessor:
                     content, self.config.site.markdown_extensions
                 )
             except Exception as error:
-                print(
-                    f"⚠️  Warning: Failed to process {field_name} with "
+                raise ZenFolioBuildError(
+                    f"Failed to process {field_name} with "
                     f"{parser.__class__.__name__}: {error}"
-                )
+                ) from error
 
         try:
             normalized = textwrap.dedent(content).strip()
@@ -217,11 +218,9 @@ class ContentProcessor:
                 extensions=self.config.site.markdown_extensions,
             )
         except Exception as error:
-            print(
-                f"⚠️  Warning: Failed to process {field_name} with "
-                f"fallback markdown, keeping raw content: {error}"
-            )
-            return content
+            raise ZenFolioBuildError(
+                f"Failed to process {field_name} with fallback Markdown: {error}"
+            ) from error
 
     def resolve_item_paths(self, item_dict: Dict[str, Any]) -> None:
         asset_fields = {

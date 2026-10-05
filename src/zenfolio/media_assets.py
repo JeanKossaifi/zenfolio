@@ -63,12 +63,13 @@ def prepare_talk_thumbnails(
     content_dir: Path,
     talks_config: Any,
     *,
+    static_dir: Optional[Path] = None,
     fetcher: ThumbnailFetcher = _download_thumbnail,
     timeout: float = 10.0,
 ) -> None:
     """Resolve cached thumbnails and optionally fetch missing YouTube images.
 
-    The cache lives in the site's source ``static/images/talks`` directory,
+    The cache lives under the site's configured static directory,
     so subsequent and offline builds reuse it. Download failures are warnings:
     the rendered theme can then use its image-free fallback without emitting a
     broken ``img`` element.
@@ -76,13 +77,13 @@ def prepare_talk_thumbnails(
     if not talks_config:
         return
 
-    items = _get(talks_config, "items", []) or []
+    talks = _get(talks_config, "talks", []) or []
     fetch_missing = bool(
         _get(talks_config, "cache_video_thumbnails", False)
     )
-    static_dir = Path(content_dir) / "static"
+    static_dir = Path(static_dir) if static_dir is not None else Path(content_dir) / "static"
 
-    for talk in items:
+    for talk in talks:
         explicit = _get(talk, "thumbnail")
         if explicit:
             continue

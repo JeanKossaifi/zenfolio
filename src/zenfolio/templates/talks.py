@@ -1,18 +1,17 @@
 #!/usr/bin/env python3
-"""
-Talks content for your academic website
-"""
+"""Talks for your website."""
 
-from zenfolio.models import TalksConfig, TalkItem
-# Simple strings for paths - ZenFolio handles smart resolution
+from zenfolio.models import TalksConfig, TalkConfig
+
+# Local file paths are relative to the static/ directory.
 
 talks_config = TalksConfig(
     # Cache missing YouTube thumbnails during `zenfolio build`.
     cache_video_thumbnails=True,
-    items=[
-        TalkItem(
+    talks=[
+        TalkConfig(
             title="Your Talk Title",
-            # Prefer ISO: YYYY, YYYY-MM, or YYYY-MM-DD.
+            # Use YYYY, YYYY-MM, or YYYY-MM-DD for dates.
             date="2026-05-05",
             venue="Conference/Workshop Name",
             type="Keynote",  # e.g., "Keynote", "Tutorial", "Panel", "Invited Talk"
@@ -23,16 +22,15 @@ talks_config = TalksConfig(
             materials="talks/supplementary.zip",       # Local materials
             code="https://github.com/username/talk-code", # GitHub repo
         ),
-        TalkItem(
+        TalkConfig(
             title="Another Talk",
             date="2025-11",
             venue="Workshop Name",
             type="Invited Talk",
             description="Description of another presentation.",
-            # Example with different types of links
             slides="https://speakerdeck.com/username/slides", # External slides
             demo="demos/interactive_demo.html",        # Local demo file
         ),
-        # Add more talks here...
+        # Add more talks here.
     ]
 )

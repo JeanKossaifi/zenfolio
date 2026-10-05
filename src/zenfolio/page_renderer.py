@@ -6,8 +6,8 @@ from typing import Any, Callable, Dict, List, Optional, Set, Tuple
 
 from .errors import ZenFolioBuildError
 from .models.site_config import AuthorConfig
-from .output_manager import is_relative_to
 from .serialization import as_dict
+from .team import team_people
 from .utils import (
     content_date_key,
     is_external_url,
@@ -229,11 +229,7 @@ class PageRenderer:
 
             if not seo_context["structured_data"]:
                 if page_type == "homepage":
-                    people = (
-                        self.config.people.items
-                        if self.config.people
-                        else None
-                    )
+                    people = team_people(self.config, current_only=True)
                     seo_context["structured_data"] = (
                         seo_generator.generate_identity_schema(people)
                     )
@@ -293,7 +289,7 @@ class PageRenderer:
         )
         output_path = self.output_dir / route_to_output_path(route)
         resolved_output = output_path.resolve()
-        if not is_relative_to(resolved_output, self.output_dir.resolve()):
+        if not resolved_output.is_relative_to(self.output_dir.resolve()):
             raise ZenFolioBuildError(
                 f"Generated route escapes the output directory: {route}"
             )

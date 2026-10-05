@@ -1,17 +1,17 @@
 from zenfolio.models import (
     AuthorConfig,
-    Config,
+    ZenFolioConfig,
     NewsConfig,
-    NewsItem,
-    ProjectItem,
+    NewsEntryConfig,
+    ProjectConfig,
     ProjectsConfig,
-    PublicationConfig,
+    PublicationsConfig,
     SiteConfig,
 )
 
 
-config = Config(
-    author=AuthorConfig(
+config = ZenFolioConfig(
+    identity=AuthorConfig(
         name="Ada Researcher",
         title="Research Scientist",
         affiliation="Example Institute",
@@ -24,13 +24,13 @@ config = Config(
         description="Personal research site for Ada Researcher.",
         base_url="https://ada.example.test",
     ),
-    publications=PublicationConfig(
+    publications=PublicationsConfig(
         bib_path="publications.bib",
         highlight_author="Ada Researcher",
     ),
     projects=ProjectsConfig(
-        items=[
-            ProjectItem(
+        projects=[
+            ProjectConfig(
                 title="Open Solver",
                 description="A reusable scientific solver.",
                 highlight=True,
@@ -39,8 +39,8 @@ config = Config(
         ]
     ),
     news=NewsConfig(
-        items=[
-            NewsItem(
+        news=[
+            NewsEntryConfig(
                 date="2026",
                 content="Released the Open Solver.",
             )

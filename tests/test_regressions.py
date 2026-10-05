@@ -12,6 +12,7 @@ import pytest
 from zenfolio.parsers.bibtex_parser import BibtexParser
 from zenfolio.parsers.markdown_parser import protect_math_blocks, restore_math_blocks
 from zenfolio.zenfolio import ZenFolio
+from zenfolio.errors import ZenFolioBuildError
 
 
 FIXTURES = Path(__file__).parent / "fixtures"
@@ -81,7 +82,7 @@ def test_markdown_page_with_frontmatter_builds(tmp_path):
     assert "Hello page body" in built.read_text(encoding="utf-8")
 
 
-def test_invalid_page_warns_without_debug(tmp_path, capsys):
+def test_invalid_page_fails_without_debug(tmp_path):
     content = _personal_site(tmp_path)
     (content / "pages").mkdir(exist_ok=True)
     (content / "pages" / "bad.md").write_text(
@@ -89,9 +90,8 @@ def test_invalid_page_warns_without_debug(tmp_path, capsys):
         encoding="utf-8",
     )
     site = ZenFolio(content_dir=content)  # debug defaults to False
-    site.build(base_url="")
-    captured = capsys.readouterr().out
-    assert "bad.md" in captured and "Warning" in captured
+    with pytest.raises(ZenFolioBuildError, match="bad.md"):
+        site.build(base_url="")
 
 
 # ---------------------------------------------------------------------------
@@ -183,15 +183,15 @@ def test_explicit_social_image_precedes_generated_route_card(tmp_path):
     )
 
 
-def test_duplicate_blog_slug_warns(tmp_path, capsys):
+def test_duplicate_blog_slug_fails_validation(tmp_path):
     from zenfolio.content import Content
-    from zenfolio.models import Config
+    from zenfolio.models import ZenFolioConfig
 
     content = tmp_path / "content"
     blog = content / "blog"
     blog.mkdir(parents=True)
     (content / "config.py").write_text(
-        "from zenfolio.models import Config\nconfig = Config()\n",
+        "from zenfolio.models import ZenFolioConfig\nconfig = ZenFolioConfig()\n",
         encoding="utf-8",
     )
     for name in ("one.md", "two.md"):
@@ -199,10 +199,9 @@ def test_duplicate_blog_slug_warns(tmp_path, capsys):
             "---\ntitle: T\nslug: same-slug\ndate: 2026-01-01\n---\nBody.",
             encoding="utf-8",
         )
-    loader = Content(content, Config(), debug=False)
-    posts = loader._safe_parse_blog_posts()
-    assert len(posts) == 1
-    assert "Duplicate blog slug 'same-slug'" in capsys.readouterr().out
+    loader = Content(content, ZenFolioConfig(), debug=False)
+    with pytest.raises(ZenFolioBuildError, match="Duplicate blog slug 'same-slug'"):
+        loader.load()
 
 
 # ---------------------------------------------------------------------------
@@ -259,15 +258,6 @@ def test_json_ld_escapes_script_closers():
 # ---------------------------------------------------------------------------
 # Scaffolding: everything init ships must import and run.
 
-def test_template_helpers_construct_valid_models():
-    from zenfolio.templates import button, news, project, service
-
-    assert news(content="c", date="2026", url="https://x.com").website == "https://x.com"
-    assert project(title="T", description="d", url="https://y.com").website == "https://y.com"
-    assert service(description="Reviewer", date="2026").category == "reviewer"
-    assert button(text="CV", url="cv.pdf").style == "primary"
-
-
 def test_init_scaffold_builds(tmp_path, capsys):
     from zenfolio.init import init_site
 
@@ -287,7 +277,7 @@ def test_scaffolded_news_file_executes(tmp_path):
     spec = importlib.util.spec_from_file_location("scaffold_news", src)
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
-    assert len(module.news_config.items) == 2
+    assert len(module.news_config.news) == 2
 
 
 # ---------------------------------------------------------------------------
@@ -297,7 +287,7 @@ def test_serve_site_reports_missing_output(tmp_path):
     from zenfolio.server import serve_site
 
     (tmp_path / "config.py").write_text(
-        "from zenfolio.models import Config\nconfig = Config()\n",
+        "from zenfolio.models import ZenFolioConfig\nconfig = ZenFolioConfig()\n",
         encoding="utf-8",
     )
     assert serve_site(tmp_path, port=0, open_browser=False) is False
@@ -344,10 +334,10 @@ def test_minimal_blog_excerpt_renders_html():
 
 
 def test_meta_description_has_no_double_entities():
-    from zenfolio.models import Config
+    from zenfolio.models import ZenFolioConfig
     from zenfolio.seo_utils import SEOGenerator
 
-    generator = SEOGenerator(Config())
+    generator = SEOGenerator(ZenFolioConfig())
     text = generator._plain_text("<p>Fast ops &amp; tricks</p>")
     assert text == "Fast ops & tricks"
 
@@ -368,11 +358,11 @@ def test_brace_protected_corporate_authors_stay_whole():
 def _write_personal_config(content, extra="", theme="minimal"):
     content.mkdir(parents=True, exist_ok=True)
     (content / "config.py").write_text(
-        "from zenfolio.models import (AuthorConfig, Config, NewsConfig, NewsItem,\n"
-        "    SiteConfig, ServiceItem, TalksConfig, TalkItem)\n"
-        "config = Config(\n"
-        "    author=AuthorConfig(name='Test Person', interests=['ML'],\n"
-        "        service=[ServiceItem(description='Reviewer', date='2026', venue='NeurIPS')]),\n"
+        "from zenfolio.models import (AuthorConfig, ZenFolioConfig, NewsConfig, NewsEntryConfig,\n"
+        "    SiteConfig, ServiceEntryConfig, TalksConfig, TalkConfig)\n"
+        "config = ZenFolioConfig(\n"
+        "    identity=AuthorConfig(name='Test Person', interests=['ML'],\n"
+        "        service=[ServiceEntryConfig(description='Reviewer', date='2026', venue='NeurIPS')]),\n"
         "    site=SiteConfig(title='T', description='d', base_url='', blog_folder=None),\n"
         f"    theme='{theme}',\n"
         f"    {extra}\n"
@@ -387,7 +377,7 @@ def _write_personal_config(content, extra="", theme="minimal"):
     return content
 
 
-def test_minimal_theme_legacy_homepage_builds(tmp_path):
+def test_minimal_theme_default_homepage_builds(tmp_path):
     """The default theme must render the default homepage: bio, service,
     and publications (with authors as names, not a Python list repr)."""
     site = ZenFolio(content_dir=_write_personal_config(tmp_path / "site"))
@@ -406,8 +396,8 @@ def test_merge_talks_renders_on_stock_theme(tmp_path):
     content = _write_personal_config(
         tmp_path / "site",
         extra=(
-            "news=NewsConfig(merge_talks=True, items=[NewsItem(date='2026-01-02', content='News one')]),\n"
-            "    talks=TalksConfig(items=[TalkItem(title='My Talk', date='2026-01-01', venue='V')]),"
+            "news=NewsConfig(merge_talks=True, news=[NewsEntryConfig(date='2026-01-02', content='News one')]),\n"
+            "    talks=TalksConfig(talks=[TalkConfig(title='My Talk', date='2026-01-01', venue='V')]),"
         ),
         theme="tailwind",
     )
@@ -425,11 +415,11 @@ def test_merge_talks_sorts_readable_full_dates(tmp_path):
     content = _write_personal_config(
         tmp_path / "site",
         extra=(
-            "news=NewsConfig(merge_talks=True, items=["
-            "NewsItem(date='April 2026', content='April news')]),\n"
-            "    talks=TalksConfig(items=["
-            "TalkItem(title='May talk', date='May 5, 2026'), "
-            "TalkItem(title='March talk', date='March 9, 2026')]),"
+            "news=NewsConfig(merge_talks=True, news=["
+            "NewsEntryConfig(date='April 2026', content='April news')]),\n"
+            "    talks=TalksConfig(talks=["
+            "TalkConfig(title='May talk', date='May 5, 2026'), "
+            "TalkConfig(title='March talk', date='March 9, 2026')]),"
         ),
         theme="tailwind",
     )
@@ -491,7 +481,7 @@ def test_output_manager_refuses_unmarked_handmade_site(tmp_path):
     ZenFolio output."""
     from zenfolio.errors import ZenFolioBuildError
     from zenfolio.output_manager import OutputManager
-    from zenfolio.models import Config
+    from zenfolio.models import ZenFolioConfig
 
     content = tmp_path / "content"
     (content / "static").mkdir(parents=True)
@@ -502,7 +492,7 @@ def test_output_manager_refuses_unmarked_handmade_site(tmp_path):
     (docs / "notes.txt").write_text("do not delete", encoding="utf-8")
 
     manager = OutputManager(
-        Config(output_path=str(docs)), content, content / "static", docs
+        ZenFolioConfig(output_path=str(docs)), content, content / "static", docs
     )
     with pytest.raises(ZenFolioBuildError, match="not\\s+marked"):
         manager.validate()
@@ -512,9 +502,9 @@ def test_output_manager_refuses_unmarked_handmade_site(tmp_path):
 def test_theme_override_is_self_contained(tmp_path):
     from zenfolio.errors import ZenFolioBuildError
     from zenfolio.theme_loader import load_theme
-    from zenfolio.models import Config
+    from zenfolio.models import ZenFolioConfig
 
-    config = Config(theme="minimal")
+    config = ZenFolioConfig(theme="minimal")
     assert type(load_theme(config, tmp_path, "tailwind")).__name__ == "TailwindTheme"
     assert config.theme == "minimal"  # no hidden mutation
     with pytest.raises(ZenFolioBuildError, match="Unknown theme"):
@@ -523,12 +513,12 @@ def test_theme_override_is_self_contained(tmp_path):
 
 def test_blog_description_stays_plain_text(tmp_path):
     from zenfolio.content_processor import ContentProcessor
-    from zenfolio.models import Config
+    from zenfolio.models import ZenFolioConfig
     from zenfolio.parsers import parser_registry
     from zenfolio.theme_loader import BUILTIN_THEMES
 
     processor = ContentProcessor(
-        Config(), BUILTIN_THEMES["tailwind"](), parser_registry, False
+        ZenFolioConfig(), BUILTIN_THEMES["tailwind"](), parser_registry, False
     )
     items = processor.process_items(
         [{

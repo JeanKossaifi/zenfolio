@@ -5,6 +5,7 @@ from typing import Any, Protocol
 from .media_assets import prepare_talk_thumbnails
 from .models.site_config import AuthorConfig
 from .seo_utils import SEOGenerator
+from .team import team_people
 
 
 class SiteBuildHost(Protocol):
@@ -14,6 +15,7 @@ class SiteBuildHost(Protocol):
     content: Any
     theme: Any
     content_dir: Any
+    static_dir: Any
     output_dir: Any
     output_manager: Any
     generated_routes: set
@@ -22,6 +24,7 @@ class SiteBuildHost(Protocol):
 
     def _configure_navigation(self) -> None: ...
     def _sync_output_manager(self) -> None: ...
+    def _sync_page_renderer(self) -> None: ...
     def _route_for(self, key: str) -> str: ...
     def _is_requested_page(self, *keys: str) -> bool: ...
     def _standalone_page_route(self, page: dict) -> str: ...
@@ -37,7 +40,7 @@ class SiteBuildHost(Protocol):
 
 
 class SiteBuilder:
-    """Coordinate a complete build through the backward-compatible facade."""
+    """Coordinate a complete build through the shared build components."""
 
     def __init__(self, host: SiteBuildHost):
         self.host = host
@@ -50,11 +53,29 @@ class SiteBuilder:
         host.seo_pages.clear()
 
         host.content.load()
-        prepare_talk_thumbnails(host.content_dir, host.config.talks)
+        prepare_talk_thumbnails(
+            host.content_dir, host.config.talks, static_dir=host.static_dir
+        )
         host._configure_navigation()
         host._sync_output_manager()
-        host.output_manager.prepare(host.theme)
+        manager = host.output_manager
+        output_dir = host.output_dir
+        with manager.staging() as staged:
+            try:
+                host.output_manager = staged
+                host.output_dir = staged.output_dir
+                staged.prepare(host.theme)
+                self._generate()
+            finally:
+                host.output_dir = output_dir
+                host.output_manager = manager
+                host._sync_page_renderer()
+        print(f"✅ Site built successfully in {host.output_dir}/")
+        return True
 
+    def _generate(self) -> None:
+        """Write all generated pages and metadata into the active staging area."""
+        host = self.host
         seo_generator = SEOGenerator(
             host.config,
             host.effective_base_url,
@@ -102,13 +123,13 @@ class SiteBuilder:
 
         if (
             host.config.projects
-            and host.config.projects.items
+            and host.config.projects.projects
             and host._is_requested_page("projects")
         ):
             host._build_list_page(
                 host.config.projects.title,
                 host._route_for("projects"),
-                host.config.projects.items,
+                host.config.projects.projects,
                 "project_item",
                 2,
                 host.effective_base_url,
@@ -119,7 +140,7 @@ class SiteBuilder:
 
         if (
             host.config.talks
-            and host.config.talks.items
+            and host.config.talks.talks
             and not (
                 host.config.news
                 and host.config.news.merge_talks
@@ -129,7 +150,7 @@ class SiteBuilder:
             host._build_list_page(
                 host.config.talks.title,
                 host._route_for("talks"),
-                host.config.talks.items,
+                host.config.talks.talks,
                 "talk_item",
                 1,
                 host.effective_base_url,
@@ -140,13 +161,13 @@ class SiteBuilder:
 
         if (
             host.config.news
-            and host.config.news.items
+            and host.config.news.news
             and host._is_requested_page("news")
         ):
             host._build_list_page(
                 host.config.news.title,
                 host._route_for("news"),
-                host.config.news.items,
+                host.config.news.news,
                 "news_item",
                 1,
                 host.effective_base_url,
@@ -157,23 +178,22 @@ class SiteBuilder:
                 related_collections=(
                     {
                         "talk_items": (
-                            host.config.talks.items,
+                            host.config.talks.talks,
                             "updates_talk_item",
                         )
                     }
                     if (
                         host.config.news.merge_talks
                         and host.config.talks
-                        and host.config.talks.items
+                        and host.config.talks.talks
                     )
                     else None
                 ),
             )
 
         if (
-            host.config.people
-            and host.config.people.items
-            and host._is_requested_page("team", "people")
+            team_people(host.config)
+            and host._is_requested_page("team")
         ):
             host._build_team_page(seo_generator)
 
@@ -185,14 +205,14 @@ class SiteBuilder:
         )
         if (
             host.config.research_areas
-            and host.config.research_areas.items
+            and host.config.research_areas.areas
             and host._is_requested_page("research")
             and not has_research_markdown
         ):
             host._build_list_page(
                 host.config.research_areas.title,
                 research_route,
-                host.config.research_areas.items,
+                host.config.research_areas.areas,
                 "research_area_item",
                 3,
                 host.effective_base_url,
@@ -239,5 +259,3 @@ class SiteBuilder:
         host._build_pages(host.effective_base_url, seo_generator)
         print("🗺️ Generating sitemap...")
         host._generate_sitemap(seo_generator)
-        print(f"✅ Site built successfully in {host.output_dir}/")
-        return True

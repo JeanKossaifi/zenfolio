@@ -6,9 +6,9 @@ Implements ContentParser protocol for parsing .ipynb files.
 from pathlib import Path
 from typing import Dict, List, Any, Set
 import nbformat
-import frontmatter
 from nbconvert import HTMLExporter
 from .base_parser import ContentParser
+from .frontmatter_utils import parse_frontmatter
 from .markdown_parser import protect_math_blocks, restore_math_blocks
 from ..utils import DEFAULT_MARKDOWN_EXTENSIONS, content_date_key
 
@@ -73,20 +73,8 @@ class JupyterParser(ContentParser):
         return {'blog_post', 'page', 'notebook'}
     
     def can_parse(self, file_path: Path) -> bool:
-        """Check if this parser can handle the given file.
-
-        Peeks at the head of the file instead of parsing the whole JSON:
-        can_parse runs for every registry lookup, and notebooks can be large.
-        """
-        if file_path.suffix.lower() != '.ipynb':
-            return False
-
-        try:
-            with open(file_path, 'r', encoding='utf-8-sig') as f:
-                head = f.read(4096).lstrip()
-            return head.startswith('{') and '"cells"' in head
-        except (OSError, UnicodeDecodeError):
-            return False
+        """Select by extension so malformed notebooks reach validation."""
+        return file_path.suffix.lower() in self.supported_extensions
     
     def parse_file(self, file_path: Path) -> Dict[str, Any]:
         """
@@ -112,7 +100,7 @@ class JupyterParser(ContentParser):
                 source = notebook_node.cells[0].source
                 if source.strip().startswith('---'):
                     try:
-                        fm = frontmatter.loads(source)
+                        fm = parse_frontmatter(source)
                         # Only treat the cell as frontmatter if it actually
                         # yielded metadata; a markdown cell that merely starts
                         # with a horizontal rule must be kept as content.
@@ -120,8 +108,8 @@ class JupyterParser(ContentParser):
                             metadata.update(fm.metadata)
                             # Remove the frontmatter cell before converting
                             notebook_node.cells.pop(0)
-                    except Exception:
-                        pass  # Not valid frontmatter, treat as normal markdown
+                    except Exception as e:
+                        raise ValueError(f"Invalid notebook frontmatter: {e}") from e
             
             # Add content type to metadata
             metadata['content_type'] = 'notebook'
@@ -163,8 +151,7 @@ class JupyterParser(ContentParser):
             }
             
         except Exception as e:
-            print(f"❌ Error parsing notebook {file_path}: {e}")
-            return {}
+            raise ValueError(f"Could not parse notebook {file_path}: {e}") from e
     
     def _clean_notebook_html(self, html_content: str) -> str:
         """

@@ -4,6 +4,8 @@
     {% endif %}
     <h3 class="text-xl font-semibold">{{ item.name }}</h3>
     {% if item.role %}<p class="text-sm text-teal-700 dark:text-teal-300 mt-1">{{ item.role }}</p>{% endif %}
+    {% if item.affiliation %}<p class="text-sm text-gray-600 dark:text-gray-300 mt-1">{{ item.affiliation }}</p>{% endif %}
+    {% if item.get('internship_years') %}<p class="text-sm text-gray-600 dark:text-gray-300 mt-1">Internships: {{ item.internship_years | join(', ') }}</p>{% endif %}
     {% if item.bio %}<div class="mt-4 text-gray-600 dark:text-gray-300">{{ item.bio | safe }}</div>{% endif %}
     {% if item.profile %}<a href="{{ item.profile }}" class="inline-block mt-4 font-medium text-teal-700 dark:text-teal-300">Profile →</a>{% endif %}
 </article>

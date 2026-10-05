@@ -155,9 +155,8 @@ class LocalTheme(BaseTheme):
         **context,
     ) -> str:
         self.set_render_context(base_url)
-        legacy_include = context.pop("include_navbar", True)
-        context.setdefault("show_site_header", legacy_include)
-        context.setdefault("show_site_footer", legacy_include)
+        context.setdefault("show_site_header", True)
+        context.setdefault("show_site_footer", True)
         context.setdefault("page_stylesheets", [])
         context.setdefault("page_scripts", [])
         context.setdefault("theme_color", None)
